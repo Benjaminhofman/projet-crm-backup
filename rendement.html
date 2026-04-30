@@ -91,17 +91,21 @@ input {
 <script src="utils.js"></script>
 
 <script>
-
-let dataGlobal;
+(function(){
 
 /* LOAD DATA */
 async function load() {
-    dataGlobal = await fetch(API_URL + "/clients").then(r => r.json());
-    display(dataGlobal);
+
+    const res = await fetch(API_URL + "/clients");
+    const data = await res.json();
+
+    console.log("DATA LOADED:", data);
+
+    display(data);
 }
 
 /* CALCUL */
-function calculerLigne(row, clientId) {
+function calculerLigne(row) {
 
     const temps = parseFloat(row.querySelector(".temps").value) || 0;
     const honos = parseFloat(row.querySelector(".honos").value) || 0;
@@ -157,9 +161,9 @@ function display(data) {
         const tempsInput = tr.querySelector(".temps");
         const honosInput = tr.querySelector(".honos");
 
-        /* EVENTS */
-        tempsInput.addEventListener("input", () => calculerLigne(tr, c.id));
-        honosInput.addEventListener("input", () => calculerLigne(tr, c.id));
+        /* CALCUL LIVE */
+        tempsInput.addEventListener("input", () => calculerLigne(tr));
+        honosInput.addEventListener("input", () => calculerLigne(tr));
 
         /* SAVE */
         tempsInput.addEventListener("change", (e) => {
@@ -171,14 +175,16 @@ function display(data) {
         });
 
         /* CALCUL INIT */
-        calculerLigne(tr, c.id);
+        calculerLigne(tr);
 
         table.appendChild(tr);
     });
 }
 
+/* INIT */
 load();
 
+})();
 </script>
 
 </body>
