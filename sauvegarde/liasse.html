@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Suivi Liasse</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f4f6fb;
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.back {
+    background: #273c75;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.counter {
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.filters-top {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.filters-top input {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background: #273c75;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background: #f8f9fc;
+}
+
+tr:hover {
+    background: #e8f0fe;
+}
+
+.name {
+    font-weight: bold;
+}
+
+input[type="checkbox"] {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <a href="declaratif.html" class="back">⬅ Retour</a>
+    <h2>📊 Suivi Liasse</h2>
+</div>
+
+<div class="counter" id="counter"></div>
+
+<!-- FILTRES -->
+<div class="filters-top">
+    <input id="filter-assistant" placeholder="Assistant...">
+    <input id="filter-collab" placeholder="Collaborateur...">
+    <input id="filter-annee" placeholder="Année...">
+    <input id="filter-cloture" placeholder="Clôture...">
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Nom</th>
+<th>Assistant</th>
+<th>Collaborateur</th>
+<th>Année</th>
+<th>Clôture</th>
+
+<th>EDI Liasse</th>
+<th>2069 RCI</th>
+<th>2067</th>
+<th>Dividendes</th>
+<th>Prépa PV AG</th>
+</tr>
+</thead>
+
+<tbody id="table"></tbody>
+</table>
+
+<script>
+const API_URL = "https://projet-crm-m0o3.onrender.com";
+
+let dataGlobal = [];
+
+// 🔥 checkbox
+async function updateCheckbox(id, field, value, el) {
+
+    el.style.outline = "2px solid orange";
+
+    try {
+        await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ id, field, value })
+        });
+
+        el.style.outline = "2px solid green";
+
+    } catch (error) {
+        el.style.outline = "2px solid red";
+    }
+}
+
+
+// 🔥 champ texte / nombre
+async function updateField(id, field, value, el) {
+
+    el.style.outline = "2px solid orange";
+
+    try {
+        await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ id, field, value })
+        });
+
+        el.style.outline = "2px solid green";
+
+    } catch (error) {
+        el.style.outline = "2px solid red";
+    }
+}
+
+
+// affichage
+function display(data) {
+
+    const table = document.getElementById("table");
+    table.innerHTML = "";
+
+    document.getElementById("counter").innerText =
+        "Nombre de dossiers : " + data.length;
+
+    data.forEach(c => {
+
+        table.innerHTML += `
+        <tr>
+
+            <td>${c["code client"] || ""}</td>
+            <td class="name">${c["nom client"] || ""}</td>
+            <td>${c["assistant"] || ""}</td>
+            <td>${c["collaborateur"] || ""}</td>
+            <td>${c["année"] || ""}</td>
+            <td>${c["date de cloture"] || ""}</td>
+
+            <td>
+                <input type="checkbox"
+                    ${c["edi liasse"] ? "checked" : ""}
+                    onchange="updateCheckbox('${c.id}','edi liasse', this.checked, this)">
+            </td>
+
+            <td>
+                <input type="checkbox"
+                    ${c["2069 RCI Liasse"] ? "checked" : ""}
+                    onchange="updateCheckbox('${c.id}','2069 RCI Liasse', this.checked, this)">
+            </td>
+
+            <td>
+                <input type="checkbox"
+                    ${c["2067 liasse"] ? "checked" : ""}
+                    onchange="updateCheckbox('${c.id}','2067 liasse', this.checked, this)">
+            </td>
+
+            <td>
+                <input 
+                    value="${c["dividendes"] || ""}"
+                    onchange="updateField('${c.id}','dividendes', this.value, this)">
+            </td>
+
+            <td>
+                <input type="checkbox"
+                    ${c["prepa PV AG"] ? "checked" : ""}
+                    onchange="updateCheckbox('${c.id}','prepa PV AG', this.checked, this)">
+            </td>
+
+        </tr>`;
+    });
+}
+
+
+// filtres
+function applyFilters() {
+
+    const assistant = document.getElementById("filter-assistant").value.toLowerCase();
+    const collab = document.getElementById("filter-collab").value.toLowerCase();
+    const annee = document.getElementById("filter-annee").value.toLowerCase();
+    const cloture = document.getElementById("filter-cloture").value.toLowerCase();
+
+    const filtered = dataGlobal.filter(c => {
+
+        if (assistant && !(c["assistant"] || "").toLowerCase().includes(assistant)) return false;
+        if (collab && !(c["collaborateur"] || "").toLowerCase().includes(collab)) return false;
+        if (annee && !(String(c["année"])).includes(annee)) return false;
+        if (cloture && !(c["date de cloture"] || "").toLowerCase().includes(cloture)) return false;
+
+        return true;
+    });
+
+    display(filtered);
+}
+
+
+// load
+async function load() {
+
+    const res = await fetch(API_URL + "/clients");
+    const data = await res.json();
+
+    dataGlobal = data.filter(c => c["liasse"] === true);
+
+    display(dataGlobal);
+
+    document.querySelectorAll(".filters-top input").forEach(input => {
+        input.addEventListener("input", applyFilters);
+    });
+}
+
+load();
+</script>
+
+</body>
+</html>

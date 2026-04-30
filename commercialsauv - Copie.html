@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Suivi Commercial</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f4f6fb;
+    margin: 0;
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.back {
+    background: #273c75;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.counter {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.filters input, .filters select {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background: #273c75;
+    color: white;
+}
+
+select {
+    padding: 4px;
+    border-radius: 6px;
+}
+
+.clickable {
+    cursor: pointer;
+    color: #273c75;
+    font-weight: bold;
+}
+
+.clickable:hover {
+    text-decoration: underline;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <a href="index.html" class="back">⬅ Retour</a>
+    <h2>💰 Suivi Commercial</h2>
+</div>
+
+<div class="counter" id="counter"></div>
+
+<div class="filters">
+    <input id="f-assistant" placeholder="Assistant">
+    <input id="f-collab" placeholder="Collaborateur">
+    <input id="f-annee" placeholder="Année">
+    <input id="f-cloture" placeholder="Clôture">
+
+    <select id="f-retraite">
+        <option value="">Retraite</option>
+    </select>
+
+    <select id="f-patrimoine">
+        <option value="">Patrimoniale</option>
+    </select>
+
+    <select id="f-placement">
+        <option value="">Placement</option>
+    </select>
+
+    <select id="f-prevoyance">
+        <option value="">Prévoyance</option>
+    </select>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Année</th>
+<th>Nom</th>
+<th>Assistant</th>
+<th>Collaborateur</th>
+
+<th>Retraite</th>
+<th>Patrimoniale</th>
+<th>Placement</th>
+<th>Prévoyance</th>
+
+</tr>
+</thead>
+
+<tbody id="table"></tbody>
+</table>
+
+<script>
+const API_URL = "https://projet-crm-m0o3.onrender.com";
+
+let dataGlobal = [];
+
+const STATUTS = [
+    "détecté",
+    "en cours",
+    "proposé",
+    "accepté",
+    "refusé",
+    "non applicable"
+];
+
+// remplir les filtres select
+function initSelectFilters() {
+    ["f-retraite", "f-patrimoine", "f-placement", "f-prevoyance"].forEach(id => {
+        const select = document.getElementById(id);
+        STATUTS.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s;
+            opt.textContent = s;
+            select.appendChild(opt);
+        });
+    });
+}
+
+// affichage
+function display(data) {
+
+    const table = document.getElementById("table");
+    table.innerHTML = "";
+
+    document.getElementById("counter").innerText =
+        "Nombre de dossiers : " + data.length;
+
+    data.forEach(c => {
+
+        table.innerHTML += `
+        <tr>
+
+            <td class="clickable" onclick="openClient('${c.id}')">${c["code client"] || ""}</td>
+            <td class="clickable" onclick="openClient('${c.id}')">${c["année"] || ""}</td>
+            <td class="clickable" onclick="openClient('${c.id}')">${c["nom client"] || ""}</td>
+            <td class="clickable" onclick="openClient('${c.id}')">${c["assistant"] || ""}</td>
+            <td class="clickable" onclick="openClient('${c.id}')">${c["collaborateur"] || ""}</td>
+
+            ${buildSelect(c, "suivi mission retraite")}
+            ${buildSelect(c, "suivi mission patrimoniale")}
+            ${buildSelect(c, "suivi mission placement")}
+            ${buildSelect(c, "suivi mission prevoyance")}
+
+        </tr>`;
+    });
+}
+
+// select dynamique
+function buildSelect(c, field) {
+
+    const value = c[field] || "";
+
+    return `
+    <td>
+        <select onchange="updateField('${c.id}', '${field}', this.value)">
+
+            <option value="" ${value === "" ? "selected" : ""}></option>
+
+            ${STATUTS.map(s => `
+                <option value="${s}" ${value === s ? "selected" : ""}>
+                    ${s}
+                </option>
+            `).join("")}
+
+        </select>
+    </td>`;
+}
+
+// update airtable
+async function updateField(id, field, value) {
+
+    // 1. update API
+    await fetch(API_URL + "/update-airtable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            id: id,
+            field: field,
+            value: value
+        })
+    });
+
+    // 2. update local (CRUCIAL)
+    const client = dataGlobal.find(c => c.id === id);
+    if (client) {
+        client[field] = value;
+    }
+
+    // 3. NE PAS relancer applyFilters automatiquement
+}
+// ouverture fiche client
+function openClient(id) {
+    window.location.href = "client.html?id=" + id;
+}
+
+// filtres
+function applyFilters() {
+
+    const assistant = document.getElementById("f-assistant").value.toLowerCase();
+    const collab = document.getElementById("f-collab").value.toLowerCase();
+    const annee = document.getElementById("f-annee").value.toLowerCase();
+    const cloture = document.getElementById("f-cloture").value.toLowerCase();
+
+    const retraite = document.getElementById("f-retraite").value;
+    const patrimoine = document.getElementById("f-patrimoine").value;
+    const placement = document.getElementById("f-placement").value;
+    const prevoyance = document.getElementById("f-prevoyance").value;
+
+    const filtered = dataGlobal.filter(c => {
+
+        let visible = true;
+
+        if (assistant && !(c["assistant"] || "").toLowerCase().includes(assistant)) visible = false;
+        if (collab && !(c["collaborateur"] || "").toLowerCase().includes(collab)) visible = false;
+        if (annee && !(String(c["année"])).includes(annee)) visible = false;
+        if (cloture && !(c["date de cloture"] || "").toLowerCase().includes(cloture)) visible = false;
+
+        if (retraite && c["suivi mission retraite"] !== retraite) visible = false;
+        if (patrimoine && c["suivi mission patrimoniale"] !== patrimoine) visible = false;
+        if (placement && c["suivi mission placement"] !== placement) visible = false;
+        if (prevoyance && c["suivi mission prevoyance"] !== prevoyance) visible = false;
+
+        // 👇 garde toujours visible si modifié récemment
+        return visible || c._justUpdated;
+    });
+
+    display(filtered);
+}
+
+// load
+async function load() {
+    initSelectFilters();
+
+    const res = await fetch(API_URL + "/clients");
+    dataGlobal = await res.json();
+
+    applyFilters();
+
+    document.querySelectorAll(".filters input, .filters select").forEach(el =>
+        el.addEventListener("input", applyFilters)
+    );
+}
+
+load();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+# 🔐 Fichiers sensibles
+config.py
+.env
+
+# 🐍 Python
+__pycache__/
+*.pyc
+
+# 🖥️ Système
+.DS_Store
+Thumbs.db
