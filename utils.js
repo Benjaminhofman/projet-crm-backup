@@ -1,8 +1,16 @@
 const API_URL = "https://projet-crm-m0o3.onrender.com";
 
+let dataGlobal = [];
+
 async function fetchClients() {
     const res = await fetch(API_URL + "/clients");
     return res.json();
+}
+
+function bindFilterInputs(selector, event = "input") {
+    document.querySelectorAll(selector).forEach(el =>
+        el.addEventListener(event, applyFilters)
+    );
 }
 
 function formatDate(dateStr) {

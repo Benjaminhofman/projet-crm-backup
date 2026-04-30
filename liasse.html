@@ -119,7 +119,6 @@ input[type="checkbox"] {
 <script src="utils.js"></script>
 <script>
 
-let dataGlobal = [];
 
 // 🔥 checkbox
 async function updateCheckbox(id, field, value, el) {
@@ -231,9 +230,7 @@ async function load() {
 
     display(dataGlobal);
 
-    document.querySelectorAll(".filters-top input").forEach(input => {
-        input.addEventListener("input", applyFilters);
-    });
+    bindFilterInputs(".filters-top input");
 }
 
 load();

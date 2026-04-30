@@ -120,7 +120,6 @@ select {
 <script src="utils.js"></script>
 <script>
 
-let dataGlobal = [];
 
 const STATUTS = [
     "détecté",
@@ -250,9 +249,7 @@ async function load() {
 
     applyFilters();
 
-    document.querySelectorAll(".filters input, .filters select").forEach(el =>
-        el.addEventListener("input", applyFilters)
-    );
+    bindFilterInputs(".filters input, .filters select");
 }
 
 load();

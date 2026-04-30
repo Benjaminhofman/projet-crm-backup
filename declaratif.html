@@ -148,7 +148,6 @@ tr:hover {
 <script src="utils.js"></script>
 <script>
 
-let dataGlobal = [];
 
 const fields = [
     "CA12",
@@ -197,9 +196,7 @@ function buildFilters() {
         <input type="checkbox" id="filter-dividendes">
     </td>`;
 
-    document.querySelectorAll("#filters input").forEach(cb => {
-        cb.addEventListener("change", applyFilters);
-    });
+    bindFilterInputs("#filters input", "change");
 }
 
 // filtrage
@@ -272,9 +269,7 @@ async function load() {
     buildFilters();
     display(dataGlobal);
 
-    document.querySelectorAll(".filters-top input").forEach(input => {
-        input.addEventListener("input", applyFilters);
-    });
+    bindFilterInputs(".filters-top input");
 }
 
 load();

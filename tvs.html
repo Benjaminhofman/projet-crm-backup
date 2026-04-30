@@ -128,7 +128,6 @@ input {
 <script src="utils.js"></script>
 <script>
 
-let dataGlobal = [];
 
 // 🔥 update airtable
 
@@ -203,9 +202,7 @@ async function load() {
 
     display(dataGlobal);
 
-    document.querySelectorAll(".filters-top input").forEach(input => {
-        input.addEventListener("input", applyFilters);
-    });
+    bindFilterInputs(".filters-top input");
 }
 
 load();

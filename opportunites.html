@@ -142,7 +142,6 @@ tr:hover {
 <script src="utils.js"></script>
 <script>
 
-let dataGlobal = [];
 
 // affichage
 function display(data) {
@@ -248,13 +247,8 @@ async function load() {
 
     applyFilters();
 
-    document.querySelectorAll(".filters input").forEach(i =>
-        i.addEventListener("input", applyFilters)
-    );
-
-    document.querySelectorAll("#filters-opportunites input").forEach(cb =>
-        cb.addEventListener("change", applyFilters)
-    );
+    bindFilterInputs(".filters input");
+    bindFilterInputs("#filters-opportunites input", "change");
 }
 
 load();
