@@ -172,7 +172,7 @@ function display(data) {
         <td>${c["ancienneté"] || ""}</td>
 
         <td>
-            <input class="temps" value="${c["temps passe"] || ""}">
+            <input class="temps" value="${c["temps passé"] || ""}">
         </td>
 
         <td>
@@ -191,7 +191,7 @@ function display(data) {
 
         /* SAVE */
         tempsInput.addEventListener("change", (e) => {
-            updateField(c.id, "temps passe", e.target.value, e.target);
+            updateField(c.id, "temps passé", e.target.value, e.target);
         });
 
         honosInput.addEventListener("change", (e) => {
