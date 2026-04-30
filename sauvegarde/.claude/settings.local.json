@@ -3,9 +3,7 @@
     "allow": [
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\lebou\\\\Downloads\\\\fec\\\\projet crm\" -Depth 1 | Where-Object { -not $_.PSIsContainer -and $_.Extension -ne '.html' } | Select-Object Name, Length | Sort-Object Name)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\lebou\\\\Downloads\\\\fec\\\\projet crm\" | Where-Object { -not $_.PSIsContainer } | Select-Object Name)",
-      "Bash(python3 -c ' *)",
-      "Bash(gh --version)",
-      "Bash(gh auth *)"
+      "Bash(python3 -c ' *)"
     ]
   }
 }
