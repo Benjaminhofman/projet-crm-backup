@@ -27,6 +27,18 @@ body {
     text-decoration: none;
 }
 
+.filters-top {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.filters-top input {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -67,6 +79,15 @@ input {
     <h2>📈 Rendement</h2>
 </div>
 
+<!-- FILTRES -->
+<div class="filters-top">
+    <input id="search" placeholder="🔍 Nom client...">
+    <input id="filter-assistant" placeholder="Assistant...">
+    <input id="filter-collab" placeholder="Collaborateur...">
+    <input id="filter-annee" placeholder="Année...">
+    <input id="filter-cloture" placeholder="Clôture...">
+</div>
+
 <table>
 <thead>
 <tr>
@@ -93,15 +114,18 @@ input {
 <script>
 (function(){
 
+let dataGlobal;
+
 /* LOAD DATA */
 async function load() {
 
     const res = await fetch(API_URL + "/clients");
     const data = await res.json();
 
-    console.log("DATA LOADED:", data);
+    dataGlobal = data;
 
-    display(data);
+    display(dataGlobal);
+    bindFilters();
 }
 
 /* CALCUL */
@@ -148,7 +172,7 @@ function display(data) {
         <td>${c["ancienneté"] || ""}</td>
 
         <td>
-            <input class="temps" value="${c["temps passé"] || ""}">
+            <input class="temps" value="${c["temps passe"] || ""}">
         </td>
 
         <td>
@@ -167,17 +191,46 @@ function display(data) {
 
         /* SAVE */
         tempsInput.addEventListener("change", (e) => {
-            updateField(c.id, "temps passé", e.target.value, e.target);
+            updateField(c.id, "temps passe", e.target.value, e.target);
         });
 
         honosInput.addEventListener("change", (e) => {
             updateField(c.id, "honoraires cpta", e.target.value, e.target);
         });
 
-        /* CALCUL INIT */
         calculerLigne(tr);
 
         table.appendChild(tr);
+    });
+}
+
+/* FILTRES */
+function applyFilters() {
+
+    const search = document.getElementById("search").value.toLowerCase();
+    const assistant = document.getElementById("filter-assistant").value.toLowerCase();
+    const collab = document.getElementById("filter-collab").value.toLowerCase();
+    const annee = document.getElementById("filter-annee").value.toLowerCase();
+    const cloture = document.getElementById("filter-cloture").value.toLowerCase();
+
+    const filtered = dataGlobal.filter(c => {
+
+        if (search && !(c["nom client"] || "").toLowerCase().includes(search)) return false;
+        if (assistant && !(c["assistant"] || "").toLowerCase().includes(assistant)) return false;
+        if (collab && !(c["collaborateur"] || "").toLowerCase().includes(collab)) return false;
+        if (annee && !(String(c["année"] || "")).includes(annee)) return false;
+        if (cloture && !(c["date de cloture"] || "").toLowerCase().includes(cloture)) return false;
+
+        return true;
+    });
+
+    display(filtered);
+}
+
+/* BIND FILTERS */
+function bindFilters() {
+    document.querySelectorAll(".filters-top input").forEach(input => {
+        input.addEventListener("input", applyFilters);
     });
 }
 
