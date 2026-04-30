@@ -3,13 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <title>CRM Clients</title>
-
 <style>
 body { font-family: 'Segoe UI', sans-serif; background: #f4f6fb; margin: 0; }
-.header {
-    background: #273c75; color: white; padding: 15px 25px;
-    display: flex; justify-content: space-between; align-items: center;
-}
+.header { background: #273c75; color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
 .header input { padding: 8px; border-radius: 6px; border: none; width: 250px; }
 .container { padding: 20px; }
 
@@ -21,24 +17,15 @@ body { font-family: 'Segoe UI', sans-serif; background: #f4f6fb; margin: 0; }
 .dashboard { display: flex; gap: 20px; margin-bottom: 20px; }
 .card { background: white; padding: 15px; border-radius: 10px; min-width: 180px; text-align: center; }
 
-.filters-container {
-    display: grid; grid-template-columns: repeat(5, 1fr);
-    gap: 15px; margin-bottom: 20px;
-}
+.filters-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px; }
 .filter-group { background: white; padding: 10px; border-radius: 8px; }
 
-.checkbox-list {
-    height: 120px; overflow-y: auto; background: #f1f2f6;
-    padding: 5px; border-radius: 5px;
-}
+.checkbox-list { height: 120px; overflow-y: auto; background: #f1f2f6; padding: 5px; border-radius: 5px; }
 .checkbox-list label { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px; }
 
 .arrow { margin-left: 5px; font-size: 12px; }
 
-.btn-anniv {
-    background: #e67e22; color: white; padding: 8px 12px; border-radius: 8px;
-    text-decoration: none; font-weight: bold; transition: 0.2s;
-}
+.btn-anniv { background: #e67e22; color: white; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: 0.2s; }
 .btn-anniv:hover { background: #d35400; }
 
 table { border-collapse: collapse; width: 100%; background: white; }
@@ -47,30 +34,20 @@ td { padding: 10px; }
 tr:nth-child(even) { background: #f8f9fc; }
 tr:hover { background: #e8f0fe; cursor: pointer; }
 
-.btn {
-    background: #44bd32; border: none; padding: 6px 10px;
-    color: white; border-radius: 6px; cursor: pointer;
-}
+.btn { background: #44bd32; border: none; padding: 6px 10px; color: white; border-radius: 6px; cursor: pointer; }
 .btn:hover { background: #2ecc71; }
 
 .alert { color: #e74c3c; font-weight: bold; margin-left: 5px; }
-.alert-badge {
-    background: #ffeaea; color: #e74c3c; padding: 2px 6px;
-    border-radius: 6px; font-size: 11px; margin-left: 5px;
-}
+.alert-badge { background: #ffeaea; color: #e74c3c; padding: 2px 6px; border-radius: 6px; font-size: 11px; margin-left: 5px; }
 
-/* Modal rendement */
 .renta-click {
     background: none; border: none; padding: 0; font: inherit;
     font-weight: bold; cursor: pointer; text-decoration: underline;
 }
 dialog { border: none; border-radius: 10px; width: min(760px, 95vw); padding: 20px; }
-.modal-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0;
-}
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
 .modal-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 .modal-grid input { padding: 8px; border: 1px solid #dcdde1; border-radius: 6px; }
-
 .calc-box {
     background: #f1f7ff; border: 1px solid #cfe3ff; border-radius: 8px;
     padding: 10px; margin: 12px 0; white-space: pre-line; font-size: 14px;
@@ -88,7 +65,6 @@ dialog { border: none; border-radius: 10px; width: min(760px, 95vw); padding: 20
         <a href="opportunites.html" class="btn" style="background:#2980b9;">🎯 Suivi opportunités</a>
         <a href="commercial.html" class="btn" style="background:#16a085;">💰 Suivi commercial</a>
         <a href="anniversaires.html" class="btn-anniv">🎂 Anniversaires</a>
-
         <input type="text" id="search" placeholder="🔍 Rechercher un client...">
         <input type="number" id="filter-renta" placeholder="Min /100" style="width:120px;">
     </div>
@@ -98,17 +74,9 @@ dialog { border: none; border-radius: 10px; width: min(760px, 95vw); padding: 20
     <div id="alert-anniv"></div>
 
     <div class="dashboard">
-        <div class="card">
-            <h4>👥 Clients</h4>
-            <p id="total-clients">0</p>
-        </div>
-        <div class="card">
-            <h4>💰 Honos moyen</h4>
-            <p id="avg-honos">0 €</p>
-        </div>
-        <div class="card">
-            <button class="btn" onclick="sortByHonos()">📊 Top honoraires</button>
-        </div>
+        <div class="card"><h4>👥 Clients</h4><p id="total-clients">0</p></div>
+        <div class="card"><h4>💰 Honos moyen</h4><p id="avg-honos">0 €</p></div>
+        <div class="card"><button class="btn" onclick="sortByHonos()">📊 Top honoraires</button></div>
     </div>
 
     <div class="filters-container" id="filters"></div>
@@ -138,20 +106,11 @@ dialog { border: none; border-radius: 10px; width: min(760px, 95vw); padding: 20
 
 <dialog id="edit-renta-dialog">
     <h3 id="edit-renta-title">Modifier rendement</h3>
-
     <div class="modal-grid">
-        <label>Temps passé (h)
-            <input id="edit-temps-passe" type="number" min="0" step="0.01">
-        </label>
-        <label>Honoraires cpta (€)
-            <input id="edit-honos" type="number" step="0.01">
-        </label>
-        <label>Résultat R (€)
-            <input id="edit-resultat" type="number" step="0.01">
-        </label>
-        <label>Ancienneté (ans)
-            <input id="edit-anciennete" type="number" min="0" step="0.01">
-        </label>
+        <label>Temps passé (h)<input id="edit-temps-passe" type="number" min="0" step="0.01"></label>
+        <label>Honoraires cpta (€)<input id="edit-honos" type="number" step="0.01"></label>
+        <label>Résultat R (€)<input id="edit-resultat" type="number" step="0.01"></label>
+        <label>Ancienneté (ans)<input id="edit-anciennete" type="number" min="0" step="0.01"></label>
     </div>
 
     <div id="edit-renta-info" class="calc-box"></div>
@@ -167,20 +126,20 @@ dialog { border: none; border-radius: 10px; width: min(760px, 95vw); padding: 20
 let clientsData = [];
 let editingClientId = null;
 
-/* Helpers */
+/* ========= API CONFIG (style dividendes) =========
+   Mets ici la même route que dividendes.html
+*/
+const API_UPDATE_URL = (id) => `/api/clients/${id}`; 
+// Exemples alternatifs selon ton backend:
+// const API_UPDATE_URL = (id) => `/api/update-client/${id}`;
+// const API_UPDATE_URL = (id) => `/api/airtable/client/${id}`;
+
 function parseNum(v) {
     if (v === null || v === undefined || v === "") return 0;
     const n = parseFloat(String(v).replace(",", "."));
     return isNaN(n) ? 0 : n;
 }
 
-/* Calcul exact demandé:
-ROUND(
-  MIN(IF({temps passé} > 0, {honoraires cpta}/{temps passé},0)/100,1)*40
-+ MIN(({CA R}+{resultat R})/100000,1)*30
-+ (30 + bonus ancienneté - malus résultat)
-,0)
-*/
 function calculateRendement(row) {
     const temps = parseNum(row["temps passé"]);
     const honos = parseNum(row["honoraires cpta"]);
@@ -190,7 +149,6 @@ function calculateRendement(row) {
 
     const p1 = Math.min((temps > 0 ? honos / temps : 0) / 100, 1) * 40;
     const p2 = Math.min((ca + resultat) / 100000, 1) * 30;
-
     const bonusAnc = anciennete > 10 ? 10 : (anciennete > 5 ? 5 : (anciennete < 1 ? -10 : 0));
     const malusRes = resultat < 0 ? 15 : 0;
     const p3 = 30 + bonusAnc - malusRes;
@@ -206,8 +164,7 @@ function getColor(score) {
 
 function refreshRentaInfo() {
     const client = clientsData.find(c => String(c.id) === String(editingClientId)) || {};
-
-    const tmp = {
+    const draft = {
         ...client,
         "temps passé": parseNum(document.getElementById("edit-temps-passe").value),
         "honoraires cpta": parseNum(document.getElementById("edit-honos").value),
@@ -215,11 +172,11 @@ function refreshRentaInfo() {
         "ancienneté": parseNum(document.getElementById("edit-anciennete").value)
     };
 
-    const temps = parseNum(tmp["temps passé"]);
-    const honos = parseNum(tmp["honoraires cpta"]);
-    const ca = parseNum(tmp["CA R"]);
-    const resultat = parseNum(tmp["resultat R"]);
-    const anciennete = parseNum(tmp["ancienneté"]);
+    const temps = parseNum(draft["temps passé"]);
+    const honos = parseNum(draft["honoraires cpta"]);
+    const ca = parseNum(draft["CA R"]);
+    const resultat = parseNum(draft["resultat R"]);
+    const anciennete = parseNum(draft["ancienneté"]);
 
     const p1 = Math.min((temps > 0 ? honos / temps : 0) / 100, 1) * 40;
     const p2 = Math.min((ca + resultat) / 100000, 1) * 30;
@@ -255,7 +212,6 @@ function openRentaEditor(id) {
     document.getElementById("edit-resultat").value = parseNum(client["resultat R"]);
     document.getElementById("edit-anciennete").value = parseNum(client["ancienneté"]);
     refreshRentaInfo();
-
     document.getElementById("edit-renta-dialog").showModal();
 }
 
@@ -264,34 +220,54 @@ function closeRentaModal() {
     editingClientId = null;
 }
 
+/* Appel API robuste (inspiré pattern pages métier) */
+async function callUpdateAPI(url, payload) {
+    const methods = ["POST", "PATCH", "PUT"];
+    const bodies = [
+        payload,               // format direct
+        { fields: payload },   // format airtable-like proxy
+        { data: payload }      // format alternatif
+    ];
+
+    let lastErr = "Erreur inconnue";
+    for (const method of methods) {
+        for (const body of bodies) {
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    const ct = res.headers.get("content-type") || "";
+                    return ct.includes("application/json") ? await res.json() : await res.text();
+                }
+                const txt = await res.text();
+                lastErr = `${method} ${url} -> ${res.status} ${txt}`;
+                if (res.status === 405) continue; // essaie autre méthode
+            } catch (e) {
+                lastErr = `${method} ${url} -> ${e.message}`;
+            }
+        }
+    }
+    throw new Error(lastErr);
+}
+
 async function saveRentaEdit() {
     const client = clientsData.find(c => String(c.id) === String(editingClientId));
     if (!client) return;
 
-    const payload = {
+    const patchFields = {
         "temps passé": parseNum(document.getElementById("edit-temps-passe").value),
         "honoraires cpta": parseNum(document.getElementById("edit-honos").value),
         "resultat R": parseNum(document.getElementById("edit-resultat").value),
         "ancienneté": parseNum(document.getElementById("edit-anciennete").value)
     };
-
-    const merged = { ...client, ...payload };
-    payload["rentabilite"] = calculateRendement(merged);
+    patchFields["rentabilite"] = calculateRendement({ ...client, ...patchFields });
 
     try {
-        // IMPORTANT: garde la même route/méthode que declaratif.html si différente
-        const res = await fetch(`/api/clients/${client.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-            const txt = await res.text();
-            throw new Error(txt || `HTTP ${res.status}`);
-        }
-
-        Object.assign(client, payload);
+        await callUpdateAPI(API_UPDATE_URL(client.id), patchFields);
+        Object.assign(client, patchFields);
         closeRentaModal();
         displayClients(clientsData);
         alert("✅ Modifications enregistrées.");
@@ -301,7 +277,7 @@ async function saveRentaEdit() {
     }
 }
 
-/* Anniversaires */
+/* ==== EXISTANT ==== */
 function checkAnniversaires(data) {
     const today = new Date();
     const j = String(today.getDate()).padStart(2, '0');
@@ -321,7 +297,6 @@ function checkAnniversaires(data) {
     }
 }
 
-/* Filtres */
 let filtersConfig = [
     { field: "collaborateur", label: "Collaborateur" },
     { field: "structure", label: "Structure" },
@@ -333,7 +308,6 @@ let filtersConfig = [
 function buildFilters() {
     const container = document.getElementById("filters");
     container.innerHTML = "";
-
     filtersConfig.forEach(f => {
         const values = [...new Set(clientsData.map(c => c[f.field]).filter(Boolean))].sort();
         const group = document.createElement("div");
@@ -348,8 +322,7 @@ function buildFilters() {
 
         group.querySelector("input").addEventListener("input", (e) => {
             const val = e.target.value.toLowerCase();
-            const filtered = values.filter(v => v.toLowerCase().includes(val));
-            renderCheckboxList(f.field, filtered);
+            renderCheckboxList(f.field, values.filter(v => v.toLowerCase().includes(val)));
         });
     });
 }
@@ -357,22 +330,18 @@ function buildFilters() {
 function renderCheckboxList(field, values) {
     const container = document.getElementById("list-" + field);
     container.innerHTML = "";
-
     values.forEach(val => {
         container.innerHTML += `
             <label>
                 <input type="checkbox" value="${val}" data-field="${field}">
                 ${val}
-            </label>
-        `;
+            </label>`;
     });
-
     container.querySelectorAll("input").forEach(cb => cb.addEventListener("change", applyFilters));
 }
 
 function applyFilters() {
     const checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
-
     const filters = {};
     checkboxes.forEach(cb => {
         if (!filters[cb.dataset.field]) filters[cb.dataset.field] = [];
@@ -382,15 +351,11 @@ function applyFilters() {
     const filtered = clientsData.filter(c =>
         Object.keys(filters).every(field => filters[field].includes(c[field]))
     );
-
     displayClients(filtered);
 }
 
-/* Data */
 async function loadClients() {
     clientsData = await fetchClients();
-
-    // Initialise rentabilité si absente
     clientsData = clientsData.map(c => {
         if (c["rentabilite"] === undefined || c["rentabilite"] === null || c["rentabilite"] === "") {
             c["rentabilite"] = calculateRendement(c);
@@ -405,7 +370,6 @@ async function loadClients() {
 
 function displayClients(data) {
     updateDashboard(data);
-
     const table = document.getElementById("clients-table");
     table.innerHTML = "";
 
@@ -424,12 +388,10 @@ function displayClients(data) {
             <td><strong>${c["nom client"] || ""}</strong></td>
             <td>${c["date de cloture"] || ""}</td>
             <td>${c["structure"] || ""}</td>
-
             <td>
                 ${anciennete}
                 ${anciennete < 1 ? '<span class="alert">⚠️</span><span class="alert-badge">Nouveau</span>' : ''}
             </td>
-
             <td>${c["temps passé"] || ""}</td>
             <td>${c["honoraires cpta"] || ""}</td>
             <td>${c["collaborateur"] || ""}</td>
@@ -437,37 +399,28 @@ function displayClients(data) {
             <td>${c["CA R"] || ""}</td>
             <td>${c["resultat R"] || ""}</td>
             <td>${c["activite R"] || ""}</td>
-
             <td>
                 <button class="renta-click" style="color:${getColor(score)};"
-                    onclick="event.stopPropagation(); openRentaEditor('${c.id}')">
+                        onclick="event.stopPropagation(); openRentaEditor('${c.id}')">
                     ${score}/100
                 </button>
             </td>
-
-            <td>
-                <button class="btn" onclick="event.stopPropagation(); viewClient('${c.id}')">Voir</button>
-            </td>
+            <td><button class="btn" onclick="event.stopPropagation(); viewClient('${c.id}')">Voir</button></td>
         </tr>`;
     });
 }
 
-/* Tris / filtres rapides */
 function sortByRentabilite() {
-    const sorted = [...clientsData].sort((a, b) => parseNum(b["rentabilite"]) - parseNum(a["rentabilite"]));
-    displayClients(sorted);
+    displayClients([...clientsData].sort((a, b) => parseNum(b["rentabilite"]) - parseNum(a["rentabilite"])));
 }
 function sortByHonos() {
-    const sorted = [...clientsData].sort((a, b) => parseNum(b["honoraires cpta"]) - parseNum(a["honoraires cpta"]));
-    displayClients(sorted);
+    displayClients([...clientsData].sort((a, b) => parseNum(b["honoraires cpta"]) - parseNum(a["honoraires cpta"])));
 }
 function sortByCA() {
-    const sorted = [...clientsData].sort((a, b) => parseNum(b["CA R"]) - parseNum(a["CA R"]));
-    displayClients(sorted);
+    displayClients([...clientsData].sort((a, b) => parseNum(b["CA R"]) - parseNum(a["CA R"])));
 }
 function sortByResultat() {
-    const sorted = [...clientsData].sort((a, b) => parseNum(b["resultat R"]) - parseNum(a["resultat R"]));
-    displayClients(sorted);
+    displayClients([...clientsData].sort((a, b) => parseNum(b["resultat R"]) - parseNum(a["resultat R"])));
 }
 
 document.getElementById("filter-renta").addEventListener("input", function(e) {
@@ -480,23 +433,19 @@ document.getElementById("search").addEventListener("input", function(e) {
     displayClients(clientsData.filter(c => (c["nom client"] || "").toLowerCase().includes(value)));
 });
 
-function viewClient(id) {
-    window.location.href = "client.html?id=" + id;
-}
+function viewClient(id) { window.location.href = "client.html?id=" + id; }
 
 function updateDashboard(data) {
     const total = data.length;
-    const totalHonos = data.reduce((sum, c) => sum + (parseNum(c["honoraires cpta"]) || 0), 0);
+    const totalHonos = data.reduce((sum, c) => sum + parseNum(c["honoraires cpta"]), 0);
     const avg = total ? totalHonos / total : 0;
 
     document.getElementById("total-clients").innerText = total;
     document.getElementById("avg-honos").innerText = new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR'
+        style: 'currency', currency: 'EUR'
     }).format(avg);
 }
 
-/* Listeners modal */
 ["edit-temps-passe", "edit-honos", "edit-resultat", "edit-anciennete"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("input", refreshRentaInfo);
