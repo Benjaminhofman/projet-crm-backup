@@ -15,60 +15,52 @@ body {
     background: #c0392b;
     color: white;
     padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .container {
     padding: 20px;
-    max-width: 900px;
-    margin: auto;
 }
 
-.form-group {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 15px;
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
 }
 
-label {
-    font-weight: bold;
-    margin-bottom: 5px;
+th {
+    background: #273c75;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+td {
+    padding: 8px;
+    text-align: center;
 }
 
 input {
-    padding: 8px;
-    border-radius: 6px;
+    width: 100%;
+    padding: 5px;
+    border-radius: 5px;
     border: 1px solid #ccc;
-}
-
-.row {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-}
-
-.separator {
-    margin: 25px 0;
-    border-top: 2px solid #ddd;
-}
-
-.btn {
-    background: #27ae60;
-    border: none;
-    padding: 10px;
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    width: 220px;
-}
-
-.btn:hover {
-    background: #2ecc71;
+    text-align: center;
 }
 
 .result {
-    margin-top: 20px;
-    font-size: 20px;
     font-weight: bold;
+    font-size: 18px;
+}
+
+.btn-retour {
+    background: #34495e;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
 }
 </style>
 </head>
@@ -76,77 +68,53 @@ input {
 <body>
 
 <div class="header">
-    <h2>📈 Analyse de Rendement</h2>
+    <a href="index.html" class="btn-retour">⬅ Retour</a>
+    <h2>📈 Rendement Client</h2>
 </div>
 
 <div class="container">
 
-    <div class="row">
-        <div class="form-group">
-            <label>Code</label>
-            <input type="text" id="code" disabled>
-        </div>
+<table>
+<thead>
+<tr>
+    <th>Code</th>
+    <th>Nom</th>
+    <th>Assistant</th>
+    <th>Collaborateur</th>
+    <th>Année</th>
+    <th>Clôture</th>
+    <th>CA</th>
+    <th>Résultat</th>
+    <th>Ancienneté</th>
+    <th>Temps passé</th>
+    <th>Honoraires</th>
+    <th>€/h</th>
+</tr>
+</thead>
 
-        <div class="form-group">
-            <label>Nom</label>
-            <input type="text" id="nom" disabled>
-        </div>
+<tbody>
+<tr>
 
-        <div class="form-group">
-            <label>Assistant</label>
-            <input type="text" id="assistant" disabled>
-        </div>
+<td><input id="code" disabled></td>
+<td><input id="nom" disabled></td>
+<td><input id="assistant" disabled></td>
+<td><input id="collaborateur" disabled></td>
 
-        <div class="form-group">
-            <label>Collaborateur</label>
-            <input type="text" id="collaborateur" disabled>
-        </div>
+<td><input id="annee"></td>
+<td><input id="cloture" disabled></td>
 
-        <div class="form-group">
-            <label>Année</label>
-            <input type="number" id="annee">
-        </div>
+<td><input id="ca" disabled></td>
+<td><input id="resultat" disabled></td>
+<td><input id="anciennete" disabled></td>
 
-        <div class="form-group">
-            <label>Clôture</label>
-            <input type="text" id="cloture" disabled>
-        </div>
+<td><input id="temps"></td>
+<td><input id="honos"></td>
 
-        <div class="form-group">
-            <label>CA R</label>
-            <input type="number" id="ca" disabled>
-        </div>
+<td class="result" id="rendement">-</td>
 
-        <div class="form-group">
-            <label>Résultat R</label>
-            <input type="number" id="resultat" disabled>
-        </div>
-
-        <div class="form-group">
-            <label>Ancienneté</label>
-            <input type="number" id="anciennete" disabled>
-        </div>
-    </div>
-
-    <div class="separator"></div>
-
-    <div class="row">
-        <div class="form-group">
-            <label>Temps passé (heures)</label>
-            <input type="number" id="temps">
-        </div>
-
-        <div class="form-group">
-            <label>Honoraires comptables (€)</label>
-            <input type="number" id="honos">
-        </div>
-    </div>
-
-    <br>
-
-    <button class="btn" onclick="calculer()">Calculer rendement</button>
-
-    <div class="result" id="resultat-affiche"></div>
+</tr>
+</tbody>
+</table>
 
 </div>
 
@@ -156,38 +124,59 @@ input {
 const params = new URLSearchParams(window.location.search);
 const clientId = params.get("id");
 
-/* 🔥 LOAD CLIENT */
+/* LOAD CLIENT */
 async function loadClient() {
 
-    if (!clientId) {
-        document.getElementById("resultat-affiche").innerText =
-            "⚠️ Aucun client sélectionné";
-        return;
-    }
+    if (!clientId) return;
 
     const res = await fetch(API_URL + "/clients");
     const data = await res.json();
 
-    const client = data.find(c => c.id === clientId);
+    const c = data.find(x => x.id === clientId);
+    if (!c) return;
 
-    if (!client) return;
-
-    document.getElementById("code").value = client["code client"] || "";
-    document.getElementById("nom").value = client["nom client"] || "";
-    document.getElementById("assistant").value = client["assistant"] || "";
-    document.getElementById("collaborateur").value = client["collaborateur"] || "";
+    document.getElementById("code").value = c["code client"] || "";
+    document.getElementById("nom").value = c["nom client"] || "";
+    document.getElementById("assistant").value = c["assistant"] || "";
+    document.getElementById("collaborateur").value = c["collaborateur"] || "";
     document.getElementById("annee").value = new Date().getFullYear();
-    document.getElementById("cloture").value = client["date de cloture"] || "";
-    document.getElementById("ca").value = client["CA R"] || "";
-    document.getElementById("resultat").value = client["resultat R"] || "";
-    document.getElementById("anciennete").value = client["ancienneté"] || "";
-    document.getElementById("honos").value = client["honoraires cpta"] || "";
+    document.getElementById("cloture").value = c["date de cloture"] || "";
+    document.getElementById("ca").value = c["CA R"] || "";
+    document.getElementById("resultat").value = c["resultat R"] || "";
+    document.getElementById("anciennete").value = c["ancienneté"] || "";
+    document.getElementById("honos").value = c["honoraires cpta"] || "";
 
+    calculer();
 }
 
 loadClient();
 
-/* 🔥 SAVE AUTO */
+/* CALCUL AUTO */
+function calculer() {
+
+    const temps = parseFloat(document.getElementById("temps").value) || 0;
+    const honos = parseFloat(document.getElementById("honos").value) || 0;
+
+    if (temps === 0) {
+        document.getElementById("rendement").innerText = "-";
+        return;
+    }
+
+    const taux = honos / temps;
+
+    let color = "#27ae60";
+    if (taux < 50) color = "#e74c3c";
+    else if (taux < 80) color = "#f39c12";
+
+    const el = document.getElementById("rendement");
+    el.innerHTML = `<span style="color:${color}">${taux.toFixed(2)}</span>`;
+}
+
+/* EVENTS */
+document.getElementById("temps").addEventListener("input", calculer);
+document.getElementById("honos").addEventListener("input", calculer);
+
+/* SAVE */
 document.getElementById("temps").addEventListener("change", function(e) {
     updateField(clientId, "temps passe", e.target.value, e.target);
 });
@@ -195,27 +184,6 @@ document.getElementById("temps").addEventListener("change", function(e) {
 document.getElementById("honos").addEventListener("change", function(e) {
     updateField(clientId, "honoraires cpta", e.target.value, e.target);
 });
-
-/* 🔥 CALCUL */
-function calculer() {
-
-    const temps = parseFloat(document.getElementById("temps").value) || 0;
-    const honos = parseFloat(document.getElementById("honos").value) || 0;
-
-    if (temps === 0) {
-        document.getElementById("resultat-affiche").innerText = "Temps invalide";
-        return;
-    }
-
-    const taux = honos / temps;
-
-    let couleur = "#27ae60";
-    if (taux < 50) couleur = "#e74c3c";
-    else if (taux < 80) couleur = "#f39c12";
-
-    document.getElementById("resultat-affiche").innerHTML =
-        `💰 Rendement : <span style="color:${couleur}">${taux.toFixed(2)} €/h</span>`;
-}
 </script>
 
 </body>
