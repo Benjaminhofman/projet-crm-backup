@@ -103,6 +103,8 @@ input {
 <th>Temps</th>
 <th>Honoraires</th>
 <th>€/h</th>
+<th>€/h</th>
+<th>Rendement</th>
 </tr>
 </thead>
 
@@ -180,6 +182,10 @@ function display(data) {
         </td>
 
         <td class="result">-</td>
+
+        <td class="rendement-airtable" style="font-weight:bold;">
+            ${c["rentabilite"] || ""}
+        </td>
         `;
 
         const tempsInput = tr.querySelector(".temps");
