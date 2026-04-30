@@ -240,10 +240,6 @@ tr:hover {
 let clientsData = [];
 
 /* 🔥 RENTABILITE */
-function getRentabiliteScore(val) {
-    const v = parseFloat(val) || 0;
-    return Math.min((v / 100) * 10, 10);
-}
 
 function getColor(score) {
     if (score < 4) return "#e74c3c";
@@ -369,7 +365,7 @@ function displayClients(data) {
     data.forEach(c => {
 
         const anciennete = parseFloat(c["ancienneté"]) || 0;
-        const score = getRentabiliteScore(c["rentabilite"]);
+        const score = parseFloat(c["rentabilite"]) || 0;
 
         table.innerHTML += `
         <tr onclick="viewClient('${c.id}')">
@@ -393,7 +389,7 @@ function displayClients(data) {
             <td>${c["activite R"] || ""}</td>
 
             <td style="font-weight:bold; color:${getColor(score)};">
-                ${score.toFixed(1)}/10
+                ${score.toFixed(2)}
             </td>
 
             <td>
