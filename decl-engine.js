@@ -38,10 +38,10 @@ function display(data) {
     data.forEach(c => {
         const tr = document.createElement('tr');
 
-        // Colonnes fixes communes à toutes les pages
+        // Colonnes fixes — le nom est un lien vers la fiche client
         tr.innerHTML = `
             <td>${esc(c["code client"])}</td>
-            <td class="name">${esc(c["nom client"])}</td>
+            <td class="name"><a href="client.html?id=${c.id}" class="client-link">${esc(c["nom client"])}</a></td>
             <td>${esc(c["assistant"])}</td>
             <td>${esc(c["collaborateur"])}</td>
             <td>${esc(c["année"])}</td>
@@ -116,8 +116,13 @@ function applyFilters() {
 }
 
 async function load() {
-    document.getElementById("table").innerHTML =
-        `<tr class="loading-row"><td colspan="20">⏳ Chargement en cours…</td></tr>`;
+    // Skeleton loader : nombre de colonnes = 6 fixes + colonnes spécifiques à la page
+    const colCount = 6 + (_pageConfig.columns ? _pageConfig.columns.length : 0);
+    document.getElementById("table").innerHTML = Array.from({ length: 8 }, () => `
+        <tr class="skeleton-row">
+            ${Array.from({ length: colCount }, () => `<td><span class="skeleton"></span></td>`).join('')}
+        </tr>
+    `).join('');
 
     const data = await fetchClients();
 

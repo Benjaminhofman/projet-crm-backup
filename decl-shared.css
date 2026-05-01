@@ -146,3 +146,35 @@ select {
     color: #999;
     font-style: italic;
 }
+
+/* Lien vers la fiche client dans la colonne Nom */
+.client-link {
+    color: #273c75;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.client-link:hover {
+    text-decoration: underline;
+    color: #1a2a5e;
+}
+
+/* Skeleton loader */
+.skeleton {
+    display: inline-block;
+    background: linear-gradient(90deg, #e8eaf0 25%, #d4d8e2 50%, #e8eaf0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.4s infinite;
+    border-radius: 4px;
+    height: 14px;
+    width: 70%;
+}
+
+.skeleton-row td {
+    padding: 13px 10px;
+}
+
+@keyframes skeleton-shine {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
+}
