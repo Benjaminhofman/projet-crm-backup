@@ -95,12 +95,16 @@ function display(data) {
 }
 
 function applyFilters() {
-    const assistant = document.getElementById("filter-assistant").value.toLowerCase();
-    const collab    = document.getElementById("filter-collab").value.toLowerCase();
-    const annee     = document.getElementById("filter-annee").value.toLowerCase();
-    const cloture   = document.getElementById("filter-cloture").value.toLowerCase();
+    // Support des deux conventions d'IDs de filtres
+    const get = id => (document.getElementById(id) || { value: "" }).value.toLowerCase();
+    const assistant = get("filter-assistant") || get("f-assistant");
+    const collab    = get("filter-collab")    || get("f-collab");
+    const annee     = get("filter-annee")     || get("f-annee");
+    const cloture   = get("filter-cloture")   || get("f-cloture");
 
     const filtered = dataGlobal.filter(c => {
+        // Filtre principal personnalisé (ex : dividendes > 0)
+        if (_pageConfig.requireFn && !_pageConfig.requireFn(c)) return false;
         if (assistant && !(c["assistant"]       || "").toLowerCase().includes(assistant)) return false;
         if (collab    && !(c["collaborateur"]   || "").toLowerCase().includes(collab))    return false;
         if (annee     && !(String(c["année"]    || "")).includes(annee))                  return false;

@@ -3,186 +3,44 @@
 <head>
 <meta charset="UTF-8">
 <title>Suivi TBB</title>
-
-<style>
-body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #f4f6fb;
-    margin: 0;
-    padding: 20px;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.back {
-    background: #273c75;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    text-decoration: none;
-}
-
-.counter {
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.filters {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.filters input {
-    padding: 6px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-}
-
-th, td {
-    padding: 8px;
-    text-align: center;
-}
-
-th {
-    background: #273c75;
-    color: white;
-}
-
-tr:nth-child(even) {
-    background: #f8f9fc;
-}
-
-tr:hover {
-    background: #e8f0fe;
-}
-</style>
+<link rel="stylesheet" href="decl-shared.css">
 </head>
-
 <body>
 
 <div class="header">
     <a href="declaratif.html" class="back">⬅ Retour</a>
-    <h2>📊 Suivi TBB</h2>
+    <h2 id="page-title"></h2>
+    <button class="btn-export" onclick="exportCurrentCSV()">⬇ Export CSV</button>
 </div>
 
 <div class="counter" id="counter"></div>
 
-<div class="filters">
-    <input id="f-assistant" placeholder="Assistant">
-    <input id="f-collab" placeholder="Collaborateur">
-    <input id="f-annee" placeholder="Année">
-    <input id="f-cloture" placeholder="Clôture">
+<div class="filters-top">
+    <input id="filter-assistant" placeholder="Assistant...">
+    <input id="filter-collab" placeholder="Collaborateur...">
+    <input id="filter-annee" placeholder="Année...">
+    <input id="filter-cloture" placeholder="Clôture...">
 </div>
 
 <table>
-<thead>
-<tr>
-<th>Code</th>
-<th>Nom</th>
-<th>Assistant</th>
-<th>Collaborateur</th>
-<th>Année</th>
-<th>Clôture</th>
-<th>Date TBB</th>
-<th>Réalisation</th>
-</tr>
-</thead>
-
+<thead><tr id="table-head">
+    <th>Code</th><th>Nom</th><th>Assistant</th><th>Collaborateur</th><th>Année</th><th>Clôture</th>
+</tr></thead>
 <tbody id="table"></tbody>
 </table>
 
 <script src="utils.js"></script>
+<script src="decl-engine.js"></script>
 <script>
-
-
-// 🔥 affichage
-function display(data) {
-
-    const table = document.getElementById("table");
-    table.innerHTML = "";
-
-    document.getElementById("counter").innerText =
-        "Nombre de dossiers : " + data.length;
-
-    data.forEach(c => {
-
-        table.innerHTML += `
-        <tr>
-
-            <td>${esc(c["code client"])}</td>
-            <td>${esc(c["nom client"])}</td>
-            <td>${esc(c["assistant"])}</td>
-            <td>${esc(c["collaborateur"])}</td>
-            <td>${esc(c["année"])}</td>
-            <td>${esc(c["date de cloture"])}</td>
-
-            <td>
-                <input type="date"
-                    value="${formatDate(c["date tbb"])}"
-                    onchange="updateField('${esc(c.id)}', 'date tbb', this.value)">
-            </td>
-
-            <td>
-                <input type="checkbox"
-                    ${c["realisation tbb"] ? "checked" : ""}
-                    onchange="updateField('${esc(c.id)}', 'realisation tbb', this.checked)">
-            </td>
-
-        </tr>`;
-    });
-}
-
-// 🔥 format date
-
-// 🔥 update Airtable
-
-// 🔥 filtres
-function applyFilters() {
-
-    const assistant = document.getElementById("f-assistant").value.toLowerCase();
-    const collab = document.getElementById("f-collab").value.toLowerCase();
-    const annee = document.getElementById("f-annee").value.toLowerCase();
-    const cloture = document.getElementById("f-cloture").value.toLowerCase();
-
-    const filtered = dataGlobal.filter(c => {
-
-        // ✅ FILTRE PRINCIPAL = uniquement dossiers TBB
-        if (!c["tbb"]) return false;
-
-        if (assistant && !(c["assistant"] || "").toLowerCase().includes(assistant)) return false;
-        if (collab && !(c["collaborateur"] || "").toLowerCase().includes(collab)) return false;
-        if (annee && !(String(c["année"])).includes(annee)) return false;
-        if (cloture && !(c["date de cloture"] || "").toLowerCase().includes(cloture)) return false;
-
-        return true;
-    });
-
-    display(filtered);
-}
-
-// 🔥 load
-async function load() {
-
-    dataGlobal = await fetchClients();
-
-    applyFilters();
-
-    bindFilterInputs(".filters input");
-}
-
-load();
+initDeclaratifPage({
+    titre: "Suivi TBB",
+    emoji: "📊",
+    filterField: "tbb",
+    columns: [
+        { header: "Date TBB",    field: "date tbb",       type: "date" },
+        { header: "Réalisation", field: "realisation tbb", type: "checkbox" }
+    ]
+});
 </script>
 
 </body>

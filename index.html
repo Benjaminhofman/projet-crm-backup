@@ -229,6 +229,37 @@ tr:hover {
     font-size: 11px;
     margin-left: 5px;
 }
+
+/* Skeleton loader */
+.skeleton {
+    display: inline-block;
+    background: linear-gradient(90deg, #e8eaf0 25%, #d4d8e2 50%, #e8eaf0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.4s infinite;
+    border-radius: 4px;
+    height: 14px;
+    width: 75%;
+}
+
+.skeleton-row td {
+    padding: 13px 10px;
+}
+
+.skeleton-card {
+    display: inline-block;
+    background: linear-gradient(90deg, #e8eaf0 25%, #d4d8e2 50%, #e8eaf0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.4s infinite;
+    border-radius: 6px;
+    height: 22px;
+    width: 60px;
+    vertical-align: middle;
+}
+
+@keyframes skeleton-shine {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
+}
 </style>
 </head>
 
@@ -420,6 +451,19 @@ function applyFilters() {
 
 /* 🔥 LOAD */
 async function loadClients() {
+
+    // Skeleton loader — tableau
+    const tbody = document.getElementById("clients-table");
+    tbody.innerHTML = Array.from({ length: 10 }, () => `
+        <tr class="skeleton-row">
+            ${Array.from({ length: 13 }, () => `<td><span class="skeleton"></span></td>`).join('')}
+        </tr>
+    `).join('');
+
+    // Skeleton loader — cards
+    document.getElementById("total-clients").innerHTML = '<span class="skeleton-card"></span>';
+    document.getElementById("avg-honos").innerHTML     = '<span class="skeleton-card" style="width:90px;"></span>';
+
     const res = await fetch(API_URL + "/clients");
     clientsData = await res.json();
 
