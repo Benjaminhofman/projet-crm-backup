@@ -273,8 +273,10 @@ def calculate_indicators(rows: list) -> list:
             - vals["frais_telecom"] - vals["publicite"] - vals["honoraires"]
             - vals["banque"] - vals["deplacement"]  - vals["personnel_exterieur"]
         )
-        ebe = va  - vals["masse_salariale"] - vals["impots_taxes"]
-        rex = ebe - vals["dotations_amortissements"]
+        ebe  = va  - vals["masse_salariale"] - vals["impots_taxes"]
+        rex  = ebe - vals["dotations_amortissements"]
+        res  = vals["produits"] - vals["charges"] + c791
+        caf  = res + vals["dotations_amortissements"] - c791
 
         resultat.append({
             "siret":           siret,
@@ -319,13 +321,14 @@ def calculate_indicators(rows: list) -> list:
             "stocks":                   round(vals["stocks"],                   2),
             "prestation":              "presta" if comptes_706[siret] and not comptes_707[siret] else None,
             "multitva":                "multitva" if len(comptes_4457[siret]) > 1 else None,
-            "resultat":                round(vals["produits"] - vals["charges"] + c791, 2),
+            "resultat":                round(res, 2),
             "marge_brute":             round(marge_brute, 2),
             "valeur_ajoutee":          round(va,          2),
             "ebe":                     round(ebe,         2),
             "rex":                     round(rex,         2),
             "resultat_financier":      round(vals["produits_financiers"]    - vals["charges_financieres"],     2),
             "resultat_exceptionnel":   round(vals["produits_exceptionnels"] - vals["charges_exceptionnelles"], 2),
+            "caf":                     round(caf, 2),
         })
 
     return resultat
