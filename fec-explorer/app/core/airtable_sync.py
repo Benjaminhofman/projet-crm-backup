@@ -88,6 +88,10 @@ def get_all_records() -> dict:
         print(f"[debug] GET {url}")
         data = _request(url, token)
 
+        if not result:  # affiche uniquement sur la première page
+            for rec in data.get("records", [])[:2]:
+                print(f"[debug] enregistrement brut : {rec}")
+
         for record in data.get("records", []):
             siret = record.get("fields", {}).get(SIRET_FIELD, "")
             if siret:
