@@ -146,3 +146,45 @@ def update_record(record_id: str, indicateur: dict) -> dict:
         raise RuntimeError(f"Airtable PATCH {record_id} — réseau : {e.reason}") from e
     finally:
         time.sleep(0.2)  # respecte la limite 5 req/sec
+
+
+def sync_all(indicateurs: list) -> dict:
+    """
+    Synchronise une liste d'indicateurs (issue de calculate_indicators)
+    vers Airtable en mettant à jour chaque enregistrement trouvé par SIRET.
+
+    Retourne :
+      {
+        "updated":   int,                # nombre de mises à jour réussies
+        "not_found": [siret, ...],       # SIRET présents dans le FEC mais absents d'Airtable
+        "errors":    int,                # nombre d'erreurs lors des PATCH
+      }
+    """
+    records   = get_all_records()
+    updated   = 0
+    not_found = []
+    errors    = 0
+
+    for ind in indicateurs:
+        siret = str(ind.get("siret", "")).strip()
+
+        if not siret:
+            logging.warning("sync_all : indicateur sans SIRET — ignoré.")
+            continue
+
+        record_id = records.get(siret)
+
+        if not record_id:
+            logging.warning("sync_all : SIRET %s absent d'Airtable.", siret)
+            not_found.append(siret)
+            continue
+
+        try:
+            update_record(record_id, ind)
+            updated += 1
+        except RuntimeError as e:
+            logging.error("sync_all : échec PATCH SIRET %s — %s", siret, e)
+            errors += 1
+
+    logging.info("sync_all terminé : %d mis à jour, %d introuvables, %d erreurs.", updated, len(not_found), errors)
+    return {"updated": updated, "not_found": not_found, "errors": errors}
