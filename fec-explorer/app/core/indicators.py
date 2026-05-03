@@ -28,7 +28,7 @@ def calculate_indicators(rows: list) -> list:
       - compte_791              : comptes 791  → solde × -1
       - produits_financiers     : comptes 76   → solde × -1  (sous-ensemble de produits)
       - produits_exceptionnels  : comptes 77   → solde × -1  (sous-ensemble de produits)
-      - placements              : comptes 508  → solde × -1  (sous-ensemble de tresorerie)
+      - placements              : comptes 508  → solde       (sous-ensemble de tresorerie)
       - capital                 : comptes 101  → solde × -1
       - reserves                : comptes 106  → solde × -1
       - report_a_nouveau        : comptes 11   → solde × -1
@@ -246,7 +246,7 @@ def calculate_indicators(rows: list) -> list:
         if _commence_par(compte, "5"):
             acc[siret]["tresorerie"] += solde
             if _commence_par(compte, "508"):
-                acc[siret]["placements"] += solde * -1
+                acc[siret]["placements"] += solde
 
         if _commence_par(compte, "16"):
             acc[siret]["emprunt"] += solde
