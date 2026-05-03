@@ -292,10 +292,14 @@ def calculate_indicators(rows: list) -> list:
         res  = vals["produits"] - vals["charges"] + c791
         caf  = res + vals["dotations_amortissements"] - c791
 
-        bfr  = vals["stocks"] + vals["clients"] - vals["fournisseurs"]
-        immo = vals["materiel_transport"] + vals["fond_commerce"] + vals["constructions"]
+        bfr  = vals["stocks"] + vals["clients"] - abs(vals["fournisseurs"])
+        immo = (
+            vals["materiel_transport"] + vals["fond_commerce"] + vals["constructions"]
+            + vals["materiel_informatique"] + vals["mobilier"]
+        )
         frng = (
-            vals["capital"] + vals["reserves"] + vals["report_a_nouveau"] + res
+            abs(vals["capital"]) + abs(vals["reserves"]) + abs(vals["report_a_nouveau"])
+            + res + abs(vals["emprunt"])
             - immo
         )
 
