@@ -263,6 +263,19 @@ def calculate_indicators(rows: list) -> list:
     resultat = []
     for siret, vals in sorted(acc.items()):
         c791 = vals["compte_791"]
+
+        marge_brute = (
+            vals["ca"] - vals["achats_non_stockes"] - vals["sous_traitance"]
+        )
+        va = (
+            marge_brute
+            - vals["loyer"] - vals["assurance"]     - vals["entretien_reparation"]
+            - vals["frais_telecom"] - vals["publicite"] - vals["honoraires"]
+            - vals["banque"] - vals["deplacement"]  - vals["personnel_exterieur"]
+        )
+        ebe = va  - vals["masse_salariale"] - vals["impots_taxes"]
+        rex = ebe - vals["dotations_amortissements"]
+
         resultat.append({
             "siret":           siret,
             "ca":              round(vals["ca"],              2),
@@ -307,25 +320,10 @@ def calculate_indicators(rows: list) -> list:
             "prestation":              "presta" if comptes_706[siret] and not comptes_707[siret] else None,
             "multitva":                "multitva" if len(comptes_4457[siret]) > 1 else None,
             "resultat":                round(vals["produits"] - vals["charges"] + c791, 2),
-            "marge_brute":             round(
-                vals["ca"] - vals["achats_non_stockes"] - vals["sous_traitance"],
-                2
-            ),
-            "valeur_ajoutee":          round(
-                vals["ca"]
-                - vals["achats_non_stockes"]
-                - vals["sous_traitance"]
-                - vals["loyer"]
-                - vals["assurance"]
-                - vals["entretien_reparation"]
-                - vals["frais_telecom"]
-                - vals["publicite"]
-                - vals["honoraires"]
-                - vals["banque"]
-                - vals["deplacement"]
-                - vals["personnel_exterieur"],
-                2
-            ),
+            "marge_brute":             round(marge_brute, 2),
+            "valeur_ajoutee":          round(va,          2),
+            "ebe":                     round(ebe,         2),
+            "rex":                     round(rex,         2),
         })
 
     return resultat
