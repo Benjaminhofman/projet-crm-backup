@@ -212,8 +212,8 @@ def calculate_indicators(rows: list) -> list:
 
         # ── Immobilisations (classe 2) ────────────────────────────────────────
 
-        # 2183/2184 sont des sous-ensembles de 218 — if indépendants
-        if _commence_par(compte, "218"):
+        # 2183/2184 sont des sous-ensembles de 2182 — if indépendants
+        if _commence_par(compte, "2182"):
             acc[siret]["materiel_transport"] += solde
         if _commence_par(compte, "2183"):
             acc[siret]["materiel_informatique"] += solde
