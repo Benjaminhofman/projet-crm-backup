@@ -155,6 +155,51 @@ def update_record(record_id: str, indicateur: dict) -> dict:
         time.sleep(0.2)  # respecte la limite 5 req/sec
 
 
+def create_missing_fields() -> None:
+    """
+    Crée dans Airtable tous les champs numériques déclarés dans FIELD_MAPPING
+    qui n'existent pas encore. Les champs déjà présents (HTTP 422) sont ignorés.
+
+    Utilise POST /meta/bases/{BASE_ID}/tables/{TABLE_ID}/fields pour chaque champ.
+    """
+    token   = _get_token()
+    url     = f"https://api.airtable.com/v0/meta/bases/{BASE_ID}/tables/{TABLE_ID}/fields"
+    created = 0
+
+    for airtable_name in FIELD_MAPPING.values():
+        payload = json.dumps({
+            "name":    airtable_name,
+            "type":    "number",
+            "options": {"precision": 2},
+        }).encode()
+
+        req = urllib.request.Request(
+            url,
+            data    = payload,
+            method  = "POST",
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type":  "application/json",
+            },
+        )
+
+        try:
+            with urllib.request.urlopen(req) as resp:
+                resp.read()
+            logging.info("create_missing_fields : champ '%s' créé.", airtable_name)
+            created += 1
+        except urllib.error.HTTPError as e:
+            if e.code == 422:
+                logging.debug("create_missing_fields : champ '%s' existe déjà — ignoré.", airtable_name)
+            else:
+                body = e.read().decode(errors="replace")
+                logging.error("create_missing_fields : erreur HTTP %d sur '%s' — %s", e.code, airtable_name, body)
+        finally:
+            time.sleep(0.2)  # respecte la limite 5 req/sec
+
+    print(f"[create_missing_fields] {created} champ(s) créé(s).")
+
+
 def sync_all(indicateurs: list) -> dict:
     """
     Synchronise une liste d'indicateurs (issue de calculate_indicators)
@@ -167,6 +212,7 @@ def sync_all(indicateurs: list) -> dict:
         "errors":    int,                # nombre d'erreurs lors des PATCH
       }
     """
+    create_missing_fields()
     records   = get_all_records()
     updated   = 0
     not_found = []
