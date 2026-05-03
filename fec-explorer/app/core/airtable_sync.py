@@ -166,7 +166,24 @@ def create_missing_fields() -> None:
     url     = f"https://api.airtable.com/v0/meta/bases/{BASE_ID}/tables/{TABLE_ID}/fields"
     created = 0
 
-    for airtable_name in FIELD_MAPPING.values():
+    fields_to_create = [
+        "marge_brute", "valeur_ajoutee", "ebe", "rex",
+        "resultat_financier", "resultat_exceptionnel",
+        "caf", "bfr", "frng", "tresorerie_nette",
+        "productivite", "capacite_remboursement",
+        "liquidite_generale", "delai_client", "delai_fournisseur", "ratio_endettement",
+        "charges_financieres", "produits_financiers",
+        "dotations_amortissements", "impot_societes",
+        "tns", "impots_taxes", "sous_traitance", "entretien_reparation",
+        "personnel_exterieur", "frais_telecom", "achats_non_stockes",
+        "materiel_transport", "fond_commerce", "constructions",
+        "materiel_informatique", "mobilier", "stocks",
+        "clients", "fournisseurs",
+        "capital", "reserves", "report_a_nouveau",
+        "compte_exploitant", "compte_courant_associe", "placements",
+    ]
+
+    for airtable_name in fields_to_create:
         payload = json.dumps({
             "name":    airtable_name,
             "type":    "number",
