@@ -80,7 +80,7 @@ def get_all_records() -> dict:
     offset    = None
 
     while True:
-        params = {"fields[]": "siret", "pageSize": "100"}
+        params = {"pageSize": "100"}
         if offset:
             params["offset"] = offset
 
