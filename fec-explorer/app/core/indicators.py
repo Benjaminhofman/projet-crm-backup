@@ -60,6 +60,7 @@ def calculate_indicators(rows: list) -> list:
         "achats_non_stockes": float, "sous_traitance": float,
         "entretien_reparation": float, "personnel_exterieur": float,
         "frais_telecom": float, "impots_taxes": float,
+        "dotations_amortissements": float, "impot_societes": float,
         "prestation": str|None, "multitva": str|None,
         "resultat": float}, ...]
     """
@@ -95,6 +96,8 @@ def calculate_indicators(rows: list) -> list:
         "personnel_exterieur":     0.0,
         "frais_telecom":           0.0,
         "impots_taxes":            0.0,
+        "dotations_amortissements": 0.0,
+        "impot_societes":           0.0,
     })
 
     # Indicateurs qualitatifs — ensembles de comptes rencontrés par SIRET
@@ -180,6 +183,12 @@ def calculate_indicators(rows: list) -> list:
             if _commence_par(compte, "63"):
                 acc[siret]["impots_taxes"] += solde
 
+            if _commence_par(compte, "68"):
+                acc[siret]["dotations_amortissements"] += solde
+
+            if _commence_par(compte, "695"):
+                acc[siret]["impot_societes"] += solde
+
         # ── Produits financiers / exceptionnels (sous-ensembles de 7) ───────────
 
         if _commence_par(compte, "76"):
@@ -256,7 +265,9 @@ def calculate_indicators(rows: list) -> list:
             "entretien_reparation":    round(vals["entretien_reparation"],    2),
             "personnel_exterieur":     round(vals["personnel_exterieur"],     2),
             "frais_telecom":           round(vals["frais_telecom"],           2),
-            "impots_taxes":            round(vals["impots_taxes"],            2),
+            "impots_taxes":             round(vals["impots_taxes"],             2),
+            "dotations_amortissements": round(vals["dotations_amortissements"], 2),
+            "impot_societes":           round(vals["impot_societes"],           2),
             "prestation":              "presta" if comptes_706[siret] and not comptes_707[siret] else None,
             "multitva":                "multitva" if len(comptes_4457[siret]) > 1 else None,
             "resultat":                round(vals["produits"] - vals["charges"] + c791, 2),
