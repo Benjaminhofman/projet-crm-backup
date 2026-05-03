@@ -27,6 +27,23 @@ TABLE_ID = "tblm1aQ4OJ9W1hwm8"
 _RE_DIGIT  = re.compile(r"^\d")
 _RESERVED  = {"is", "order", "table", "user", "type", "end", "start", "check", "index"}
 
+# Champs Airtable à ne pas migrer vers PostgreSQL (noms normalisés)
+CHAMPS_A_IGNORER = frozenset({
+    "mission_retraite",
+    "mission_patrimoniale",
+    "mission_placement",
+    "franchise_tva_prest",
+    "franchise_tva_achrevente",
+    "op_prevoyance",
+    "lien_modification",
+    "arbitrage_remuneration_dirigeant",
+    "anciennete",
+    "age",
+    "souhait_anniversaire",
+    "rentabilite",
+    "creer_client",
+})
+
 # Table de remplacement des caractères accentués (minuscules + majuscules)
 _ACCENT_MAP = str.maketrans({
     'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
@@ -151,7 +168,7 @@ def upsert_record(cur, fields: dict) -> bool:
         if value is None or value == "":
             continue
         col = normalize_field_name(at_name)
-        if col:
+        if col and col not in CHAMPS_A_IGNORER:
             pg[col] = value
 
     siret = str(pg.get("siret", "")).strip()
