@@ -302,6 +302,10 @@ def calculate_indicators(rows: list) -> list:
         productivite            = round(va / vals["masse_salariale"], 2) if vals["masse_salariale"] > 0 else 0
         capacite_remboursement  = round(abs(vals["emprunt"]) / caf, 2) if caf > 0 else 999
 
+        liquidite_generale  = round((vals["clients"] + vals["stocks"] + vals["tresorerie"]) / vals["fournisseurs"], 2) if vals["fournisseurs"] > 0 else 999
+        delai_client        = round((vals["clients"]      / vals["ca"])                  * 360, 2) if vals["ca"]                  > 0 else 0
+        delai_fournisseur   = round((vals["fournisseurs"] / vals["achats_non_stockes"])  * 360, 2) if vals["achats_non_stockes"]  > 0 else 0
+
         resultat.append({
             "siret":           siret,
             "ca":              round(vals["ca"],              2),
@@ -359,6 +363,9 @@ def calculate_indicators(rows: list) -> list:
             "frng":                    round(frng, 2),
             "productivite":            productivite,
             "capacite_remboursement":  capacite_remboursement,
+            "liquidite_generale":      liquidite_generale,
+            "delai_client":            delai_client,
+            "delai_fournisseur":       delai_fournisseur,
         })
 
     return resultat
