@@ -324,6 +324,8 @@ def calculate_indicators(rows: list) -> list:
             "valeur_ajoutee":          round(va,          2),
             "ebe":                     round(ebe,         2),
             "rex":                     round(rex,         2),
+            "resultat_financier":      round(vals["produits_financiers"]    - vals["charges_financieres"],     2),
+            "resultat_exceptionnel":   round(vals["produits_exceptionnels"] - vals["charges_exceptionnelles"], 2),
         })
 
     return resultat
