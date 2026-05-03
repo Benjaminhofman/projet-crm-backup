@@ -328,12 +328,18 @@ def calculate_indicators(rows: list) -> list:
         else:
             liquidite_generale = 0
         delai_client        = round((vals["clients"]      / vals["ca"])                  * 360, 2) if vals["ca"]                  > 0 else 0
+        frs_abs       = abs(vals["fournisseurs"])
         achats_externes = (
             vals["achats_non_stockes"] + vals["sous_traitance"] + vals["loyer"]
             + vals["entretien_reparation"] + vals["frais_telecom"] + vals["honoraires"]
             + vals["banque"] + vals["assurance"] + vals["deplacement"]
         )
-        delai_fournisseur   = round((vals["fournisseurs"] / achats_externes) * 360, 2) if achats_externes > 0 else 0
+        if frs_abs == 0 or vals["ca"] == 0:
+            delai_fournisseur = 0
+        elif achats_externes > 0 and frs_abs / vals["ca"] >= 0.3:
+            delai_fournisseur = round((frs_abs / achats_externes) * 360, 2)
+        else:
+            delai_fournisseur = round((frs_abs / vals["ca"]) * 360, 2)
 
         capitaux_propres       = vals["capital"] + vals["reserves"] + vals["report_a_nouveau"] + res
         ratio_endettement      = round(abs(vals["emprunt"]) / capitaux_propres, 2) if capitaux_propres != 0 else 999
