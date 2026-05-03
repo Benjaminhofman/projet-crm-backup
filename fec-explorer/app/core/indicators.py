@@ -306,6 +306,10 @@ def calculate_indicators(rows: list) -> list:
         delai_client        = round((vals["clients"]      / vals["ca"])                  * 360, 2) if vals["ca"]                  > 0 else 0
         delai_fournisseur   = round((vals["fournisseurs"] / vals["achats_non_stockes"])  * 360, 2) if vals["achats_non_stockes"]  > 0 else 0
 
+        capitaux_propres       = vals["capital"] + vals["reserves"] + vals["report_a_nouveau"] + res
+        ratio_endettement      = round(abs(vals["emprunt"]) / capitaux_propres, 2) if capitaux_propres != 0 else 999
+        tresorerie_nette       = round(frng - bfr, 2)
+
         resultat.append({
             "siret":           siret,
             "ca":              round(vals["ca"],              2),
@@ -366,6 +370,8 @@ def calculate_indicators(rows: list) -> list:
             "liquidite_generale":      liquidite_generale,
             "delai_client":            delai_client,
             "delai_fournisseur":       delai_fournisseur,
+            "ratio_endettement":       ratio_endettement,
+            "tresorerie_nette":        tresorerie_nette,
         })
 
     return resultat
