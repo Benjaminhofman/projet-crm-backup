@@ -8,6 +8,7 @@ import urllib.request
 
 BASE_ID     = "appcYhoQfSuz8ozil"
 TABLE_NAME  = "Base clients"
+TABLE_ID    = "tblm1aQ4OJ9W1hwm8"
 SIRET_FIELD = "SIRET"          # nom exact du champ SIRET dans Airtable
 
 # Correspondance clé Python → nom du champ Airtable
@@ -74,7 +75,7 @@ def get_all_records() -> dict:
     Les enregistrements sans champ SIRET valide sont ignorés.
     """
     token     = _get_token()
-    table_url = f"https://api.airtable.com/v0/{BASE_ID}/{urllib.parse.quote(TABLE_NAME)}"
+    table_url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}"
     result    = {}
     offset    = None
 
@@ -121,7 +122,7 @@ def update_record(record_id: str, indicateur: dict) -> dict:
         return {}
 
     token   = _get_token()
-    url     = f"https://api.airtable.com/v0/{BASE_ID}/{urllib.parse.quote(TABLE_NAME)}/{record_id}"
+    url     = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}/{record_id}"
     payload = json.dumps({"fields": fields}).encode()
 
     req = urllib.request.Request(
