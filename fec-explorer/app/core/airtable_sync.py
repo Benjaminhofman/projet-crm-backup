@@ -103,6 +103,7 @@ def get_all_records() -> dict:
         if not offset:
             break
 
+    print(f"[debug] get_all_records result ({len(result)} entrées) : {result}")
     return result
 
 
