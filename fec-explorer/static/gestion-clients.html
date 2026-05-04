@@ -329,6 +329,92 @@ input:focus, select:focus {
 .del-table input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #e74c3c; }
 .del-empty { text-align: center; padding: 32px; color: #aaa; font-size: 14px; }
 
+/* ── Onglet Base de données ── */
+.db-toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.db-toolbar input { flex: 1; min-width: 220px; }
+.db-info {
+    font-size: 13px;
+    color: #666;
+    white-space: nowrap;
+}
+.db-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 560px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+}
+.db-table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.db-table thead th {
+    background: #273c75;
+    color: white;
+    padding: 9px 14px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    white-space: nowrap;
+    font-weight: 600;
+    letter-spacing: .02em;
+    cursor: pointer;
+    user-select: none;
+}
+.db-table thead th:hover { background: #1e2f5e; }
+.db-table thead th .sort-arrow { opacity: .5; font-size: 11px; margin-left: 4px; }
+.db-table thead th.sorted .sort-arrow { opacity: 1; }
+.db-table tbody tr {
+    cursor: pointer;
+    transition: background .1s;
+    border-bottom: 1px solid #f0f2f5;
+}
+.db-table tbody tr:nth-child(even) { background: #f8f9fc; }
+.db-table tbody tr:hover { background: #dbe4f7; }
+.db-table tbody tr:last-child { border-bottom: none; }
+.db-table td {
+    padding: 8px 14px;
+    white-space: nowrap;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #2c3e50;
+}
+.db-table td:first-child { font-family: monospace; font-size: 12px; color: #888; }
+.db-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.db-pagination-info { font-size: 13px; color: #666; }
+.db-pagination-btns { display: flex; gap: 8px; }
+.btn-page {
+    background: white;
+    border: 1.5px solid #dde1e7;
+    color: #273c75;
+    padding: 7px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background .15s, border-color .15s;
+}
+.btn-page:hover:not(:disabled) { background: #f4f6fb; border-color: #273c75; }
+.btn-page:disabled { opacity: .4; cursor: default; }
+.btn-page.active-page { background: #273c75; color: white; border-color: #273c75; }
+
 /* ── Spinner ── */
 .spinner {
     display: inline-block;
@@ -354,6 +440,7 @@ input:focus, select:focus {
     <button class="tab-btn active" onclick="showTab('creer', this)">➕ Créer</button>
     <button class="tab-btn"        onclick="showTab('modifier', this)">✏️ Modifier</button>
     <button class="tab-btn"        onclick="showTab('supprimer', this)">🗑 Supprimer</button>
+    <button class="tab-btn"        onclick="showTab('base', this)">📋 Base de données</button>
 </div>
 
 <div class="container">
@@ -680,6 +767,41 @@ input:focus, select:focus {
 
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════
+     ONGLET 4 — BASE DE DONNÉES
+═══════════════════════════════════════════════════════════════ -->
+<div id="tab-base" class="tab-panel">
+
+    <div class="card">
+        <div class="card-title">📋 Base de données clients</div>
+
+        <div class="db-toolbar">
+            <input type="search" id="db-search"
+                   placeholder="🔍 Filtrer par nom, SIRET, collaborateur…"
+                   oninput="dbFilter()">
+            <span class="db-info" id="db-info">—</span>
+        </div>
+
+        <div class="db-wrapper">
+            <table class="db-table">
+                <thead id="db-thead"><tr></tr></thead>
+                <tbody id="db-tbody">
+                    <tr><td colspan="99" style="text-align:center;padding:32px;color:#aaa;">Chargement…</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="db-pagination">
+            <span class="db-pagination-info" id="db-page-info"></span>
+            <div class="db-pagination-btns">
+                <button class="btn-page" id="db-prev" onclick="dbChangePage(-1)">← Précédent</button>
+                <button class="btn-page" id="db-next" onclick="dbChangePage(+1)">Suivant →</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 </div><!-- /container -->
 
 <script>
@@ -732,6 +854,7 @@ function showTab(name, btn) {
     if (btn) btn.classList.add('active');
     if (name === 'modifier' && !allClients.length) loadAllClients();
     if (name === 'supprimer') loadDeleteTable();
+    if (name === 'base') loadBaseTab();
 }
 
 // ── Cache clients ─────────────────────────────────────────────────────────────
@@ -1078,6 +1201,123 @@ async function deleteSelection() {
 
     btn.disabled = false;
     btn.innerHTML = '🗑 Supprimer la sélection';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ONGLET 4 — BASE DE DONNÉES
+// ══════════════════════════════════════════════════════════════════════════════
+
+const DB_PAGE_SIZE = 50;
+let dbAllRows      = [];   // toutes les lignes (filtrées)
+let dbColumns      = [];   // noms de colonnes
+let dbCurrentPage  = 1;
+let dbSortCol      = null;
+let dbSortAsc      = true;
+
+async function loadBaseTab() {
+    if (!allClients.length) await loadAllClients();
+    dbColumns = allClients.length
+        ? Object.keys(allClients[0])
+        : [];
+    buildDbHeader();
+    dbAllRows = [...allClients];
+    document.getElementById('db-search').value = '';
+    dbCurrentPage = 1;
+    renderDbTable();
+}
+
+function buildDbHeader() {
+    const tr = document.querySelector('#db-thead tr');
+    tr.innerHTML = dbColumns.map(col => `
+        <th onclick="dbSort('${col}')" data-col="${col}">
+            ${col} <span class="sort-arrow">↕</span>
+        </th>
+    `).join('');
+}
+
+function dbFilter() {
+    const q = document.getElementById('db-search').value.trim().toLowerCase();
+    dbAllRows = allClients.filter(c =>
+        !q ||
+        (c.nom_client    || '').toLowerCase().includes(q) ||
+        (c.siret         || '').toLowerCase().includes(q) ||
+        (c.collaborateur || '').toLowerCase().includes(q)
+    );
+    dbCurrentPage = 1;
+    renderDbTable();
+}
+
+function dbSort(col) {
+    if (dbSortCol === col) dbSortAsc = !dbSortAsc;
+    else { dbSortCol = col; dbSortAsc = true; }
+
+    // Mise à jour visuelle des flèches
+    document.querySelectorAll('#db-thead th').forEach(th => {
+        th.classList.remove('sorted');
+        th.querySelector('.sort-arrow').textContent = '↕';
+    });
+    const activeTh = document.querySelector(`#db-thead th[data-col="${col}"]`);
+    if (activeTh) {
+        activeTh.classList.add('sorted');
+        activeTh.querySelector('.sort-arrow').textContent = dbSortAsc ? '▲' : '▼';
+    }
+
+    dbAllRows.sort((a, b) => {
+        const va = String(a[col] ?? '');
+        const vb = String(b[col] ?? '');
+        return va.localeCompare(vb, 'fr', { numeric: true }) * (dbSortAsc ? 1 : -1);
+    });
+    dbCurrentPage = 1;
+    renderDbTable();
+}
+
+function dbChangePage(delta) {
+    const totalPages = Math.max(1, Math.ceil(dbAllRows.length / DB_PAGE_SIZE));
+    dbCurrentPage = Math.min(totalPages, Math.max(1, dbCurrentPage + delta));
+    renderDbTable();
+}
+
+function renderDbTable() {
+    const total      = dbAllRows.length;
+    const totalPages = Math.max(1, Math.ceil(total / DB_PAGE_SIZE));
+    const start      = (dbCurrentPage - 1) * DB_PAGE_SIZE;
+    const pageRows   = dbAllRows.slice(start, start + DB_PAGE_SIZE);
+
+    // Info
+    document.getElementById('db-info').textContent =
+        `${total} client(s)`;
+    document.getElementById('db-page-info').textContent =
+        total ? `Page ${dbCurrentPage} / ${totalPages}  (lignes ${start + 1}–${Math.min(start + DB_PAGE_SIZE, total)})` : '';
+
+    // Boutons pagination
+    document.getElementById('db-prev').disabled = dbCurrentPage <= 1;
+    document.getElementById('db-next').disabled = dbCurrentPage >= totalPages;
+
+    // Corps du tableau
+    const tbody = document.getElementById('db-tbody');
+    if (!pageRows.length) {
+        tbody.innerHTML = '<tr><td colspan="99" style="text-align:center;padding:32px;color:#aaa;">Aucun résultat.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = pageRows.map(c => {
+        const cells = dbColumns.map(col => {
+            let v = c[col];
+            if (v === null || v === undefined) v = '';
+            // Booléen
+            if (typeof v === 'boolean') v = v ? 'oui' : 'non';
+            const safe = String(v).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<td title="${safe}">${safe}</td>`;
+        }).join('');
+        return `<tr onclick="dbOpenModify('${c.siret}')">${cells}</tr>`;
+    }).join('');
+}
+
+function dbOpenModify(siret) {
+    // Bascule sur l'onglet Modifier et charge le client
+    const btn = document.querySelector('.tab-btn[onclick="showTab(\'modifier\', this)"]');
+    showTab('modifier', btn);
+    selectClient(siret);
 }
 
 // ── Fermer le dropdown recherche (onglet Modifier) au clic extérieur ──────────
