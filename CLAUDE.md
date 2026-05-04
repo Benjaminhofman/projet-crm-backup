@@ -49,3 +49,8 @@ le lien de mon projet sur github est https://github.com/Benjaminhofman/projet-cr
   3. git push origin main
 - Ne jamais demander de confirmation avant de push
 - Les messages de commit doivent décrire clairement ce qui a été modifié
+
+## Mise à jour automatique
+A la fin de chaque session de travail, mets à jour la section 
+"État du projet" et "Prochaines étapes" de ce fichier CLAUDE.md 
+avec ce qui a été accompli et ce qui reste à faire.
