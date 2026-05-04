@@ -1703,6 +1703,15 @@ function convertDate(val) {
     return val;
 }
 
+// Convertit les valeurs booléennes texte → boolean JS ; laisse inchangé tout autre valeur
+function convertBool(val) {
+    if (typeof val !== 'string') return val;
+    const v = val.toLowerCase().trim();
+    if (v === 'oui' || v === 'true'  || v === '1') return true;
+    if (v === 'non' || v === 'false' || v === '0') return false;
+    return val;
+}
+
 function triggerImport() {
     document.getElementById('csv-file-input').click();
 }
@@ -1799,21 +1808,12 @@ function closeImportModal() {
 async function confirmImport() {
     if (!importRows.length) return;
 
-    // Convertit "oui"/"non" → boolean et dates DD/MM/YYYY → ISO avant envoi
-    const toggleIds = TOGGLE_FIELDS.map(f => f.id);
+    // Normalise tous les champs string : date FR → ISO, puis booléen texte → boolean
     const payload = importRows.map(r => {
         const row = { ...r };
-        // 1) Dates françaises → ISO sur tous les champs string
         Object.keys(row).forEach(k => {
-            if (typeof row[k] === 'string') row[k] = convertDate(row[k]);
-        });
-        // 2) Toggles : "oui"/"non" → boolean
-        toggleIds.forEach(id => {
-            if (!(id in row)) return;
-            const v = String(row[id]).toLowerCase().trim();
-            if      (v === 'oui'  || v === 'true'  || v === '1') row[id] = true;
-            else if (v === 'non'  || v === 'false' || v === '0') row[id] = false;
-            else delete row[id];
+            if (typeof row[k] === 'string')
+                row[k] = convertBool(convertDate(row[k]));
         });
         return row;
     });
