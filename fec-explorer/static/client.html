@@ -184,8 +184,14 @@ h3 {
 
 <div id="client-details"></div>
 
-<script src="utils.js"></script>
 <script>
+const API_URL = "/api";
+
+function esc(val) {
+    const div = document.createElement('div');
+    div.textContent = val ?? '';
+    return div.innerHTML;
+}
 
 function getSiret() {
     const params = new URLSearchParams(window.location.search);

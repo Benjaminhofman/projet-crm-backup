@@ -98,6 +98,22 @@ def get_clients_template():
     )
 
 
+@app.get("/api/client/{siret}", summary="Récupère un client par SIRET depuis PostgreSQL")
+def get_client(siret: str):
+    conn = _get_db_conn()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM clients WHERE siret = %s", (siret,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail=f"Client introuvable : {siret!r}")
+            return {k: _serialize(v) for k, v in row.items()}
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 @app.post("/api/update-airtable", summary="Met à jour un champ client dans PostgreSQL (compatibilité ancienne route)")
 def update_client_field(body: UpdateRequest):
     siret = body.siret.strip()
