@@ -84,16 +84,31 @@ def _qi(col: str) -> str:
     return col
 
 
-# ── Conversion de valeurs ─────────────────────────────────────────────────────
+# ── Conversion de valeurs ───────────────────────────────────────────────────
 
-_DATE_COL    = re.compile(r"^date|anniversaire")
+_DATE_COL     = re.compile(r"^date|anniversaire")
 _FR_DATE_FMTS = ("%d/%m/%Y", "%d/%m/%y", "%d/%m/%Y %H:%M", "%Y-%m-%d")
+
+# Colonnes dont on attend un booléen (nom normalisé)
+_BOOL_COL = re.compile(r"mandat|mission|assujetti|redevable|actif|valide|certifie")
+
+# Colonnes dont on attend un nombre (nom normalisé)
+_NUM_COL = re.compile(r"montant|chiffre|ca|honoraire|revenu|capital|effectif|taux|solde")
+
+# Valeurs booléennes reconnues
+_BOOL_VALS: dict = {
+    "checked": True,
+    "true":    True,
+    "oui":     True,
+    "false":   False,
+    "non":     False,
+}
+
 # Nombre décimal français : "1 234,56" ou "1234,56" (espace ordinaire ou insécable)
-_FR_NUM = re.compile(r"^-?[\d \s]+,\d+$")
+_FR_NUM = re.compile(r"^-?[\d  ]+,\d+$")
 
 
 def parse_french_date(val: str):
-    """Tente de parser une date française vers ISO YYYY-MM-DD. Retourne la valeur brute si échec."""
     for fmt in _FR_DATE_FMTS:
         try:
             return datetime.strptime(val, fmt).strftime("%Y-%m-%d")
@@ -105,11 +120,13 @@ def parse_french_date(val: str):
 def clean_value(val, col: str):
     """
     Convertit une valeur CSV vers un type Python adapté à psycopg2 :
-      - NaN / vide           → None
-      - "checked"            → True  (booléen Airtable)
-      - colonne date + slash → ISO "YYYY-MM-DD"
-      - "1 234,56"           → "1234.56" (PostgreSQL NUMERIC accepte la chaîne)
-      - sinon                → chaîne brute
+      - NaN / vide                 → None
+      - colonne booléenne            → True/False, ou None si valeur non reconnue
+      - oui/non/checked/true/false → True/False (toutes colonnes)
+      - colonne date + slash       → ISO "YYYY-MM-DD"
+      - "1 234,56"                 → float, ou None si non convertible
+      - colonne numérique          → float, ou None si non convertible
+      - sinon                      → chaîne brute
     """
     if pd.isna(val):
         return None
@@ -121,17 +138,33 @@ def clean_value(val, col: str):
     if not val:
         return None
 
-    # Booléen Airtable (checkbox cochée)
-    if val.lower() == "checked":
-        return True
+    v = val.lower()
+
+    # Colonnes booléennes : strict — None si valeur non reconnue
+    if _BOOL_COL.search(col):
+        return _BOOL_VALS.get(v)
+
+    # Valeurs booléennes universelles (oui/non, checked, true/false)
+    if v in _BOOL_VALS:
+        return _BOOL_VALS[v]
 
     # Date française → ISO
     if _DATE_COL.search(col) and "/" in val:
         return parse_french_date(val)
 
-    # Nombre décimal avec virgule → point décimal
+    # Nombre décimal français "1 234,56" → float (None si non convertible)
     if _FR_NUM.match(val):
-        return val.replace(" ", "").replace(" ", "").replace(",", ".")
+        try:
+            return float(val.replace(" ", "").replace(" ", "").replace(",", "."))
+        except ValueError:
+            return None
+
+    # Colonnes numériques : float ou None si non convertible
+    if _NUM_COL.search(col):
+        try:
+            return float(val.replace(",", "."))
+        except ValueError:
+            return None
 
     return val
 
