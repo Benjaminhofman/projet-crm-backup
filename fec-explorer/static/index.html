@@ -2,10 +2,408 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>FEC Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM Collaborateurs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,.3);
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: .02em; }
+    header span { font-size: .8rem; opacity: .6; margin-left: auto; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      padding: 1rem 2rem;
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .toolbar input {
+      flex: 1;
+      min-width: 220px;
+      padding: .55rem 1rem;
+      border: 1.5px solid #dde1ea;
+      border-radius: 8px;
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .2s;
+      background: #fff;
+    }
+    .toolbar input:focus { border-color: #4f6ef7; }
+    .badge {
+      font-size: .78rem;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      margin: 0 2rem 2rem;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    thead { background: #f7f8fc; }
+    thead th {
+      padding: .75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 1.5px solid #e5e7eb;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    thead th:hover { background: #eef0f8; }
+    tbody tr {
+      border-bottom: 1px solid #f3f4f6;
+      transition: background .15s;
+      cursor: pointer;
+    }
+    tbody tr:hover { background: #f0f4ff; }
+    tbody tr:last-child { border-bottom: none; }
+    td { padding: .7rem 1rem; color: #374151; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.chip {
+      text-align: center;
+    }
+    .chip-val {
+      display: inline-block;
+      padding: .15rem .55rem;
+      border-radius: 99px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .chip-pos { background: #d1fae5; color: #065f46; }
+    .chip-neg { background: #fee2e2; color: #991b1b; }
+    .chip-neu { background: #f3f4f6; color: #6b7280; }
+
+    /* ── États loading / erreur / vide ── */
+    .state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #9ca3af;
+    }
+    .state .icon { font-size: 2.5rem; margin-bottom: .75rem; }
+    .state p { font-size: .95rem; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #4f6ef7;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Modal ── */
+    .overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .overlay.open { display: flex; animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal {
+      background: #fff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 640px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .modal-header h2 { font-size: 1.1rem; flex: 1; }
+    .modal-close {
+      background: none; border: none; font-size: 1.3rem;
+      cursor: pointer; color: #9ca3af; line-height: 1;
+      padding: .2rem .4rem; border-radius: 6px;
+      transition: background .15s;
+    }
+    .modal-close:hover { background: #f3f4f6; color: #374151; }
+
+    .modal-body { padding: 1.5rem; }
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .75rem 1.5rem;
+    }
+    @media (max-width: 480px) { .field-grid { grid-template-columns: 1fr; } }
+    .field { display: flex; flex-direction: column; gap: .2rem; }
+    .field label { font-size: .72rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; }
+    .field span { font-size: .9rem; color: #1a1a2e; }
+    .field span.empty { color: #d1d5db; font-style: italic; }
+
+    .section-title {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #9ca3af;
+      margin: 1.25rem 0 .75rem;
+      padding-bottom: .4rem;
+      border-bottom: 1.5px solid #f3f4f6;
+      grid-column: 1 / -1;
+    }
+  </style>
 </head>
 <body>
-  <h1>FEC Explorer</h1>
-  <p>API disponible sur <a href="/docs">/docs</a></p>
+
+<header>
+  <h1>CRM Collaborateurs</h1>
+  <span id="header-count"></span>
+</header>
+
+<div class="toolbar">
+  <input id="search" type="search" placeholder="Rechercher par nom, SIRET, collaborateur…" oninput="filterClients()" />
+  <span class="badge" id="count-badge"></span>
+</div>
+
+<div class="table-wrap">
+  <div id="state-loading" class="state">
+    <div class="spinner"></div>
+    <p>Chargement des clients…</p>
+  </div>
+  <div id="state-error" class="state" style="display:none">
+    <div class="icon">⚠️</div>
+    <p id="error-msg">Erreur de chargement.</p>
+  </div>
+  <div id="state-empty" class="state" style="display:none">
+    <div class="icon">📭</div>
+    <p>Aucun client trouvé.</p>
+  </div>
+  <table id="table" style="display:none">
+    <thead>
+      <tr>
+        <th onclick="sortBy('nom_client')">Nom client</th>
+        <th onclick="sortBy('code_client')">Code</th>
+        <th onclick="sortBy('collaborateur')">Collaborateur</th>
+        <th onclick="sortBy('assistant')">Assistant</th>
+        <th onclick="sortBy('activite_r')">Activité</th>
+        <th onclick="sortBy('ca_r')">CA (€)</th>
+        <th onclick="sortBy('resultat')">Résultat (€)</th>
+        <th onclick="sortBy('rentabilite')">Rentabilité</th>
+        <th onclick="sortBy('date_de_cloture')">Clôture</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- Modal fiche client -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h2 id="modal-title">Fiche client</h2>
+      <button class="modal-close" onclick="closeClient()" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-grid" id="modal-fields"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let allClients = [];
+  let filtered   = [];
+  let sortCol    = "nom_client";
+  let sortAsc    = true;
+
+  // ── Chargement ─────────────────────────────────────────────────────────────
+
+  async function loadClients() {
+    try {
+      const res = await fetch("/api/clients");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      allClients = await res.json();
+      filtered   = allClients;
+      document.getElementById("state-loading").style.display = "none";
+      renderTable();
+    } catch (e) {
+      document.getElementById("state-loading").style.display = "none";
+      document.getElementById("state-error").style.display  = "block";
+      document.getElementById("error-msg").textContent = `Erreur : ${e.message}`;
+    }
+  }
+
+  // ── Rendu table ────────────────────────────────────────────────────────────
+
+  function renderTable() {
+    const tbody = document.getElementById("tbody");
+    const table = document.getElementById("table");
+    const empty = document.getElementById("state-empty");
+
+    if (filtered.length === 0) {
+      table.style.display = "none";
+      empty.style.display = "block";
+      updateBadge(0);
+      return;
+    }
+
+    empty.style.display = "none";
+    table.style.display = "table";
+    updateBadge(filtered.length);
+
+    const sorted = [...filtered].sort((a, b) => {
+      const va = a[sortCol] ?? "";
+      const vb = b[sortCol] ?? "";
+      return sortAsc
+        ? String(va).localeCompare(String(vb), "fr", { numeric: true })
+        : String(vb).localeCompare(String(va), "fr", { numeric: true });
+    });
+
+    tbody.innerHTML = sorted.map(c => `
+      <tr onclick="viewClient('${esc(c.siret)}')">
+        <td>${esc(c.nom_client ?? "—")}</td>
+        <td>${esc(c.code_client ?? "—")}</td>
+        <td>${esc(c.collaborateur ?? "—")}</td>
+        <td>${esc(c.assistant ?? "—")}</td>
+        <td>${esc(c.activite_r ?? "—")}</td>
+        <td class="num">${fmt(c.ca_r)}</td>
+        <td class="num">${fmt(c.resultat)}</td>
+        <td class="chip">${rentaChip(c.rentabilite)}</td>
+        <td>${esc(c.date_de_cloture ?? "—")}</td>
+      </tr>
+    `).join("");
+  }
+
+  // ── Recherche ──────────────────────────────────────────────────────────────
+
+  function filterClients() {
+    const q = document.getElementById("search").value.toLowerCase().trim();
+    if (!q) {
+      filtered = allClients;
+    } else {
+      filtered = allClients.filter(c =>
+        [c.nom_client, c.siret, c.collaborateur, c.assistant, c.code_client, c.activite_r]
+          .some(v => v && String(v).toLowerCase().includes(q))
+      );
+    }
+    renderTable();
+  }
+
+  // ── Tri ────────────────────────────────────────────────────────────────────
+
+  function sortBy(col) {
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    renderTable();
+  }
+
+  // ── Fiche client ───────────────────────────────────────────────────────────
+
+  function viewClient(siret) {
+    const c = allClients.find(x => x.siret === siret);
+    if (!c) return;
+
+    document.getElementById("modal-title").textContent = c.nom_client ?? siret;
+
+    const fields = [
+      { section: "Identification" },
+      { label: "SIRET",         val: c.siret },
+      { label: "Code client",   val: c.code_client },
+      { label: "Nom client",    val: c.nom_client },
+      { label: "Activité",      val: c.activite_r },
+      { label: "Date clôture",  val: c.date_de_cloture },
+      { label: "Ancienneté",    val: c.anciennete },
+
+      { section: "Équipe" },
+      { label: "Collaborateur", val: c.collaborateur },
+      { label: "Assistant",     val: c.assistant },
+
+      { section: "Financier" },
+      { label: "CA (€)",        val: fmt(c.ca_r) },
+      { label: "Résultat (€)",  val: fmt(c.resultat) },
+      { label: "Honoraires cpta", val: fmt(c.honoraires_cpta) },
+      { label: "Rentabilité",   val: c.rentabilite ?? "—" },
+    ];
+
+    document.getElementById("modal-fields").innerHTML = fields.map(f => {
+      if (f.section) return `<div class="section-title">${esc(f.section)}</div>`;
+      const display = f.val != null && f.val !== "" ? esc(String(f.val)) : '<span class="empty">—</span>';
+      return `<div class="field"><label>${esc(f.label)}</label><span>${display}</span></div>`;
+    }).join("");
+
+    document.getElementById("overlay").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeClient() {
+    document.getElementById("overlay").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById("overlay")) closeClient();
+  }
+
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeClient(); });
+
+  // ── Utilitaires ────────────────────────────────────────────────────────────
+
+  function esc(s) {
+    return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function fmt(v) {
+    if (v == null || v === "") return "—";
+    const n = parseFloat(v);
+    if (isNaN(n)) return esc(String(v));
+    return n.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  function rentaChip(v) {
+    if (v == null || v === "") return `<span class="chip-val chip-neu">—</span>`;
+    const n = parseFloat(v);
+    if (isNaN(n)) return `<span class="chip-val chip-neu">${esc(String(v))}</span>`;
+    const cls = n > 0 ? "chip-pos" : n < 0 ? "chip-neg" : "chip-neu";
+    return `<span class="chip-val ${cls}">${n > 0 ? "+" : ""}${n}%</span>`;
+  }
+
+  function updateBadge(n) {
+    const total = allClients.length;
+    const badge = document.getElementById("count-badge");
+    const header = document.getElementById("header-count");
+    badge.textContent  = n === total ? `${total} client${total > 1 ? "s" : ""}` : `${n} / ${total}`;
+    header.textContent = `${total} client${total > 1 ? "s" : ""}`;
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  loadClients();
+</script>
 </body>
 </html>
