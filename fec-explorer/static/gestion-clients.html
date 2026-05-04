@@ -428,6 +428,73 @@ input:focus, select:focus {
 .btn-page:disabled { opacity: .4; cursor: default; }
 .btn-page.active-page { background: #273c75; color: white; border-color: #273c75; }
 
+/* ── Filtres Base de données ── */
+.db-filters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 14px 16px;
+    background: #f8f9fc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 14px;
+}
+.db-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.db-filter-group label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.db-filter-group input,
+.db-filter-group select {
+    padding: 7px 9px;
+    border: 1.5px solid #dde1e7;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 100%;
+    background: white;
+    color: #2c3e50;
+    font-family: inherit;
+    transition: border-color .15s;
+}
+.db-filter-group input:focus,
+.db-filter-group select:focus {
+    border-color: #273c75;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(39,60,117,.08);
+}
+.db-filter-group.span2 { grid-column: span 2; }
+.db-hono-range { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.btn-reset-filters {
+    background: white;
+    border: 1.5px solid #dde1e7;
+    color: #666;
+    padding: 8px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background .15s, border-color .15s, color .15s;
+}
+.btn-reset-filters:hover {
+    background: #fdecea;
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+.db-active-filters {
+    font-size: 12px;
+    color: #f39c12;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 /* ── Skeleton loader ── */
 .skeleton-cell {
     height: 13px;
@@ -804,9 +871,56 @@ input:focus, select:focus {
 
         <div class="db-toolbar">
             <input type="search" id="db-search"
-                   placeholder="🔍 Filtrer par nom, SIRET, collaborateur…"
+                   placeholder="🔍 Nom, SIRET, collaborateur…"
                    oninput="dbFilter()">
+            <span class="db-active-filters" id="db-active-filters"></span>
             <span class="db-info" id="db-info">—</span>
+            <button class="btn-reset-filters" onclick="dbResetFilters()">✕ Réinitialiser</button>
+        </div>
+
+        <div class="db-filters">
+            <div class="db-filter-group">
+                <label>Année</label>
+                <input type="text" id="dbf-annee" placeholder="ex : 2024" oninput="dbFilter()">
+            </div>
+            <div class="db-filter-group">
+                <label>Structure</label>
+                <select id="dbf-structure" onchange="dbFilter()">
+                    <option value="">Toutes</option>
+                    <option>SAS</option><option>SARL</option><option>EI</option>
+                    <option>ASSO</option><option>SCI</option>
+                </select>
+            </div>
+            <div class="db-filter-group">
+                <label>Collaborateur</label>
+                <select id="dbf-collaborateur" onchange="dbFilter()">
+                    <option value="">Tous</option>
+                </select>
+            </div>
+            <div class="db-filter-group">
+                <label>Assistant</label>
+                <select id="dbf-assistant" onchange="dbFilter()">
+                    <option value="">Tous</option>
+                </select>
+            </div>
+            <div class="db-filter-group">
+                <label>Honoraires min (€)</label>
+                <input type="number" id="dbf-hono-min" placeholder="0" min="0" step="100" oninput="dbFilter()">
+            </div>
+            <div class="db-filter-group">
+                <label>Honoraires max (€)</label>
+                <input type="number" id="dbf-hono-max" placeholder="∞" min="0" step="100" oninput="dbFilter()">
+            </div>
+            <div class="db-filter-group">
+                <label>Date de clôture</label>
+                <input type="date" id="dbf-date_de_cloture" onchange="dbFilter()">
+            </div>
+            <div class="db-filter-group">
+                <label>Activité</label>
+                <select id="dbf-activite_r" onchange="dbFilter()">
+                    <option value="">Toutes</option>
+                </select>
+            </div>
         </div>
 
         <div class="db-wrapper">
@@ -1247,7 +1361,6 @@ let dbSortAsc      = true;
 
 async function loadBaseTab() {
     if (!allClients.length) {
-        // Skeleton pendant le chargement
         const skeletonRow = '<tr>' + DB_PRIORITY_COLS.map(() =>
             '<td><div class="skeleton-cell"></div></td>'
         ).join('') + '</tr>';
@@ -1256,7 +1369,7 @@ async function loadBaseTab() {
         await loadAllClients();
     }
     if (allClients.length) {
-        const allCols    = Object.keys(allClients[0]);
+        const allCols     = Object.keys(allClients[0]);
         const prioritized = DB_PRIORITY_COLS.filter(c => allCols.includes(c));
         const rest        = allCols.filter(c => !DB_PRIORITY_COLS.includes(c));
         dbColumns = [...prioritized, ...rest];
@@ -1264,10 +1377,42 @@ async function loadBaseTab() {
         dbColumns = [];
     }
     buildDbHeader();
+    populateDbFilters();
     dbAllRows = [...allClients];
     document.getElementById('db-search').value = '';
     dbCurrentPage = 1;
     renderDbTable();
+}
+
+// Alimente les selects dynamiques depuis les données en mémoire
+function populateDbFilters() {
+    const fill = (id, field) => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const saved = sel.value;
+        const vals  = [...new Set(allClients.map(c => c[field]).filter(Boolean))].sort(
+            (a, b) => String(a).localeCompare(String(b), 'fr')
+        );
+        sel.innerHTML = '<option value="">Tous</option>' +
+            vals.map(v => `<option value="${v}">${v}</option>`).join('');
+        if (saved) sel.value = saved;
+    };
+    fill('dbf-collaborateur', 'collaborateur');
+    fill('dbf-assistant',     'assistant');
+    fill('dbf-activite_r',    'activite_r');
+}
+
+// Réinitialise tous les filtres et rafraîchit le tableau
+function dbResetFilters() {
+    ['db-search','dbf-annee','dbf-hono-min','dbf-hono-max','dbf-date_de_cloture'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    ['dbf-structure','dbf-collaborateur','dbf-assistant','dbf-activite_r'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    dbFilter();
 }
 
 function buildDbHeader() {
@@ -1280,13 +1425,38 @@ function buildDbHeader() {
 }
 
 function dbFilter() {
-    const q = document.getElementById('db-search').value.trim().toLowerCase();
-    dbAllRows = allClients.filter(c =>
-        !q ||
-        (c.nom_client    || '').toLowerCase().includes(q) ||
-        (c.siret         || '').toLowerCase().includes(q) ||
-        (c.collaborateur || '').toLowerCase().includes(q)
-    );
+    const q        = document.getElementById('db-search').value.trim().toLowerCase();
+    const annee    = document.getElementById('dbf-annee').value.trim();
+    const struct   = document.getElementById('dbf-structure').value;
+    const collab   = document.getElementById('dbf-collaborateur').value;
+    const assist   = document.getElementById('dbf-assistant').value;
+    const honoMin  = document.getElementById('dbf-hono-min').value  !== '' ? parseFloat(document.getElementById('dbf-hono-min').value)  : null;
+    const honoMax  = document.getElementById('dbf-hono-max').value  !== '' ? parseFloat(document.getElementById('dbf-hono-max').value)  : null;
+    const dateClo  = document.getElementById('dbf-date_de_cloture').value;
+    const activite = document.getElementById('dbf-activite_r').value;
+
+    dbAllRows = allClients.filter(c => {
+        if (q && !(
+            (c.nom_client    || '').toLowerCase().includes(q) ||
+            (c.siret         || '').toLowerCase().includes(q) ||
+            (c.collaborateur || '').toLowerCase().includes(q)
+        )) return false;
+        if (annee    && String(c.annee    || '').trim() !== annee) return false;
+        if (struct   && (c.structure     || '') !== struct)        return false;
+        if (collab   && (c.collaborateur || '') !== collab)        return false;
+        if (assist   && (c.assistant     || '') !== assist)        return false;
+        if (honoMin  !== null && (parseFloat(c.honoraires_cpta) || 0) < honoMin) return false;
+        if (honoMax  !== null && (parseFloat(c.honoraires_cpta) || 0) > honoMax) return false;
+        if (dateClo  && !(c.date_de_cloture || '').startsWith(dateClo)) return false;
+        if (activite && (c.activite_r   || '') !== activite)       return false;
+        return true;
+    });
+
+    // Indicateur de filtres actifs
+    const active = [q, annee, struct, collab, assist, honoMin, honoMax, dateClo, activite].filter(Boolean).length;
+    document.getElementById('db-active-filters').textContent =
+        active ? `${active} filtre(s) actif(s)` : '';
+
     dbCurrentPage = 1;
     renderDbTable();
 }
