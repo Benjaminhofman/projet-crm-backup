@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Rendement</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f4f6fb;
+    margin: 0;
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.back {
+    background: #273c75;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.filters-top {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.filters-top input {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background: #273c75;
+    color: white;
+    font-size: 13px;
+}
+
+tr:nth-child(even) {
+    background: #f8f9fc;
+}
+
+tr:hover {
+    background: #e8f0fe;
+    cursor: pointer;
+}
+
+input {
+    width: 80px;
+    padding: 4px;
+    text-align: center;
+}
+
+.result {
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <a href="index.html" class="back">⬅ Retour</a>
+    <h2>📈 Rendement</h2>
+</div>
+
+<!-- FILTRES -->
+<div class="filters-top">
+    <input id="search" placeholder="🔍 Nom client...">
+    <input id="filter-assistant" placeholder="Assistant...">
+    <input id="filter-collab" placeholder="Collaborateur...">
+    <input id="filter-annee" placeholder="Année...">
+    <input id="filter-cloture" placeholder="Clôture...">
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Nom</th>
+<th>Assistant</th>
+<th>Collaborateur</th>
+<th>Année</th>
+<th>Clôture</th>
+<th>CA</th>
+<th>Résultat</th>
+<th>Ancienneté</th>
+<th>Temps</th>
+<th>Honoraires</th>
+<th>€/h</th>
+<th>Rendement</th>
+</tr>
+</thead>
+
+<tbody id="table"></tbody>
+</table>
+
+<script>
+const API_URL = "/api";
+
+// Variable globale partagée entre toutes les pages déclaratives
+let dataGlobal = [];
+
+// Échappement HTML pour prévenir les injections XSS
+function esc(val) {
+    const div = document.createElement('div');
+    div.textContent = val ?? '';
+    return div.innerHTML;
+}
+
+// Formatage date ISO → YYYY-MM-DD
+function formatDate(dateStr) {
+    if (!dateStr) return "";
+    return dateStr.substring(0, 10);
+}
+
+// Score de rentabilité (retourne la valeur numérique brute)
+function getRentabiliteScore(val) {
+    return parseFloat(val) || 0;
+}
+
+// Chargement des clients depuis l'API avec gestion d'erreur
+async function fetchClients() {
+    try {
+        const res = await fetch(API_URL + "/clients");
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        return await res.json();
+    } catch (err) {
+        console.error("Erreur fetchClients:", err);
+        return [];
+    }
+}
+
+// Attache applyFilters() sur tous les inputs correspondant au sélecteur CSS
+function bindFilterInputs(selector) {
+    document.querySelectorAll(selector).forEach(el => {
+        el.addEventListener("input", applyFilters);
+    });
+}
+
+// Mise à jour d'un champ texte/date/nombre dans PostgreSQL
+async function updateField(siret, field, value, el) {
+    if (el) el.style.background = "#fff3cd";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.background = "#d4edda";
+        setTimeout(() => { if (el) el.style.background = ""; }, 2000);
+    } catch {
+        if (el) el.style.background = "#f8d7da";
+    }
+}
+
+// Mise à jour d'une case à cocher dans PostgreSQL
+async function updateCheckbox(siret, field, value, el) {
+    if (el) el.style.outline = "2px solid orange";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.outline = "2px solid green";
+        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
+    } catch {
+        if (el) el.style.outline = "2px solid red";
+    }
+}
+
+// Mise à jour d'un select dans PostgreSQL
+async function updateSelect(siret, field, value, el) {
+    if (el) el.style.outline = "2px solid orange";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.outline = "2px solid green";
+        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
+    } catch {
+        if (el) el.style.outline = "2px solid red";
+    }
+}
+
+// Export CSV — séparateur point-virgule, BOM UTF-8 pour compatibilité Excel
+// columns (optionnel) : [{label, field}, ...] — si absent, exporte toutes les clés
+function exportCSV(data, filename, columns) {
+    if (!data || !data.length) {
+        alert("Aucune donnée à exporter.");
+        return;
+    }
+
+    let headers, rows;
+
+    if (columns) {
+        headers = columns.map(c => c.label);
+        rows = data.map(row =>
+            columns.map(c => '"' + String(row[c.field] ?? '').replace(/"/g, '""') + '"').join(';')
+        );
+    } else {
+        const keys = [...new Set(data.flatMap(r => Object.keys(r)))].filter(k => k !== 'id');
+        headers = keys;
+        rows = data.map(row =>
+            keys.map(k => '"' + String(row[k] ?? '').replace(/"/g, '""') + '"').join(';')
+        );
+    }
+
+    const csv = '﻿' + [
+        headers.map(h => '"' + h.replace(/"/g, '""') + '"').join(';'),
+        ...rows
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+
+<script>
+(function(){
+
+let dataGlobal;
+
+/* LOAD DATA */
+async function load() {
+    const res = await fetch(API_URL + "/clients");
+    const data = await res.json();
+
+    console.log("DATA:", data); // debug
+
+    dataGlobal = data;
+
+    display(dataGlobal);
+    bindFilters();
+}
+
+/* COULEUR RENDEMENT */
+function getColor(val) {
+    if (val < 50) return "#e74c3c";
+    if (val < 80) return "#f39c12";
+    return "#27ae60";
+}
+
+/* CALCUL €/h */
+function calculerLigne(row) {
+
+    const temps = parseFloat(row.querySelector(".temps").value) || 0;
+    const honos = parseFloat(row.querySelector(".honos").value) || 0;
+
+    const resultCell = row.querySelector(".result");
+
+    if (temps === 0) {
+        resultCell.innerText = "-";
+        return;
+    }
+
+    const taux = honos / temps;
+
+    let color = "#27ae60";
+    if (taux < 50) color = "#e74c3c";
+    else if (taux < 80) color = "#f39c12";
+
+    resultCell.innerHTML = `<span style="color:${color}">${taux.toFixed(2)}</span>`;
+}
+
+/* DISPLAY */
+function display(data) {
+
+    const table = document.getElementById("table");
+    table.innerHTML = "";
+
+    data.forEach(c => {
+
+        const tr = document.createElement("tr");
+
+        const rendement = parseFloat(c["rentabilite"] ?? 0);
+
+        tr.innerHTML = `
+        <td>${c.code_client || ""}</td>
+        <td><b>${c.nom_client || ""}</b></td>
+        <td>${c.assistant || ""}</td>
+        <td>${c.collaborateur || ""}</td>
+        <td>${c.annee || ""}</td>
+        <td>${c.date_de_cloture || ""}</td>
+        <td>${c.ca_r || ""}</td>
+        <td>${c.resultat_r || ""}</td>
+        <td>${c["ancienneté"] || ""}</td>
+
+        <td>
+            <input class="temps" value="${c.temps_passe ?? ""}">
+        </td>
+
+        <td>
+            <input class="honos" value="${c.honoraires_cpta ?? ""}">
+        </td>
+
+        <td class="result">-</td>
+
+        <td style="font-weight:bold; color:${getColor(rendement)};">
+            ${rendement ? rendement.toFixed(2) : ""}
+        </td>
+        `;
+
+        const tempsInput = tr.querySelector(".temps");
+        const honosInput = tr.querySelector(".honos");
+
+        /* CALCUL LIVE */
+        tempsInput.addEventListener("input", () => calculerLigne(tr));
+        honosInput.addEventListener("input", () => calculerLigne(tr));
+
+        /* SAVE */
+        tempsInput.addEventListener("change", (e) => {
+            updateField(c.siret, "temps passé", e.target.value, e.target);
+        });
+
+        honosInput.addEventListener("change", (e) => {
+            updateField(c.siret, "honoraires cpta", e.target.value, e.target);
+        });
+
+        calculerLigne(tr);
+
+        // Clic sur la ligne → fiche client (sauf si clic sur un input)
+        tr.addEventListener('click', (e) => {
+            if (!e.target.closest('input')) {
+                window.location.href = 'client.html?siret=' + c.siret;
+            }
+        });
+
+        table.appendChild(tr);
+    });
+}
+
+/* FILTRES */
+function applyFilters() {
+
+    const search = document.getElementById("search").value.toLowerCase();
+    const assistant = document.getElementById("filter-assistant").value.toLowerCase();
+    const collab = document.getElementById("filter-collab").value.toLowerCase();
+    const annee = document.getElementById("filter-annee").value.toLowerCase();
+    const cloture = document.getElementById("filter-cloture").value.toLowerCase();
+
+    const filtered = dataGlobal.filter(c => {
+
+        if (search && !(c.nom_client || "").toLowerCase().includes(search)) return false;
+        if (assistant && !(c.assistant || "").toLowerCase().includes(assistant)) return false;
+        if (collab && !(c.collaborateur || "").toLowerCase().includes(collab)) return false;
+        if (annee && !(String(c.annee || "")).includes(annee)) return false;
+        if (cloture && !(c.date_de_cloture || "").toLowerCase().includes(cloture)) return false;
+
+        return true;
+    });
+
+    display(filtered);
+}
+
+/* BIND FILTERS */
+function bindFilters() {
+    document.querySelectorAll(".filters-top input").forEach(input => {
+        input.addEventListener("input", applyFilters);
+    });
+}
+
+/* INIT */
+load();
+
+})();
+</script>
+
+</body>
+</html>

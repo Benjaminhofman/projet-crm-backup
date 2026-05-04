@@ -346,6 +346,9 @@ tr:hover {
 <script>
 const API_URL = "/api";
 
+// Variable globale partagée entre toutes les pages déclaratives
+let dataGlobal = [];
+
 // Échappement HTML pour prévenir les injections XSS
 function esc(val) {
     const div = document.createElement('div');
@@ -353,12 +356,89 @@ function esc(val) {
     return div.innerHTML;
 }
 
+// Formatage date ISO → YYYY-MM-DD
+function formatDate(dateStr) {
+    if (!dateStr) return "";
+    return dateStr.substring(0, 10);
+}
+
 // Score de rentabilité (retourne la valeur numérique brute)
 function getRentabiliteScore(val) {
     return parseFloat(val) || 0;
 }
 
+// Chargement des clients depuis l'API avec gestion d'erreur
+async function fetchClients() {
+    try {
+        const res = await fetch(API_URL + "/clients");
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        return await res.json();
+    } catch (err) {
+        console.error("Erreur fetchClients:", err);
+        return [];
+    }
+}
+
+// Attache applyFilters() sur tous les inputs correspondant au sélecteur CSS
+function bindFilterInputs(selector) {
+    document.querySelectorAll(selector).forEach(el => {
+        el.addEventListener("input", applyFilters);
+    });
+}
+
+// Mise à jour d'un champ texte/date/nombre dans PostgreSQL
+async function updateField(siret, field, value, el) {
+    if (el) el.style.background = "#fff3cd";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.background = "#d4edda";
+        setTimeout(() => { if (el) el.style.background = ""; }, 2000);
+    } catch {
+        if (el) el.style.background = "#f8d7da";
+    }
+}
+
+// Mise à jour d'une case à cocher dans PostgreSQL
+async function updateCheckbox(siret, field, value, el) {
+    if (el) el.style.outline = "2px solid orange";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.outline = "2px solid green";
+        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
+    } catch {
+        if (el) el.style.outline = "2px solid red";
+    }
+}
+
+// Mise à jour d'un select dans PostgreSQL
+async function updateSelect(siret, field, value, el) {
+    if (el) el.style.outline = "2px solid orange";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.outline = "2px solid green";
+        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
+    } catch {
+        if (el) el.style.outline = "2px solid red";
+    }
+}
+
 // Export CSV — séparateur point-virgule, BOM UTF-8 pour compatibilité Excel
+// columns (optionnel) : [{label, field}, ...] — si absent, exporte toutes les clés
 function exportCSV(data, filename, columns) {
     if (!data || !data.length) {
         alert("Aucune donnée à exporter.");
@@ -393,7 +473,8 @@ function exportCSV(data, filename, columns) {
     a.click();
     URL.revokeObjectURL(url);
 }
-
+</script>
+<script>
 let clientsData = [];
 let displayedClients = [];
 
@@ -421,7 +502,7 @@ function checkAnniversaires(data) {
     if (annivs.length > 0) {
         const div = document.getElementById("alert-anniv");
         div.style.display = "block";
-        div.innerHTML = "🎂 Anniversaire aujourd'hui : " +
+        div.innerHTML = "🎂 Anniversaire aujourd’hui : " +
             annivs.map(a => a.nom_client).join(", ");
     }
 }
@@ -430,9 +511,9 @@ function checkAnniversaires(data) {
 let filtersConfig = [
     { field: "collaborateur",  label: "Collaborateur" },
     { field: "structure",      label: "Structure" },
-    { field: "activite_r",     label: "Activité" },
+    { field: "activiter",     label: "Activité" },
     { field: "assistant",      label: "Assistant" },
-    { field: "date_de_cloture", label: "Date de clôture" }
+    { field: "datedecloture", label: "Date de clôture" }
 ];
 
 function buildFilters() {
@@ -545,7 +626,7 @@ function displayClients(data) {
             <td>${c.code_client || ""}</td>
             <td><strong>${c.nom_client || ""}</strong></td>
             <td>${c.date_de_cloture || ""}</td>
-            <td>${c["structure"] || ""}</td>
+            <td>${c.structure || ""}</td>
 
             <td>
                 ${anciennete}
@@ -553,8 +634,8 @@ function displayClients(data) {
             </td>
 
             <td>${c.honoraires_cpta || ""}</td>
-            <td>${c["collaborateur"] || ""}</td>
-            <td>${c["assistant"] || ""}</td>
+            <td>${c.collaborateur || ""}</td>
+            <td>${c.assistant || ""}</td>
 
             <td>${c.ca_r || ""}</td>
             <td>${c.resultat || ""}</td>
@@ -636,17 +717,17 @@ function viewClient(siret) {
 
 function exportIndexCSV() {
     exportCSV(displayedClients, 'clients.csv', [
-        { label: "Code",          field: "code_client" },
-        { label: "Nom",           field: "nom_client" },
-        { label: "Clôture",       field: "date_de_cloture" },
+        { label: "Code",          field: "codeclient" },
+        { label: "Nom",           field: "nomclient" },
+        { label: "Clôture",       field: "datedecloture" },
         { label: "Structure",     field: "structure" },
         { label: "Ancienneté",    field: "ancienneté" },
-        { label: "Honoraires",    field: "honoraires_cpta" },
+        { label: "Honoraires",    field: "honorairescpta" },
         { label: "Collaborateur", field: "collaborateur" },
         { label: "Assistant",     field: "assistant" },
-        { label: "CA",            field: "ca_r" },
+        { label: "CA",            field: "car" },
         { label: "Résultat",      field: "resultat" },
-        { label: "Activité",      field: "activite_r" },
+        { label: "Activité",      field: "activiter" },
         { label: "Rentabilité",   field: "rentabilite" }
     ]);
 }

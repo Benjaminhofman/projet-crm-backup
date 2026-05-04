@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Suivi Déclaratif</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f4f6fb;
+    margin: 0;
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.back {
+    background: #273c75;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.counter {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background: #273c75;
+    color: white;
+    font-size: 13px;
+}
+
+tr:nth-child(even) {
+    background: #f8f9fc;
+}
+
+tr:hover {
+    background: #e8f0fe;
+}
+
+.name {
+    font-weight: bold;
+    text-align: left;
+}
+
+/* Lien fiche client */
+.client-link {
+    color: #273c75;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.client-link:hover {
+    text-decoration: underline;
+    color: #1a2a5e;
+}
+
+.separator {
+    background: #c8cfe8;
+    width: 3px;
+    padding: 0;
+}
+
+.filters-top {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.filter-box input {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+/* Case à cocher éditable */
+.decl-checkbox {
+    accent-color: #273c75;
+    transform: scale(1.25);
+    cursor: pointer;
+}
+
+/* Case à cocher lecture seule (dividendes = champ numérique) */
+.readonly-checkbox {
+    pointer-events: none;
+    accent-color: #95a5a6;
+    opacity: 0.7;
+    transform: scale(1.1);
+}
+
+/* En-têtes de colonnes cliquables (navigation vers la page détail) */
+.col-link {
+    cursor: pointer;
+    text-decoration: underline dotted rgba(255,255,255,0.6);
+    transition: opacity 0.15s;
+}
+
+.col-link:hover {
+    opacity: 0.8;
+}
+
+/* Skeleton loader */
+.skeleton {
+    display: inline-block;
+    background: linear-gradient(90deg, #e8eaf0 25%, #d4d8e2 50%, #e8eaf0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.4s infinite;
+    border-radius: 4px;
+    height: 14px;
+    width: 70%;
+}
+
+.skeleton-row td { padding: 13px 8px; }
+
+@keyframes skeleton-shine {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <a href="index.html" class="back">⬅ Retour</a>
+    <h2>📑 Suivi Déclaratif</h2>
+</div>
+
+<div class="counter" id="counter"></div>
+
+<div class="filters-top">
+    <div class="filter-box">
+        <input id="filter-assistant" placeholder="Assistant...">
+    </div>
+    <div class="filter-box">
+        <input id="filter-collab" placeholder="Collaborateur...">
+    </div>
+    <div class="filter-box">
+        <input id="filter-annee" placeholder="Année...">
+    </div>
+    <div class="filter-box">
+        <input id="filter-cloture" placeholder="Clôture...">
+    </div>
+</div>
+
+<table>
+<thead>
+<tr>
+    <th>Code</th>
+    <th>Nom</th>
+    <th>Assistant</th>
+    <th>Collaborateur</th>
+    <th>Année</th>
+    <th>Clôture</th>
+    <th class="separator"></th>
+    <th class="col-link" onclick="location.href='ca12.html'">CA12</th>
+    <th class="col-link" onclick="location.href='tvs.html'">TVS</th>
+    <th class="col-link" onclick="location.href='cvae.html'">CVAE</th>
+    <th class="col-link" onclick="location.href='ir.html'">IR</th>
+    <th class="col-link" onclick="location.href='is.html'">IS</th>
+    <th class="col-link" onclick="location.href='liasse.html'">Liasse</th>
+    <th class="col-link" onclick="location.href='cfe.html'">CFE</th>
+    <th class="col-link" onclick="location.href='dividendes.html'" title="Lecture seule — champ numérique">Dividendes</th>
+    <th class="col-link" onclick="location.href='juridique.html'">Juridique</th>
+    <th class="col-link" onclick="location.href='situation.html'">Situation</th>
+    <th class="col-link" onclick="location.href='tbb.html'">TBB</th>
+</tr>
+<!-- Ligne de filtres rapides par colonne -->
+<tr id="filter-row"></tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+
+<script>
+const API_URL = "/api";
+
+// Variable globale partagée entre toutes les pages déclaratives
+let dataGlobal = [];
+
+// Échappement HTML pour prévenir les injections XSS
+function esc(val) {
+    const div = document.createElement('div');
+    div.textContent = val ?? '';
+    return div.innerHTML;
+}
+
+// Formatage date ISO → YYYY-MM-DD
+function formatDate(dateStr) {
+    if (!dateStr) return "";
+    return dateStr.substring(0, 10);
+}
+
+// Score de rentabilité (retourne la valeur numérique brute)
+function getRentabiliteScore(val) {
+    return parseFloat(val) || 0;
+}
+
+// Chargement des clients depuis l'API avec gestion d'erreur
+async function fetchClients() {
+    try {
+        const res = await fetch(API_URL + "/clients");
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        return await res.json();
+    } catch (err) {
+        console.error("Erreur fetchClients:", err);
+        return [];
+    }
+}
+
+// Attache applyFilters() sur tous les inputs correspondant au sélecteur CSS
+function bindFilterInputs(selector) {
+    document.querySelectorAll(selector).forEach(el => {
+        el.addEventListener("input", applyFilters);
+    });
+}
+
+// Mise à jour d'un champ texte/date/nombre dans PostgreSQL
+async function updateField(siret, field, value, el) {
+    if (el) el.style.background = "#fff3cd";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.background = "#d4edda";
+        setTimeout(() => { if (el) el.style.background = ""; }, 2000);
+    } catch {
+        if (el) el.style.background = "#f8d7da";
+    }
+}
+
+// Mise à jour d'une case à cocher dans PostgreSQL
+async function updateCheckbox(siret, field, value, el) {
+    if (el) el.style.outline = "2px solid orange";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.outline = "2px solid green";
+        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
+    } catch {
+        if (el) el.style.outline = "2px solid red";
+    }
+}
+
+// Mise à jour d'un select dans PostgreSQL
+async function updateSelect(siret, field, value, el) {
+    if (el) el.style.outline = "2px solid orange";
+    try {
+        const res = await fetch(API_URL + "/update-airtable", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siret, field, value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.outline = "2px solid green";
+        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
+    } catch {
+        if (el) el.style.outline = "2px solid red";
+    }
+}
+
+// Export CSV — séparateur point-virgule, BOM UTF-8 pour compatibilité Excel
+// columns (optionnel) : [{label, field}, ...] — si absent, exporte toutes les clés
+function exportCSV(data, filename, columns) {
+    if (!data || !data.length) {
+        alert("Aucune donnée à exporter.");
+        return;
+    }
+
+    let headers, rows;
+
+    if (columns) {
+        headers = columns.map(c => c.label);
+        rows = data.map(row =>
+            columns.map(c => '"' + String(row[c.field] ?? '').replace(/"/g, '""') + '"').join(';')
+        );
+    } else {
+        const keys = [...new Set(data.flatMap(r => Object.keys(r)))].filter(k => k !== 'id');
+        headers = keys;
+        rows = data.map(row =>
+            keys.map(k => '"' + String(row[k] ?? '').replace(/"/g, '""') + '"').join(';')
+        );
+    }
+
+    const csv = '﻿' + [
+        headers.map(h => '"' + h.replace(/"/g, '""') + '"').join(';'),
+        ...rows
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+<script>
+
+// Définition complète des colonnes déclaratives (ordre = ordre des en-têtes)
+const columns = [
+    { label: "CA12",       field: "ca12",                            editable: true },
+    { label: "TVS",        field: "tvs",                             editable: true },
+    { label: "CVAE",       field: "cvae",                            editable: true },
+    { label: "IR",         field: "impot_sur_le_revenu",             editable: true },
+    { label: "IS",         field: "is",                              editable: true },
+    { label: "Liasse",     field: "liasse",                          editable: true },
+    { label: "CFE",        field: "cotisation_fonciere_entreprise",  editable: true },
+    // Dividendes = champ numérique → lecture seule, cochée si montant > 0
+    { label: "Dividendes", field: "dividendes", editable: false, checkedFn: c => parseFloat(c.dividendes) > 0 },
+    { label: "Juridique",  field: "juridique",                       editable: true },
+    { label: "Situation",  field: "situation",                        editable: true },
+    { label: "TBB",        field: "tbb",                             editable: true }
+];
+
+// Construction de la ligne de filtres rapides (une case par colonne)
+function buildFilterRow() {
+    const row = document.getElementById("filter-row");
+    const frag = document.createDocumentFragment();
+
+    // Cellule vide pour les 6 colonnes fixes + séparateur
+    const empty = document.createElement('td');
+    empty.colSpan = 7;
+    frag.appendChild(empty);
+
+    columns.forEach(col => {
+        const td = document.createElement('td');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.field = col.field;
+        cb.title = `Filtrer : ${col.label} uniquement`;
+        cb.style.cursor = 'pointer';
+        cb.addEventListener('change', applyFilters);
+        td.appendChild(cb);
+        frag.appendChild(td);
+    });
+
+    row.appendChild(frag);
+}
+
+// Affichage du tableau
+function display(data) {
+    const table = document.getElementById("table");
+    document.getElementById("counter").textContent = "Nombre de dossiers : " + data.length;
+
+    if (!data.length) {
+        table.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:20px;color:#999;">Aucun résultat</td></tr>`;
+        return;
+    }
+
+    const frag = document.createDocumentFragment();
+
+    data.forEach(c => {
+        const tr = document.createElement('tr');
+
+        // Colonnes fixes — Nom = lien vers fiche client
+        tr.innerHTML = `
+            <td>${esc(c.code_client)}</td>
+            <td class="name"><a href="client.html?siret=${c.siret}" class="client-link">${esc(c.nom_client)}</a></td>
+            <td>${esc(c.assistant)}</td>
+            <td>${esc(c.collaborateur)}</td>
+            <td>${esc(c.annee)}</td>
+            <td>${esc(c.date_de_cloture)}</td>
+            <td class="separator"></td>
+        `;
+
+        // Colonnes déclaratives (ordre aligné sur les en-têtes)
+        columns.forEach(col => {
+            const td = document.createElement('td');
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = col.checkedFn ? col.checkedFn(c) : !!c[col.field];
+
+            if (col.editable) {
+                cb.className = 'decl-checkbox';
+                // stopPropagation évite toute interférence avec d'autres écouteurs
+                cb.onclick = e => e.stopPropagation();
+                cb.onchange = function () { updateCheckbox(c.siret, col.field, this.checked, this); };
+            } else {
+                cb.className = 'readonly-checkbox';
+                cb.title = 'Lecture seule — modifier via la page Dividendes';
+            }
+
+            td.appendChild(cb);
+            tr.appendChild(td);
+        });
+
+        frag.appendChild(tr);
+    });
+
+    table.innerHTML = '';
+    table.appendChild(frag);
+}
+
+// Filtrage combiné (filtres texte + filtres colonnes)
+function applyFilters() {
+    const activeFields = Array.from(
+        document.querySelectorAll("#filter-row input[data-field]:checked")
+    ).map(cb => cb.dataset.field);
+
+    const assistant = document.getElementById("filter-assistant").value.toLowerCase();
+    const collab    = document.getElementById("filter-collab").value.toLowerCase();
+    const annee     = document.getElementById("filter-annee").value.toLowerCase();
+    const cloture   = document.getElementById("filter-cloture").value.toLowerCase();
+
+    const filtered = dataGlobal.filter(c => {
+        if (assistant && !(c.assistant       || "").toLowerCase().includes(assistant)) return false;
+        if (collab    && !(c.collaborateur   || "").toLowerCase().includes(collab))    return false;
+        if (annee     && !(String(c.annee    || "")).includes(annee))                  return false;
+        if (cloture   && !(c.date_de_cloture || "").toLowerCase().includes(cloture))   return false;
+
+        return activeFields.every(f => {
+            const col = columns.find(col => col.field === f);
+            return col && col.checkedFn ? col.checkedFn(c) : !!c[f];
+        });
+    });
+
+    display(filtered);
+}
+
+async function load() {
+    // Skeleton loader pendant le fetch
+    const colCount = 6 + 1 + columns.length; // fixes + séparateur + colonnes déclaratives
+    document.getElementById("table").innerHTML = Array.from({ length: 10 }, () => `
+        <tr class="skeleton-row">
+            ${Array.from({ length: colCount }, () => `<td><span class="skeleton"></span></td>`).join('')}
+        </tr>
+    `).join('');
+
+    dataGlobal = await fetchClients();
+
+    buildFilterRow();
+    display(dataGlobal);
+    bindFilterInputs(".filters-top input");
+}
+
+load();
+</script>
+
+</body>
+</html>
