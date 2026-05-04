@@ -40,14 +40,14 @@ function bindFilterInputs(selector) {
     });
 }
 
-// Mise à jour d'un champ texte/date/nombre dans Airtable
-async function updateField(id, field, value, el) {
+// Mise à jour d'un champ texte/date/nombre dans PostgreSQL
+async function updateField(siret, field, value, el) {
     if (el) el.style.background = "#fff3cd";
     try {
         const res = await fetch(API_URL + "/update-airtable", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, field, value })
+            body: JSON.stringify({ siret, field, value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.background = "#d4edda";
@@ -57,14 +57,14 @@ async function updateField(id, field, value, el) {
     }
 }
 
-// Mise à jour d'une case à cocher dans Airtable
-async function updateCheckbox(id, field, value, el) {
+// Mise à jour d'une case à cocher dans PostgreSQL
+async function updateCheckbox(siret, field, value, el) {
     if (el) el.style.outline = "2px solid orange";
     try {
         const res = await fetch(API_URL + "/update-airtable", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, field, value })
+            body: JSON.stringify({ siret, field, value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.outline = "2px solid green";
@@ -74,14 +74,14 @@ async function updateCheckbox(id, field, value, el) {
     }
 }
 
-// Mise à jour d'un select dans Airtable
-async function updateSelect(id, field, value, el) {
+// Mise à jour d'un select dans PostgreSQL
+async function updateSelect(siret, field, value, el) {
     if (el) el.style.outline = "2px solid orange";
     try {
         const res = await fetch(API_URL + "/update-airtable", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, field, value })
+            body: JSON.stringify({ siret, field, value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.outline = "2px solid green";
