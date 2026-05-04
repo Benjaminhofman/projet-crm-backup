@@ -24,7 +24,7 @@ except ImportError:
 
 DEFAULT_CSV = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "Base_clients-table_principale.csv",
+    "Base clients-table principale.csv",
 )
 
 # ── Normalisation des noms de colonnes ────────────────────────────────────────
