@@ -452,7 +452,7 @@ input:focus, select:focus {
             </div>
             <div class="field-group">
                 <label>Assistant</label>
-                <input type="text" id="c-assistant">
+                <input list="list-assistant" id="c-assistant" autocomplete="off" placeholder="Choisir ou saisir…">
             </div>
             <div class="field-group">
                 <label>Honoraires comptabilité (€)</label>
@@ -600,7 +600,7 @@ input:focus, select:focus {
                 </div>
                 <div class="field-group">
                     <label>Assistant</label>
-                    <input type="text" id="m-assistant">
+                    <input list="list-assistant" id="m-assistant" autocomplete="off" placeholder="Choisir ou saisir…">
                 </div>
                 <div class="field-group">
                     <label>Honoraires comptabilité (€)</label>
@@ -741,6 +741,7 @@ async function loadAllClients() {
         const res = await fetch(API_URL + "/clients");
         allClients = await res.json();
         populateCollaborateurList();
+        populateAssistantList();
     } catch(e) {
         console.error("Impossible de charger les clients", e);
     }
@@ -750,6 +751,13 @@ function populateCollaborateurList() {
     const dl = document.getElementById('list-collaborateur');
     if (!dl) return;
     const values = [...new Set(allClients.map(c => c.collaborateur).filter(Boolean))].sort();
+    dl.innerHTML = values.map(v => `<option value="${v}">`).join('');
+}
+
+function populateAssistantList() {
+    const dl = document.getElementById('list-assistant');
+    if (!dl) return;
+    const values = [...new Set(allClients.map(c => c.assistant).filter(Boolean))].sort();
     dl.innerHTML = values.map(v => `<option value="${v}">`).join('');
 }
 
@@ -1080,6 +1088,7 @@ document.addEventListener('click', e => {
 </script>
 
 <datalist id="list-collaborateur"></datalist>
+<datalist id="list-assistant"></datalist>
 
 </body>
 </html>
