@@ -371,6 +371,19 @@ input:focus, select:focus {
     user-select: none;
 }
 .db-table thead th:hover { background: #1e2f5e; }
+.db-table thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+}
+.db-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: white;
+}
+.db-table tbody tr:nth-child(even) td:first-child { background: #f8f9fc; }
+.db-table tbody tr:hover td:first-child { background: #dbe4f7; }
 .db-table thead th .sort-arrow { opacity: .5; font-size: 11px; margin-left: 4px; }
 .db-table thead th.sorted .sort-arrow { opacity: 1; }
 .db-table tbody tr {
@@ -414,6 +427,20 @@ input:focus, select:focus {
 .btn-page:hover:not(:disabled) { background: #f4f6fb; border-color: #273c75; }
 .btn-page:disabled { opacity: .4; cursor: default; }
 .btn-page.active-page { background: #273c75; color: white; border-color: #273c75; }
+
+/* ── Skeleton loader ── */
+.skeleton-cell {
+    height: 13px;
+    background: linear-gradient(90deg, #e8eaf0 25%, #f4f6fb 50%, #e8eaf0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s ease-in-out infinite;
+    border-radius: 4px;
+    width: 75%;
+}
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
 
 /* ── Spinner ── */
 .spinner {
@@ -1207,18 +1234,32 @@ async function deleteSelection() {
 // ONGLET 4 — BASE DE DONNÉES
 // ══════════════════════════════════════════════════════════════════════════════
 
-const DB_PAGE_SIZE = 50;
+const DB_PAGE_SIZE    = 50;
+const DB_PRIORITY_COLS = ['siret','nom_client','collaborateur','assistant','ca_r','honoraires_cpta','date_de_cloture'];
 let dbAllRows      = [];   // toutes les lignes (filtrées)
-let dbColumns      = [];   // noms de colonnes
+let dbColumns      = [];   // noms de colonnes ordonnées
 let dbCurrentPage  = 1;
 let dbSortCol      = null;
 let dbSortAsc      = true;
 
 async function loadBaseTab() {
-    if (!allClients.length) await loadAllClients();
-    dbColumns = allClients.length
-        ? Object.keys(allClients[0])
-        : [];
+    if (!allClients.length) {
+        // Skeleton pendant le chargement
+        const skeletonRow = '<tr>' + DB_PRIORITY_COLS.map(() =>
+            '<td><div class="skeleton-cell"></div></td>'
+        ).join('') + '</tr>';
+        document.getElementById('db-tbody').innerHTML = Array(12).fill(skeletonRow).join('');
+        document.getElementById('db-info').textContent = 'Chargement…';
+        await loadAllClients();
+    }
+    if (allClients.length) {
+        const allCols    = Object.keys(allClients[0]);
+        const prioritized = DB_PRIORITY_COLS.filter(c => allCols.includes(c));
+        const rest        = allCols.filter(c => !DB_PRIORITY_COLS.includes(c));
+        dbColumns = [...prioritized, ...rest];
+    } else {
+        dbColumns = [];
+    }
     buildDbHeader();
     dbAllRows = [...allClients];
     document.getElementById('db-search').value = '';
@@ -1285,7 +1326,7 @@ function renderDbTable() {
 
     // Info
     document.getElementById('db-info').textContent =
-        `${total} client(s)`;
+        total ? `${pageRows.length} affiché(s) / ${total} total` : '0 client';
     document.getElementById('db-page-info').textContent =
         total ? `Page ${dbCurrentPage} / ${totalPages}  (lignes ${start + 1}–${Math.min(start + DB_PAGE_SIZE, total)})` : '';
 
