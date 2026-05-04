@@ -448,7 +448,7 @@ input:focus, select:focus {
         <div class="field-grid">
             <div class="field-group">
                 <label>Collaborateur</label>
-                <input type="text" id="c-collaborateur">
+                <input list="list-collaborateur" id="c-collaborateur" autocomplete="off" placeholder="Choisir ou saisir…">
             </div>
             <div class="field-group">
                 <label>Assistant</label>
@@ -596,7 +596,7 @@ input:focus, select:focus {
             <div class="field-grid">
                 <div class="field-group">
                     <label>Collaborateur</label>
-                    <input type="text" id="m-collaborateur">
+                    <input list="list-collaborateur" id="m-collaborateur" autocomplete="off" placeholder="Choisir ou saisir…">
                 </div>
                 <div class="field-group">
                     <label>Assistant</label>
@@ -740,10 +740,21 @@ async function loadAllClients() {
     try {
         const res = await fetch(API_URL + "/clients");
         allClients = await res.json();
+        populateCollaborateurList();
     } catch(e) {
         console.error("Impossible de charger les clients", e);
     }
 }
+
+function populateCollaborateurList() {
+    const dl = document.getElementById('list-collaborateur');
+    if (!dl) return;
+    const values = [...new Set(allClients.map(c => c.collaborateur).filter(Boolean))].sort();
+    dl.innerHTML = values.map(v => `<option value="${v}">`).join('');
+}
+
+// Chargement au démarrage pour que les datalists soient prêts dès l'onglet Créer
+loadAllClients();
 
 // ── Feedback helper ───────────────────────────────────────────────────────────
 function showFeedback(id, type, msg) {
@@ -1067,5 +1078,8 @@ document.addEventListener('click', e => {
         document.getElementById('search-results').classList.remove('open');
 });
 </script>
+
+<datalist id="list-collaborateur"></datalist>
+
 </body>
 </html>
