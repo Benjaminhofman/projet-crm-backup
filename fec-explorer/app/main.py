@@ -31,6 +31,11 @@ app.add_middleware(
 class FolderRequest(BaseModel):
     folder_path: str
 
+class UpdateRequest(BaseModel):
+    siret: str
+    field: str
+    value: object
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -91,6 +96,42 @@ def get_clients_template():
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=template_clients.csv"},
     )
+
+
+@app.post("/api/update-airtable", summary="Met à jour un champ client dans PostgreSQL (compatibilité ancienne route)")
+def update_client_field(body: UpdateRequest):
+    siret = body.siret.strip()
+    field = body.field.strip()
+    value = body.value
+
+    if not siret:
+        return {"error": "siret manquant"}
+    if not field:
+        return {"error": "field manquant"}
+
+    # Valide que le nom de colonne ne contient que des caractères sûrs
+    # (lettres, chiffres, underscore, espace, majuscules) — bloque l'injection SQL
+    import re
+    if not re.fullmatch(r"[A-Za-z0-9_ ]+", field):
+        return {"error": f"Nom de colonne invalide : {field!r}"}
+
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            # Le nom de colonne est entre guillemets doubles (identifiant SQL)
+            cur.execute(
+                f'UPDATE clients SET "{field}" = %s WHERE siret = %s',
+                (value, siret),
+            )
+            if cur.rowcount == 0:
+                return {"error": f"Aucun client trouvé avec siret={siret!r}"}
+        conn.commit()
+        return {"success": True}
+    except psycopg2.Error as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
 
 
 @app.post("/api/fec/upload", summary="Parse un dossier FEC et retourne les indicateurs")
