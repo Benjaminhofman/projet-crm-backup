@@ -510,11 +510,11 @@ function checkAnniversaires(data) {
 
 /* 🔥 FILTRES (inchangé) */
 let filtersConfig = [
-    { field: "collaborateur",  label: "Collaborateur" },
-    { field: "structure",      label: "Structure" },
-    { field: "activite_r",    label: "Activité" },
-    { field: "assistant",      label: "Assistant" },
-    { field: "datedecloture", label: "Date de clôture" }
+    { field: "collaborateur",   label: "Collaborateur" },
+    { field: "structure",       label: "Structure" },
+    { field: "activite_r",      label: "Activité" },
+    { field: "assistant",       label: "Assistant" },
+    { field: "date_de_cloture", label: "Date de clôture", type: "text" }
 ];
 
 function buildFilters() {
@@ -522,25 +522,31 @@ function buildFilters() {
     container.innerHTML = "";
 
     filtersConfig.forEach(f => {
-        const values = [...new Set(clientsData.map(c => c[f.field]).filter(Boolean))].sort();
-
         const group = document.createElement("div");
         group.className = "filter-group";
 
-        group.innerHTML = `
-            <strong>${f.label}</strong>
-            <input type="text" placeholder="Rechercher..." data-field="${f.field}">
-            <div class="checkbox-list" id="list-${f.field}"></div>
-        `;
-
-        container.appendChild(group);
-        renderCheckboxList(f.field, values);
-
-        group.querySelector("input").addEventListener("input", (e) => {
-            const val = e.target.value.toLowerCase();
-            const filtered = values.filter(v => v.toLowerCase().includes(val));
-            renderCheckboxList(f.field, filtered);
-        });
+        if (f.type === "text") {
+            group.innerHTML = `
+                <strong>${f.label}</strong>
+                <input type="text" placeholder='Ex : "03" pour mars...' data-field="${f.field}" id="text-filter-${f.field}" style="margin-top:6px;width:100%;box-sizing:border-box;">
+            `;
+            container.appendChild(group);
+            group.querySelector("input").addEventListener("input", applyFilters);
+        } else {
+            const values = [...new Set(clientsData.map(c => c[f.field]).filter(Boolean))].sort();
+            group.innerHTML = `
+                <strong>${f.label}</strong>
+                <input type="text" placeholder="Rechercher..." data-field="${f.field}">
+                <div class="checkbox-list" id="list-${f.field}"></div>
+            `;
+            container.appendChild(group);
+            renderCheckboxList(f.field, values);
+            group.querySelector("input").addEventListener("input", (e) => {
+                const val = e.target.value.toLowerCase();
+                const filtered = values.filter(v => v.toLowerCase().includes(val));
+                renderCheckboxList(f.field, filtered);
+            });
+        }
     });
 }
 
@@ -571,11 +577,22 @@ function applyFilters() {
         filters[cb.dataset.field].push(cb.value);
     });
 
-    const filtered = clientsData.filter(c =>
-        Object.keys(filters).every(field =>
+    // Filtres texte libres (ex: date_de_cloture)
+    const textFilters = {};
+    document.querySelectorAll("input[id^='text-filter-']").forEach(input => {
+        const val = input.value.trim();
+        if (val) textFilters[input.dataset.field] = val.toLowerCase();
+    });
+
+    const filtered = clientsData.filter(c => {
+        const checkOk = Object.keys(filters).every(field =>
             filters[field].includes(c[field])
-        )
-    );
+        );
+        const textOk = Object.keys(textFilters).every(field =>
+            (c[field] || "").toLowerCase().includes(textFilters[field])
+        );
+        return checkOk && textOk;
+    });
 
     displayClients(filtered);
 }
