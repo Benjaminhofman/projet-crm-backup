@@ -618,8 +618,9 @@ function displayClients(data) {
 
     data.forEach(c => {
 
-        const anciennete = parseFloat(c["ancienneté"]) || 0;
         const score = parseFloat(c["rentabilite"]) || 0;
+        const anc = c.anciennete;
+        const ancText = (anc > 0) ? anc + " an" + (anc > 1 ? "s" : "") : "—";
 
         table.innerHTML += `
         <tr onclick="viewClient('${c.siret}')">
@@ -629,9 +630,7 @@ function displayClients(data) {
             <td>${c.date_de_cloture || ""}</td>
             <td>${c.structure || ""}</td>
 
-            <td>
-                ${c.anciennete ? c.anciennete + " an" + (c.anciennete > 1 ? "s" : "") : "—"}
-            </td>
+            <td>${ancText}</td>
 
             <td>${c.honoraires_cpta || ""}</td>
             <td>${c.collaborateur || ""}</td>
