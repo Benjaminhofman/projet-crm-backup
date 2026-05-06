@@ -746,7 +746,11 @@ function updateDashboard(data) {
 }
 
 loadClients();
-setInterval(() => loadClients(), 5 * 60 * 1000);
+setInterval(async () => {
+    const res = await fetch(API_URL + "/clients");
+    const newData = await res.json();
+    clientsData = newData;
+}, 5 * 60 * 1000);
 
 /* Menu déroulant navigation */
 function toggleNavMenu() {
