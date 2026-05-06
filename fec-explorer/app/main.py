@@ -417,6 +417,25 @@ def upload_fec(body: FolderRequest):
     }
 
 
+@app.get("/api/migrate/anciennete", summary="Ajoute la colonne anciennete et la calcule depuis date_entree")
+def migrate_anciennete():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS anciennete INTEGER;")
+            cur.execute("""
+                UPDATE clients
+                SET anciennete = EXTRACT(YEAR FROM AGE(NOW(), date_entree))
+                WHERE date_entree IS NOT NULL;
+            """)
+            cur.execute("SELECT COUNT(*) FROM clients WHERE anciennete IS NOT NULL;")
+            updated = cur.fetchone()[0]
+        conn.commit()
+        return {"status": "ok", "clients_mis_a_jour": updated}
+    finally:
+        conn.close()
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 # Monté en dernier pour ne pas masquer les routes API.
 
