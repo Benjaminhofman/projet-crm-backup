@@ -23,6 +23,9 @@ STATIC_DIR = os.path.join(_THIS_DIR, "static")
 # Jamais copiés dans static/ (utils.js est inliné ; index.html géré manuellement)
 SKIP_FILES = {"utils.js", "index.html"}
 
+# Fichiers exclus du sync racine → static/ (gérés manuellement dans static/)
+EXCLUDED = ["index.html"]
+
 # Fichiers de sauvegarde à ignorer
 _RE_BACKUP = re.compile(r"sauv|SAUVE", re.IGNORECASE)
 
