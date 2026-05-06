@@ -1,5 +1,6 @@
 import os
 import re
+import threading
 from decimal import Decimal
 from typing import Any, Dict, List
 
@@ -14,11 +15,36 @@ from pydantic import BaseModel
 from app.core.fec_parser import parse_multiple_fec
 from app.core.indicators import calculate_indicators
 
+def _recalcul_anciennete():
+    """Recalcule anciennete pour tous les clients avec date_entree."""
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        return
+    try:
+        conn = psycopg2.connect(database_url)
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS anciennete INTEGER;")
+            cur.execute("""
+                UPDATE clients
+                SET anciennete = EXTRACT(YEAR FROM AGE(NOW(), date_entree))
+                WHERE date_entree IS NOT NULL;
+            """)
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 app = FastAPI(
     title="FEC Explorer API",
     description="Parse des fichiers FEC et calcule les indicateurs financiers par SIRET.",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+def startup_recalcul_anciennete():
+    threading.Thread(target=_recalcul_anciennete, daemon=True).start()
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -423,6 +449,24 @@ def migrate_anciennete():
     try:
         with conn.cursor() as cur:
             cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS anciennete INTEGER;")
+            cur.execute("""
+                UPDATE clients
+                SET anciennete = EXTRACT(YEAR FROM AGE(NOW(), date_entree))
+                WHERE date_entree IS NOT NULL;
+            """)
+            cur.execute("SELECT COUNT(*) FROM clients WHERE anciennete IS NOT NULL;")
+            updated = cur.fetchone()[0]
+        conn.commit()
+        return {"status": "ok", "clients_mis_a_jour": updated}
+    finally:
+        conn.close()
+
+
+@app.get("/api/migrate/anciennete/refresh", summary="Recalcule l'ancienneté de tous les clients")
+def refresh_anciennete():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
             cur.execute("""
                 UPDATE clients
                 SET anciennete = EXTRACT(YEAR FROM AGE(NOW(), date_entree))

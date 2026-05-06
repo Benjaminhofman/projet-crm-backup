@@ -746,6 +746,7 @@ function updateDashboard(data) {
 }
 
 loadClients();
+setInterval(() => loadClients(), 5 * 60 * 1000);
 
 /* Menu déroulant navigation */
 function toggleNavMenu() {
