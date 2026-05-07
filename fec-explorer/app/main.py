@@ -248,10 +248,36 @@ def update_client_field(body: UpdateRequest):
     conn = _get_db_conn()
     try:
         with conn.cursor() as cur:
-            # Le nom de colonne est entre guillemets doubles (identifiant SQL)
+            # Vérifie le type de la colonne dans information_schema
+            cur.execute("""
+                SELECT data_type FROM information_schema.columns
+                WHERE table_name = 'clients' AND column_name = %s
+                LIMIT 1;
+            """, (field,))
+            row = cur.fetchone()
+            col_type = row[0] if row else None
+            print(f"UPDATE col_type: {col_type}")
+
+            # Si la colonne est numeric mais la valeur est du texte,
+            # on convertit la colonne en TEXT
+            if col_type in ("numeric", "integer", "bigint", "double precision", "real") and isinstance(value, str) and not value.replace(".", "").replace("-", "").isdigit():
+                print(f"UPDATE: conversion {field} numeric→TEXT")
+                cur.execute(f'ALTER TABLE clients ALTER COLUMN "{field}" TYPE TEXT USING "{field}"::TEXT;')
+
+            # Migrations des colonnes suivi_mission_* en TEXT si besoin
+            for col in ("suivi_mission_retraite", "suivi_mission_patrimoniale", "suivi_mission_placement", "suivi_mission_prevoyance"):
+                cur.execute("""
+                    SELECT data_type FROM information_schema.columns
+                    WHERE table_name = 'clients' AND column_name = %s LIMIT 1;
+                """, (col,))
+                r = cur.fetchone()
+                if r and r[0] not in ("text", "character varying"):
+                    print(f"UPDATE: migration {col} → TEXT")
+                    cur.execute(f'ALTER TABLE clients ALTER COLUMN "{col}" TYPE TEXT USING "{col}"::TEXT;')
+
             cur.execute(
                 f'UPDATE clients SET "{field}" = %s WHERE siret = %s',
-                (value, siret),
+                (str(value) if value is not None else None, siret),
             )
             print(f"UPDATE rowcount: {cur.rowcount}")
             if cur.rowcount == 0:
