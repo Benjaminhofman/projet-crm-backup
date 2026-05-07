@@ -813,6 +813,51 @@ def rendement_setup():
         conn.close()
 
 
+@app.get("/api/migrate/rendement_trigger", summary="Crée le trigger qui recalcule rendement automatiquement")
+def rendement_trigger():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE OR REPLACE FUNCTION trigger_calc_rendement()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.rendement := calc_rendement(NEW.siret);
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("DROP TRIGGER IF EXISTS update_rendement ON clients;")
+            cur.execute("""
+                CREATE TRIGGER update_rendement
+                BEFORE INSERT OR UPDATE ON clients
+                FOR EACH ROW EXECUTE FUNCTION trigger_calc_rendement();
+            """)
+        conn.commit()
+        return {"status": "ok", "trigger": "update_rendement"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/migrate/rendement_recalc", summary="Recalcule rendement pour tous les clients")
+def rendement_recalc():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE clients SET rendement = calc_rendement(siret);")
+            updated = cur.rowcount
+        conn.commit()
+        return {"updated": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 # Monté en dernier pour ne pas masquer les routes API.
 
