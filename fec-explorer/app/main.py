@@ -825,20 +825,35 @@ def rendement_detail(siret: str):
     }
 
     # — Score global —
-    nb_autres = sum([anc_renseigne, ca_renseigne, res_renseigne])
     nb_renseignes = sum([taux_renseigne, anc_renseigne, ca_renseigne, res_renseigne])
 
-    if not taux_renseigne and nb_autres < 2:
-        score_global = None
+    if nb_renseignes < 2:
+        score_brut       = None
+        plafond_applique = None
+        score_global     = None
     else:
-        sum_pts    = pts_taux + pts_anc + pts_ca + pts_res
-        sum_poids  = (50 if taux_renseigne else 0) + (20 if anc_renseigne else 0) \
-                   + (15 if ca_renseigne else 0)   + (15 if res_renseigne else 0)
-        score_global = round(sum_pts * 100 / sum_poids) if sum_poids > 0 else None
+        sum_pts   = pts_taux + pts_anc + pts_ca + pts_res
+        sum_poids = (50 if taux_renseigne else 0) + (20 if anc_renseigne else 0) \
+                  + (15 if ca_renseigne else 0)   + (15 if res_renseigne else 0)
+        if sum_poids == 0:
+            score_brut = plafond_applique = score_global = None
+        else:
+            score_brut = round(sum_pts * 100 / sum_poids, 1)
+            if nb_renseignes == 2:
+                plafond_applique = 70
+                score_global     = round(min(score_brut, 70))
+            elif nb_renseignes == 3:
+                plafond_applique = 85
+                score_global     = round(min(score_brut, 85))
+            else:
+                plafond_applique = None
+                score_global     = round(score_brut)
 
     return {
         "siret":                   siret,
         "score_global":            score_global,
+        "score_brut":              score_brut,
+        "plafond_applique":        plafond_applique,
         "nb_facteurs_renseignes":  nb_renseignes,
         "facteurs":                facteurs,
     }
@@ -892,23 +907,25 @@ def install_trigger_rendement():
                 CREATE OR REPLACE FUNCTION update_rendement_trigger()
                 RETURNS TRIGGER AS $$
                 DECLARE
-                    v_pts_taux   NUMERIC := 0;
-                    v_pts_anc    NUMERIC := 0;
-                    v_pts_ca     NUMERIC := 0;
-                    v_pts_res    NUMERIC := 0;
-                    v_poids_taux NUMERIC := 0;
-                    v_poids_anc  NUMERIC := 0;
-                    v_poids_ca   NUMERIC := 0;
-                    v_poids_res  NUMERIC := 0;
-                    v_taux       NUMERIC;
-                    v_sum_pts    NUMERIC := 0;
-                    v_sum_poids  NUMERIC := 0;
-                    v_autres     INTEGER := 0;
+                    v_pts_taux    NUMERIC := 0;
+                    v_pts_anc     NUMERIC := 0;
+                    v_pts_ca      NUMERIC := 0;
+                    v_pts_res     NUMERIC := 0;
+                    v_poids_taux  NUMERIC := 0;
+                    v_poids_anc   NUMERIC := 0;
+                    v_poids_ca    NUMERIC := 0;
+                    v_poids_res   NUMERIC := 0;
+                    v_taux        NUMERIC;
+                    v_sum_pts     NUMERIC := 0;
+                    v_sum_poids   NUMERIC := 0;
+                    v_nb          INTEGER := 0;
+                    v_score_brut  NUMERIC;
                 BEGIN
-                    -- Taux horaire (poids 50) — renseigné si temps_passe > 0 ET honoraires_cpta > 0
+                    -- Taux horaire (poids 50)
                     IF NEW.temps_passe IS NOT NULL AND NEW.temps_passe > 0
                        AND NEW.honoraires_cpta IS NOT NULL AND NEW.honoraires_cpta > 0 THEN
                         v_poids_taux := 50;
+                        v_nb         := v_nb + 1;
                         v_taux := NEW.honoraires_cpta / NEW.temps_passe;
                         IF    v_taux >= 120 THEN v_pts_taux := 50;
                         ELSIF v_taux >= 80  THEN v_pts_taux := 25 + (v_taux - 80)  * 25 / 40;
@@ -917,10 +934,10 @@ def install_trigger_rendement():
                         END IF;
                     END IF;
 
-                    -- Ancienneté (poids 20) — renseigné si > 0
+                    -- Ancienneté (poids 20)
                     IF NEW.anciennete IS NOT NULL AND NEW.anciennete > 0 THEN
                         v_poids_anc := 20;
-                        v_autres    := v_autres + 1;
+                        v_nb        := v_nb + 1;
                         IF    NEW.anciennete > 10 THEN v_pts_anc := 20;
                         ELSIF NEW.anciennete >= 5 THEN v_pts_anc := 15;
                         ELSIF NEW.anciennete >= 2 THEN v_pts_anc := 10;
@@ -928,10 +945,10 @@ def install_trigger_rendement():
                         END IF;
                     END IF;
 
-                    -- CA_r (poids 15) — renseigné si > 0
+                    -- CA_r (poids 15)
                     IF NEW.ca_r IS NOT NULL AND NEW.ca_r > 0 THEN
                         v_poids_ca := 15;
-                        v_autres   := v_autres + 1;
+                        v_nb       := v_nb + 1;
                         IF    NEW.ca_r >= 2000000 THEN v_pts_ca := 15;
                         ELSIF NEW.ca_r >= 500000  THEN v_pts_ca := 12;
                         ELSIF NEW.ca_r >= 100000  THEN v_pts_ca := 7;
@@ -939,10 +956,10 @@ def install_trigger_rendement():
                         END IF;
                     END IF;
 
-                    -- Résultat_r (poids 15) — renseigné si NOT NULL (négatif OK)
+                    -- Résultat_r (poids 15)
                     IF NEW.resultat_r IS NOT NULL THEN
                         v_poids_res := 15;
-                        v_autres    := v_autres + 1;
+                        v_nb        := v_nb + 1;
                         IF    NEW.resultat_r >= 200000 THEN v_pts_res := 15;
                         ELSIF NEW.resultat_r >= 50000  THEN v_pts_res := 12;
                         ELSIF NEW.resultat_r >= 0      THEN v_pts_res := 7;
@@ -950,21 +967,28 @@ def install_trigger_rendement():
                         END IF;
                     END IF;
 
-                    -- Données insuffisantes → NULL
-                    IF v_poids_taux = 0 AND v_autres < 2 THEN
+                    -- Moins de 2 facteurs → NULL
+                    IF v_nb < 2 THEN
                         NEW.rendement := NULL;
                         RETURN NEW;
                     END IF;
 
-                    v_sum_pts   := v_pts_taux + v_pts_anc + v_pts_ca + v_pts_res;
-                    v_sum_poids := v_poids_taux + v_poids_anc + v_poids_ca + v_poids_res;
+                    v_sum_pts    := v_pts_taux + v_pts_anc + v_pts_ca + v_pts_res;
+                    v_sum_poids  := v_poids_taux + v_poids_anc + v_poids_ca + v_poids_res;
 
                     IF v_sum_poids = 0 THEN
                         NEW.rendement := NULL;
                         RETURN NEW;
                     END IF;
 
-                    NEW.rendement := ROUND(v_sum_pts * 100 / v_sum_poids);
+                    v_score_brut := v_sum_pts * 100 / v_sum_poids;
+
+                    -- Plafond selon nombre de facteurs renseignés
+                    IF    v_nb = 2 THEN NEW.rendement := ROUND(LEAST(v_score_brut, 70));
+                    ELSIF v_nb = 3 THEN NEW.rendement := ROUND(LEAST(v_score_brut, 85));
+                    ELSE                NEW.rendement := ROUND(v_score_brut);
+                    END IF;
+
                     RETURN NEW;
                 END;
                 $$ LANGUAGE plpgsql;
@@ -1012,7 +1036,6 @@ def rendement_setup():
                     v_anciennete  NUMERIC;
                     v_ca          NUMERIC;
                     v_resultat    NUMERIC;
-                    -- pts et poids par facteur
                     v_pts_taux    NUMERIC := 0;
                     v_pts_anc     NUMERIC := 0;
                     v_pts_ca      NUMERIC := 0;
@@ -1024,15 +1047,17 @@ def rendement_setup():
                     v_taux        NUMERIC;
                     v_sum_pts     NUMERIC := 0;
                     v_sum_poids   NUMERIC := 0;
-                    v_autres      INTEGER := 0;
+                    v_nb          INTEGER := 0;
+                    v_score_brut  NUMERIC;
                 BEGIN
                     SELECT honoraires_cpta, temps_passe, anciennete, ca_r, resultat_r
                     INTO v_honos, v_temps, v_anciennete, v_ca, v_resultat
                     FROM clients WHERE siret = p_siret;
 
-                    -- Taux horaire (poids 50) — renseigné si temps_passe > 0
+                    -- Taux horaire (poids 50)
                     IF v_temps IS NOT NULL AND v_temps > 0 AND v_honos IS NOT NULL AND v_honos > 0 THEN
                         v_poids_taux := 50;
+                        v_nb         := v_nb + 1;
                         v_taux := v_honos / v_temps;
                         IF    v_taux >= 120 THEN v_pts_taux := 50;
                         ELSIF v_taux >= 80  THEN v_pts_taux := 25 + (v_taux - 80)  * 25 / 40;
@@ -1041,10 +1066,10 @@ def rendement_setup():
                         END IF;
                     END IF;
 
-                    -- Ancienneté (poids 20) — renseigné si > 0
+                    -- Ancienneté (poids 20)
                     IF v_anciennete IS NOT NULL AND v_anciennete > 0 THEN
                         v_poids_anc := 20;
-                        v_autres    := v_autres + 1;
+                        v_nb        := v_nb + 1;
                         IF    v_anciennete > 10 THEN v_pts_anc := 20;
                         ELSIF v_anciennete >= 5 THEN v_pts_anc := 15;
                         ELSIF v_anciennete >= 2 THEN v_pts_anc := 10;
@@ -1052,10 +1077,10 @@ def rendement_setup():
                         END IF;
                     END IF;
 
-                    -- CA_r (poids 15) — renseigné si > 0
+                    -- CA_r (poids 15)
                     IF v_ca IS NOT NULL AND v_ca > 0 THEN
                         v_poids_ca := 15;
-                        v_autres   := v_autres + 1;
+                        v_nb       := v_nb + 1;
                         IF    v_ca >= 2000000 THEN v_pts_ca := 15;
                         ELSIF v_ca >= 500000  THEN v_pts_ca := 12;
                         ELSIF v_ca >= 100000  THEN v_pts_ca := 7;
@@ -1063,10 +1088,10 @@ def rendement_setup():
                         END IF;
                     END IF;
 
-                    -- Résultat_r (poids 15) — renseigné si NOT NULL
+                    -- Résultat_r (poids 15)
                     IF v_resultat IS NOT NULL THEN
                         v_poids_res := 15;
-                        v_autres    := v_autres + 1;
+                        v_nb        := v_nb + 1;
                         IF    v_resultat >= 200000 THEN v_pts_res := 15;
                         ELSIF v_resultat >= 50000  THEN v_pts_res := 12;
                         ELSIF v_resultat >= 0      THEN v_pts_res := 7;
@@ -1074,17 +1099,21 @@ def rendement_setup():
                         END IF;
                     END IF;
 
-                    -- Données insuffisantes : taux absent ET moins de 2 autres facteurs
-                    IF v_poids_taux = 0 AND v_autres < 2 THEN
-                        RETURN NULL;
-                    END IF;
+                    -- Moins de 2 facteurs renseignés → NULL
+                    IF v_nb < 2 THEN RETURN NULL; END IF;
 
-                    v_sum_pts   := v_pts_taux + v_pts_anc + v_pts_ca + v_pts_res;
-                    v_sum_poids := v_poids_taux + v_poids_anc + v_poids_ca + v_poids_res;
+                    v_sum_pts    := v_pts_taux + v_pts_anc + v_pts_ca + v_pts_res;
+                    v_sum_poids  := v_poids_taux + v_poids_anc + v_poids_ca + v_poids_res;
 
                     IF v_sum_poids = 0 THEN RETURN NULL; END IF;
 
-                    RETURN ROUND(v_sum_pts * 100 / v_sum_poids);
+                    v_score_brut := v_sum_pts * 100 / v_sum_poids;
+
+                    -- Plafond selon nombre de facteurs renseignés
+                    IF    v_nb = 2 THEN RETURN ROUND(LEAST(v_score_brut, 70));
+                    ELSIF v_nb = 3 THEN RETURN ROUND(LEAST(v_score_brut, 85));
+                    ELSE                RETURN ROUND(v_score_brut);
+                    END IF;
                 END;
                 $$ LANGUAGE plpgsql;
             """)
