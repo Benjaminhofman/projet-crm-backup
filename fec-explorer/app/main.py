@@ -756,6 +756,79 @@ def debug_triggers():
         conn.close()
 
 
+@app.get("/api/migrate/install_trigger_rendement", summary="Installe le trigger BEFORE qui calcule rendement depuis NEW.*")
+def install_trigger_rendement():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE OR REPLACE FUNCTION update_rendement_trigger()
+                RETURNS TRIGGER AS $$
+                DECLARE
+                    v_honos      NUMERIC;
+                    v_temps      NUMERIC;
+                    v_taux       NUMERIC;
+                    v_anciennete NUMERIC;
+                    v_ca         NUMERIC;
+                    v_resultat   NUMERIC;
+                    v_score      NUMERIC := 0;
+                    v_pts_taux   NUMERIC := 0;
+                BEGIN
+                    v_honos      := COALESCE(NEW.honoraires_cpta, 0);
+                    v_temps      := COALESCE(NEW.temps_passe, 0);
+                    v_anciennete := COALESCE(NEW.anciennete, 0);
+                    v_ca         := COALESCE(NEW.ca_r, 0);
+                    v_resultat   := COALESCE(NEW.resultat_r, 0);
+
+                    -- Taux horaire (50 pts) — linéaire par tranche
+                    IF v_temps > 0 THEN
+                        v_taux := v_honos / v_temps;
+                        IF    v_taux >= 120 THEN v_pts_taux := 50;
+                        ELSIF v_taux >= 80  THEN v_pts_taux := 25 + (v_taux - 80)  * 25 / 40;
+                        ELSIF v_taux >= 50  THEN v_pts_taux := (v_taux - 50) * 25 / 30;
+                        ELSE                     v_pts_taux := 0;
+                        END IF;
+                    END IF;
+                    v_score := v_score + v_pts_taux;
+
+                    -- Ancienneté (20 pts)
+                    IF    v_anciennete > 10 THEN v_score := v_score + 20;
+                    ELSIF v_anciennete >= 5 THEN v_score := v_score + 15;
+                    ELSIF v_anciennete >= 2 THEN v_score := v_score + 10;
+                    END IF;
+
+                    -- CA_r (15 pts)
+                    IF    v_ca >= 2000000 THEN v_score := v_score + 15;
+                    ELSIF v_ca >= 500000  THEN v_score := v_score + 12;
+                    ELSIF v_ca >= 100000  THEN v_score := v_score + 7;
+                    END IF;
+
+                    -- Résultat_r (15 pts)
+                    IF    v_resultat >= 200000 THEN v_score := v_score + 15;
+                    ELSIF v_resultat >= 50000  THEN v_score := v_score + 12;
+                    ELSIF v_resultat >= 0      THEN v_score := v_score + 7;
+                    END IF;
+
+                    NEW.rendement := ROUND(LEAST(v_score, 100));
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("DROP TRIGGER IF EXISTS update_rendement ON clients;")
+            cur.execute("""
+                CREATE TRIGGER update_rendement
+                BEFORE INSERT OR UPDATE ON clients
+                FOR EACH ROW EXECUTE FUNCTION update_rendement_trigger();
+            """)
+        conn.commit()
+        return {"status": "ok", "trigger": "update_rendement", "fonction": "update_rendement_trigger"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/rendement_setup", summary="Crée la colonne rendement et la fonction calc_rendement()")
 def rendement_setup():
     conn = _get_db_conn()
