@@ -100,3 +100,29 @@ Dans CLAUDE.md, remplace la section "## Intégration Airtable" et ajoute les sec
 ## ~~Intégration Airtable~~ (SUPPRIMÉE)
 Airtable a été complètement remplacé par PostgreSQL.
 Ne plus jamais utiliser AIRTABLE_TOKEN, BASE_ID ou TABLE_NAME.
+
+## Pièges connus à éviter
+
+1. sync_html.py écrase static/index.html — ce fichier est exclu
+   de la synchronisation. Modifier UNIQUEMENT static/index.html
+   pour les changements spécifiques à la prod.
+
+2. Render cache les fichiers statiques — la route /index.html
+   dans main.py a Cache-Control: no-cache. Ne pas supprimer cette route.
+
+3. Les dates s'affichent en DD/MM/YYYY dans l'interface mais
+   sont stockées en YYYY-MM-DD dans PostgreSQL. Toujours convertir
+   avant INSERT/UPDATE.
+
+4. La colonne anciennete est calculée via :
+   UPDATE clients SET anciennete = EXTRACT(YEAR FROM AGE(NOW(), date_entree))
+   Appeler GET /api/migrate/anciennete après chaque import CSV massif.
+
+5. Ne jamais modifier index.html (racine) directement pour la prod —
+   seul static/index.html est servi par Render.
+
+## Colonnes calculées PostgreSQL
+- anciennete : EXTRACT(YEAR FROM AGE(NOW(), date_entree))
+  → recalculer via GET /api/migrate/anciennete après import
+- rentabilite : calculé côté JS frontend (honoraires_cpta / temps_passe)
+- anciennete badge "Nouveau" : anciennete < 1 ou date_entree récente
