@@ -740,10 +740,10 @@ def rendement_detail(siret: str):
     taux_renseigne = (temps is not None and temps > 0 and honos is not None and honos > 0)
     if taux_renseigne:
         taux = float(honos) / float(temps)
-        if   taux >= 120: pts_taux = 50; libelle_taux = "Excellent (≥120€/h)"
-        elif taux >= 80:  pts_taux = round(25 + (taux - 80) * 25 / 40, 1); libelle_taux = "Bon (80-120€/h)"
-        elif taux >= 50:  pts_taux = round((taux - 50) * 25 / 30, 1);      libelle_taux = "Moyen (50-80€/h)"
-        else:             pts_taux = 0; libelle_taux = "Faible (<50€/h)"
+        if   taux >= 120: pts_taux = 50; libelle_taux = ">120€ Plafond"
+        elif taux >= 80:  pts_taux = round(25 + (taux - 80) * 25 / 40, 1); libelle_taux = "80-120€"
+        elif taux >= 50:  pts_taux = round((taux - 50) * 25 / 30, 1);      libelle_taux = "50-80€"
+        else:             pts_taux = 0; libelle_taux = "<50€"
         valeur_aff_taux = f"{taux:.1f} €/h"
     else:
         taux = None; pts_taux = 0; libelle_taux = "Non renseigné"; valeur_aff_taux = "—"
@@ -762,10 +762,10 @@ def rendement_detail(siret: str):
     anc_renseigne = (anciennete is not None and anciennete > 0)
     if anc_renseigne:
         a = float(anciennete)
-        if   a > 10: pts_anc = 20; libelle_anc = "> 10 ans"
+        if   a > 10: pts_anc = 20; libelle_anc = ">10 ans Excellent"
         elif a >= 5: pts_anc = 15; libelle_anc = "5-10 ans"
         elif a >= 2: pts_anc = 10; libelle_anc = "2-5 ans"
-        else:        pts_anc = 0;  libelle_anc = "< 2 ans"
+        else:        pts_anc = 0;  libelle_anc = "<2 ans"
         valeur_aff_anc = f"{int(a)} an{'s' if a > 1 else ''}"
     else:
         pts_anc = 0; libelle_anc = "Non renseigné"; valeur_aff_anc = "—"
@@ -784,10 +784,10 @@ def rendement_detail(siret: str):
     ca_renseigne = (ca is not None and ca > 0)
     if ca_renseigne:
         c_val = float(ca)
-        if   c_val >= 2_000_000: pts_ca = 15; libelle_ca = "≥ 2M€"
-        elif c_val >= 500_000:   pts_ca = 12; libelle_ca = "500k-2M€"
-        elif c_val >= 100_000:   pts_ca = 7;  libelle_ca = "100k-500k€"
-        else:                    pts_ca = 0;  libelle_ca = "< 100k€"
+        if   c_val >= 2_000_000: pts_ca = 15; libelle_ca = ">2M"
+        elif c_val >= 500_000:   pts_ca = 12; libelle_ca = "500k-2M"
+        elif c_val >= 100_000:   pts_ca = 7;  libelle_ca = "100-500k"
+        else:                    pts_ca = 0;  libelle_ca = "<100k"
         valeur_aff_ca = f"{c_val:,.0f} €"
     else:
         pts_ca = 0; libelle_ca = "Non renseigné"; valeur_aff_ca = "—"
@@ -806,9 +806,9 @@ def rendement_detail(siret: str):
     res_renseigne = (resultat is not None)
     if res_renseigne:
         r_val = float(resultat)
-        if   r_val >= 200_000: pts_res = 15; libelle_res = "≥ 200k€"
-        elif r_val >= 50_000:  pts_res = 12; libelle_res = "50k-200k€"
-        elif r_val >= 0:       pts_res = 7;  libelle_res = "0-50k€"
+        if   r_val >= 200_000: pts_res = 15; libelle_res = ">200k"
+        elif r_val >= 50_000:  pts_res = 12; libelle_res = "50-200k"
+        elif r_val >= 0:       pts_res = 7;  libelle_res = "0-50k"
         else:                  pts_res = 0;  libelle_res = "Négatif"
         valeur_aff_res = f"{r_val:,.0f} €"
     else:
