@@ -261,6 +261,26 @@ input {
     font-style: italic;
 }
 
+/* Message plafond / complet */
+.modal-score-msg {
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: inline-block;
+}
+.modal-score-msg--plafond {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+}
+.modal-score-msg--complet {
+    background: #d1e7dd;
+    color: #0a5c36;
+    border: 1px solid #a3cfbb;
+}
+
 /* Footer */
 .modal-footer {
     text-align: center;
@@ -556,6 +576,17 @@ function renderModalBody(d) {
     else if (score >= 40)   { scoreCls = "badge-moyen";     scoreColor = "#f39c12"; scoreLabel = "Moyen"; }
 
     const scoreDisplay = score !== null && score !== undefined ? Math.round(score) : "—";
+    const plafond      = d.plafond_applique ?? null;
+
+    /* Message sous le score */
+    let msgPlafond = "";
+    if (score !== null) {
+        if (nb === 4) {
+            msgPlafond = `<div class="modal-score-msg modal-score-msg--complet">✅ Score complet (4 facteurs sur 4)</div>`;
+        } else if (plafond !== null) {
+            msgPlafond = `<div class="modal-score-msg modal-score-msg--plafond">⚠️ Score plafonné à ${plafond} (calculé sur ${nb} facteur${nb > 1 ? 's' : ''} sur 4)</div>`;
+        }
+    }
 
     let html = `
     <div class="modal-score-global">
@@ -564,6 +595,7 @@ function renderModalBody(d) {
               style="${score === null ? 'background:#aaa' : ''}">
             ${score !== null ? scoreLabel : 'Données insuffisantes'}
         </span>
+        ${msgPlafond}
     </div>
     <div class="modal-cards">`;
 
