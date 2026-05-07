@@ -127,7 +127,7 @@ async function load() {
     const data = await fetchClients();
 
     dataGlobal = _pageConfig.filterField
-        ? data.filter(c => c[_pageConfig.filterField] === true)
+        ? data.filter(c => c[_pageConfig.filterField] == true || c[_pageConfig.filterField] === "true" || c[_pageConfig.filterField] === 1)
         : data;
 
     display(dataGlobal);
