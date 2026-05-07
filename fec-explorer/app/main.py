@@ -538,6 +538,39 @@ def migrate_activite():
         conn.close()
 
 
+@app.get("/api/migrate/trigger-activite", summary="Crée le trigger PostgreSQL qui maintient activite_r à jour")
+def migrate_trigger_activite():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            # Fonction trigger
+            cur.execute("""
+                CREATE OR REPLACE FUNCTION update_activite_r()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF (TG_OP = 'INSERT' OR NEW.code_naf_r IS DISTINCT FROM OLD.code_naf_r) THEN
+                        SELECT libelle INTO NEW.activite_r
+                        FROM naf
+                        WHERE code = LEFT(NEW.code_naf_r::text, 1);
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            # Supprime le trigger s'il existe déjà
+            cur.execute("DROP TRIGGER IF EXISTS trigger_activite_r ON clients;")
+            # Crée le trigger BEFORE INSERT OR UPDATE
+            cur.execute("""
+                CREATE TRIGGER trigger_activite_r
+                BEFORE INSERT OR UPDATE OF code_naf_r ON clients
+                FOR EACH ROW EXECUTE FUNCTION update_activite_r();
+            """)
+        conn.commit()
+        return {"status": "ok", "trigger": "trigger_activite_r", "fonction": "update_activite_r"}
+    finally:
+        conn.close()
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 # Monté en dernier pour ne pas masquer les routes API.
 
