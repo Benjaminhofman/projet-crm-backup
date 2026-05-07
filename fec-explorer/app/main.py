@@ -1,3 +1,4 @@
+import csv
 import os
 import re
 import threading
@@ -476,6 +477,43 @@ def refresh_anciennete():
             updated = cur.fetchone()[0]
         conn.commit()
         return {"status": "ok", "clients_mis_a_jour": updated}
+    finally:
+        conn.close()
+
+
+@app.get("/api/migrate/naf", summary="Crée la table NAF et importe libelle_naf.csv")
+def migrate_naf():
+    csv_path = os.path.join(os.path.dirname(__file__), "..", "..", "libelle_naf.csv")
+    if not os.path.isfile(csv_path):
+        raise HTTPException(status_code=404, detail=f"Fichier libelle_naf.csv introuvable : {csv_path}")
+
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS naf (
+                    code VARCHAR(10) PRIMARY KEY,
+                    libelle TEXT NOT NULL
+                );
+            """)
+            count = 0
+            with open(csv_path, encoding="utf-8-sig", newline="") as f:
+                reader = csv.DictReader(f, delimiter=";")
+                for row in reader:
+                    code = (row.get("Code") or "").strip()
+                    libelle = (row.get("Libellé") or "").strip()
+                    if not code or not libelle:
+                        continue
+                    cur.execute(
+                        """
+                        INSERT INTO naf (code, libelle) VALUES (%s, %s)
+                        ON CONFLICT (code) DO UPDATE SET libelle = EXCLUDED.libelle;
+                        """,
+                        (code, libelle),
+                    )
+                    count += 1
+        conn.commit()
+        return {"imported": count}
     finally:
         conn.close()
 
