@@ -527,9 +527,8 @@ def migrate_activite():
                 UPDATE clients c
                 SET activite_r = n.libelle
                 FROM naf n
-                WHERE c.code_naf_r IS NOT NULL
-                  AND c.code_naf_r <> ''
-                  AND n.code = LEFT(c.code_naf_r, 1);
+                WHERE LEFT(c.code_naf_r::text, 1) = n.code::text
+                  AND c.code_naf_r IS NOT NULL;
             """)
             updated = cur.rowcount
         conn.commit()
