@@ -717,6 +717,133 @@ def fix_juridique_exceptionnel():
         conn.close()
 
 
+@app.get("/api/rendement_detail/{siret}", summary="Détail du calcul de rendement pour un client")
+def rendement_detail(siret: str):
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT honoraires_cpta, temps_passe, anciennete, ca_r, resultat_r
+                FROM clients WHERE siret = %s
+            """, (siret,))
+            row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Client {siret} introuvable")
+    finally:
+        conn.close()
+
+    honos, temps, anciennete, ca, resultat = row
+
+    facteurs = {}
+
+    # — Taux horaire (poids 50) —
+    taux_renseigne = (temps is not None and temps > 0 and honos is not None and honos > 0)
+    if taux_renseigne:
+        taux = float(honos) / float(temps)
+        if   taux >= 120: pts_taux = 50; libelle_taux = "Excellent (≥120€/h)"
+        elif taux >= 80:  pts_taux = round(25 + (taux - 80) * 25 / 40, 1); libelle_taux = "Bon (80-120€/h)"
+        elif taux >= 50:  pts_taux = round((taux - 50) * 25 / 30, 1);      libelle_taux = "Moyen (50-80€/h)"
+        else:             pts_taux = 0; libelle_taux = "Faible (<50€/h)"
+        valeur_aff_taux = f"{taux:.1f} €/h"
+    else:
+        taux = None; pts_taux = 0; libelle_taux = "Non renseigné"; valeur_aff_taux = "—"
+
+    facteurs["taux_horaire"] = {
+        "valeur_brute":    {"honoraires_cpta": float(honos) if honos else None, "temps_passe": float(temps) if temps else None},
+        "valeur_affichee": valeur_aff_taux,
+        "points_obtenus":  pts_taux,
+        "points_max":      50,
+        "poids_pct":       50,
+        "libelle_seuil":   libelle_taux,
+        "renseigne":       taux_renseigne,
+    }
+
+    # — Ancienneté (poids 20) —
+    anc_renseigne = (anciennete is not None and anciennete > 0)
+    if anc_renseigne:
+        a = float(anciennete)
+        if   a > 10: pts_anc = 20; libelle_anc = "> 10 ans"
+        elif a >= 5: pts_anc = 15; libelle_anc = "5-10 ans"
+        elif a >= 2: pts_anc = 10; libelle_anc = "2-5 ans"
+        else:        pts_anc = 0;  libelle_anc = "< 2 ans"
+        valeur_aff_anc = f"{int(a)} an{'s' if a > 1 else ''}"
+    else:
+        pts_anc = 0; libelle_anc = "Non renseigné"; valeur_aff_anc = "—"
+
+    facteurs["anciennete"] = {
+        "valeur_brute":    float(anciennete) if anciennete is not None else None,
+        "valeur_affichee": valeur_aff_anc,
+        "points_obtenus":  pts_anc,
+        "points_max":      20,
+        "poids_pct":       20,
+        "libelle_seuil":   libelle_anc,
+        "renseigne":       anc_renseigne,
+    }
+
+    # — CA_r (poids 15) —
+    ca_renseigne = (ca is not None and ca > 0)
+    if ca_renseigne:
+        c_val = float(ca)
+        if   c_val >= 2_000_000: pts_ca = 15; libelle_ca = "≥ 2M€"
+        elif c_val >= 500_000:   pts_ca = 12; libelle_ca = "500k-2M€"
+        elif c_val >= 100_000:   pts_ca = 7;  libelle_ca = "100k-500k€"
+        else:                    pts_ca = 0;  libelle_ca = "< 100k€"
+        valeur_aff_ca = f"{c_val:,.0f} €"
+    else:
+        pts_ca = 0; libelle_ca = "Non renseigné"; valeur_aff_ca = "—"
+
+    facteurs["ca"] = {
+        "valeur_brute":    float(ca) if ca is not None else None,
+        "valeur_affichee": valeur_aff_ca,
+        "points_obtenus":  pts_ca,
+        "points_max":      15,
+        "poids_pct":       15,
+        "libelle_seuil":   libelle_ca,
+        "renseigne":       ca_renseigne,
+    }
+
+    # — Résultat_r (poids 15) —
+    res_renseigne = (resultat is not None)
+    if res_renseigne:
+        r_val = float(resultat)
+        if   r_val >= 200_000: pts_res = 15; libelle_res = "≥ 200k€"
+        elif r_val >= 50_000:  pts_res = 12; libelle_res = "50k-200k€"
+        elif r_val >= 0:       pts_res = 7;  libelle_res = "0-50k€"
+        else:                  pts_res = 0;  libelle_res = "Négatif"
+        valeur_aff_res = f"{r_val:,.0f} €"
+    else:
+        pts_res = 0; libelle_res = "Non renseigné"; valeur_aff_res = "—"
+
+    facteurs["resultat"] = {
+        "valeur_brute":    float(resultat) if resultat is not None else None,
+        "valeur_affichee": valeur_aff_res,
+        "points_obtenus":  pts_res,
+        "points_max":      15,
+        "poids_pct":       15,
+        "libelle_seuil":   libelle_res,
+        "renseigne":       res_renseigne,
+    }
+
+    # — Score global —
+    nb_autres = sum([anc_renseigne, ca_renseigne, res_renseigne])
+    nb_renseignes = sum([taux_renseigne, anc_renseigne, ca_renseigne, res_renseigne])
+
+    if not taux_renseigne and nb_autres < 2:
+        score_global = None
+    else:
+        sum_pts    = pts_taux + pts_anc + pts_ca + pts_res
+        sum_poids  = (50 if taux_renseigne else 0) + (20 if anc_renseigne else 0) \
+                   + (15 if ca_renseigne else 0)   + (15 if res_renseigne else 0)
+        score_global = round(sum_pts * 100 / sum_poids) if sum_poids > 0 else None
+
+    return {
+        "siret":                   siret,
+        "score_global":            score_global,
+        "nb_facteurs_renseignes":  nb_renseignes,
+        "facteurs":                facteurs,
+    }
+
+
 @app.get("/api/debug/rendement", summary="Retourne les données rendement de tous les clients triés par score DESC")
 def debug_rendement():
     conn = _get_db_conn()
