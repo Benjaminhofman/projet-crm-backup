@@ -621,7 +621,7 @@ def migrate_activite():
             cur.execute("""
                 UPDATE clients SET activite_r = n.libelle
                 FROM naf n
-                WHERE CAST(LEFT(CAST(code_naf_r AS TEXT), 1) AS INTEGER) = CAST(n.code AS INTEGER)
+                WHERE CAST(SPLIT_PART(CAST(code_naf_r AS TEXT), '.', 1) AS INTEGER) = CAST(n.code AS INTEGER)
                 AND code_naf_r IS NOT NULL AND code_naf_r != '';
             """)
             updated = cur.rowcount
@@ -647,7 +647,7 @@ def migrate_trigger_activite():
                     IF (TG_OP = 'INSERT' OR NEW.code_naf_r IS DISTINCT FROM OLD.code_naf_r) THEN
                         SELECT libelle INTO NEW.activite_r
                         FROM naf
-                        WHERE code = LEFT(NEW.code_naf_r::text, 1);
+                        WHERE code = SPLIT_PART(NEW.code_naf_r::text, '.', 1);
                     END IF;
                     RETURN NEW;
                 END;
