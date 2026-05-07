@@ -229,6 +229,11 @@ tr:hover {
     font-size: 11px;
     margin-left: 5px;
 }
+.badge-rendement { display:inline-block; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold; color:white; }
+.badge-excellent { background:#27ae60; }
+.badge-bon       { background:#2980b9; }
+.badge-moyen     { background:#f39c12; }
+.badge-faible    { background:#e74c3c; }
 
 /* Skeleton loader */
 .skeleton {
@@ -288,6 +293,13 @@ tr:hover {
 
         <input type="text" id="search" placeholder="🔍 Rechercher un client...">
         <input type="number" id="filter-renta" placeholder="Min /10" style="width:120px;">
+        <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
+            <option value="">Toutes tranches</option>
+            <option value="excellent">⭐ Excellent (≥80)</option>
+            <option value="bon">👍 Bon (60-79)</option>
+            <option value="moyen">⚠️ Moyen (40-59)</option>
+            <option value="faible">🔴 Faible (&lt;40)</option>
+        </select>
         <button onclick="exportIndexCSV()" style="background:#27ae60;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">⬇ Export CSV</button>
     </div>
 </div>
@@ -322,6 +334,7 @@ tr:hover {
 <th>Clôture</th>
 <th>Structure</th>
 <th>Ancienneté</th>
+<th onclick="sortByRendement()" style="cursor:pointer;">Rendement 🔽</th>
 <th>Honos</th>
 <th>Collab</th>
 <th>Assistant</th>
@@ -494,6 +507,26 @@ function getColor(score) {
     return "#27ae60";
 }
 
+function badgeRendement(val) {
+    const n = parseFloat(val);
+    if (isNaN(n) || val === null || val === "") return "<span style='color:#aaa'>—</span>";
+    let cls, label;
+    if      (n >= 80) { cls = "badge-excellent"; label = "Excellent"; }
+    else if (n >= 60) { cls = "badge-bon";       label = "Bon"; }
+    else if (n >= 40) { cls = "badge-moyen";     label = "Moyen"; }
+    else              { cls = "badge-faible";     label = "Faible"; }
+    return `<span class="badge-rendement ${cls}">${Math.round(n)} — ${label}</span>`;
+}
+
+function getTranche(val) {
+    const n = parseFloat(val);
+    if (isNaN(n)) return "faible";
+    if (n >= 80) return "excellent";
+    if (n >= 60) return "bon";
+    if (n >= 40) return "moyen";
+    return "faible";
+}
+
 /* 🔥 EXISTANT */
 function checkAnniversaires(data) {
     const today = new Date();
@@ -638,7 +671,7 @@ function displayClients(data) {
     table.innerHTML = "";
 
     if (!data.length) {
-        table.innerHTML = "<tr><td colspan='13'>Aucun résultat</td></tr>";
+        table.innerHTML = "<tr><td colspan='14'>Aucun résultat</td></tr>";
         return;
     }
 
@@ -654,6 +687,7 @@ function displayClients(data) {
             <td>${c.structure || ""}</td>
 
             <td>${c.anciennete > 0 ? c.anciennete + ' an' + (c.anciennete > 1 ? 's' : '') : '—'}</td>
+            <td>${badgeRendement(c.rendement)}</td>
 
             <td>${c.honoraires_cpta || ""}</td>
             <td>${c.collaborateur || ""}</td>
@@ -686,28 +720,32 @@ function sortByRentabilite() {
     displayClients(sorted);
 }
 
-/* 🔥 FILTRE RENTABILITE */
-document.getElementById("filter-renta").addEventListener("input", function(e) {
-    const min = parseFloat(e.target.value) || 0;
+/* 🔥 FILTRE COMBINÉ */
+function applyAllFilters() {
+    const search  = (document.getElementById("search").value || "").toLowerCase();
+    const minRenta = parseFloat(document.getElementById("filter-renta").value) || 0;
+    const tranche  = document.getElementById("filter-tranche").value;
 
     const filtered = clientsData.filter(c => {
-        const score = getRentabiliteScore(c["rentabilite"]);
-        return score >= min;
+        if (search   && !(c.nom_client || "").toLowerCase().includes(search)) return false;
+        if (minRenta && (getRentabiliteScore(c["rentabilite"]) < minRenta))   return false;
+        if (tranche  && getTranche(c.rendement) !== tranche)                  return false;
+        return true;
     });
-
     displayClients(filtered);
-});
+}
 
-/* 🔎 SEARCH */
-document.getElementById("search").addEventListener("input", function(e) {
-    const value = e.target.value.toLowerCase();
+document.getElementById("filter-renta").addEventListener("input", applyAllFilters);
+document.getElementById("search").addEventListener("input", applyAllFilters);
+document.getElementById("filter-tranche").addEventListener("change", applyAllFilters);
 
-    const filtered = clientsData.filter(c =>
-        (c.nom_client || "").toLowerCase().includes(value)
+/* 🔽 TRI RENDEMENT */
+function sortByRendement() {
+    const sorted = [...clientsData].sort((a, b) =>
+        (parseFloat(b.rendement) || 0) - (parseFloat(a.rendement) || 0)
     );
-
-    displayClients(filtered);
-});
+    displayClients(sorted);
+}
 
 function sortByHonos() {
     const sorted = [...clientsData].sort((a, b) =>
