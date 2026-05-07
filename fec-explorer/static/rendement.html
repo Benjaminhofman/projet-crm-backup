@@ -74,6 +74,19 @@ input {
 .result {
     font-weight: bold;
 }
+
+.badge-rendement {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+.badge-excellent { background: #27ae60; }
+.badge-bon       { background: #2980b9; }
+.badge-moyen     { background: #f39c12; }
+.badge-faible    { background: #e74c3c; }
 </style>
 </head>
 
@@ -91,6 +104,13 @@ input {
     <input id="filter-collab" placeholder="Collaborateur...">
     <input id="filter-annee" placeholder="Année...">
     <input id="filter-cloture" placeholder="Clôture...">
+    <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;">
+        <option value="">Toutes tranches</option>
+        <option value="excellent">⭐ Excellent (≥80)</option>
+        <option value="bon">👍 Bon (60-79)</option>
+        <option value="moyen">⚠️ Moyen (40-59)</option>
+        <option value="faible">🔴 Faible (&lt;40)</option>
+    </select>
 </div>
 
 <table>
@@ -258,15 +278,35 @@ async function load() {
     const res = await fetch(API_URL + "/clients");
     const data = await res.json();
 
-    console.log("DATA:", data); // debug
-
-    dataGlobal = data;
+    // Tri par rendement DESC
+    dataGlobal = data.sort((a, b) => (parseFloat(b.rendement) || 0) - (parseFloat(a.rendement) || 0));
 
     display(dataGlobal);
     bindFilters();
 }
 
-/* COULEUR RENDEMENT */
+/* BADGE RENDEMENT */
+function badgeRendement(val) {
+    const n = parseFloat(val);
+    if (isNaN(n) || val === null || val === "") return "<span style='color:#aaa'>—</span>";
+    let cls, label;
+    if      (n >= 80) { cls = "badge-excellent"; label = "Excellent"; }
+    else if (n >= 60) { cls = "badge-bon";       label = "Bon"; }
+    else if (n >= 40) { cls = "badge-moyen";     label = "Moyen"; }
+    else              { cls = "badge-faible";     label = "Faible"; }
+    return `<span class="badge-rendement ${cls}">${Math.round(n)} — ${label}</span>`;
+}
+
+function getTranche(val) {
+    const n = parseFloat(val);
+    if (isNaN(n)) return "faible";
+    if (n >= 80) return "excellent";
+    if (n >= 60) return "bon";
+    if (n >= 40) return "moyen";
+    return "faible";
+}
+
+/* COULEUR €/h */
 function getColor(val) {
     if (val < 50) return "#e74c3c";
     if (val < 80) return "#f39c12";
@@ -305,8 +345,6 @@ function display(data) {
 
         const tr = document.createElement("tr");
 
-        const rendement = parseFloat(c["rentabilite"] ?? 0);
-
         tr.innerHTML = `
         <td>${c.code_client || ""}</td>
         <td><b>${c.nom_client || ""}</b></td>
@@ -316,7 +354,7 @@ function display(data) {
         <td>${fmtDate(c.date_de_cloture)}</td>
         <td>${c.ca_r || ""}</td>
         <td>${c.resultat_r || ""}</td>
-        <td>${c["ancienneté"] || ""}</td>
+        <td>${c.anciennete || ""}</td>
 
         <td>
             <input class="temps" value="${c.temps_passe ?? ""}">
@@ -328,9 +366,7 @@ function display(data) {
 
         <td class="result">-</td>
 
-        <td style="font-weight:bold; color:${getColor(rendement)};">
-            ${rendement ? rendement.toFixed(2) : ""}
-        </td>
+        <td>${badgeRendement(c.rendement)}</td>
         `;
 
         const tempsInput = tr.querySelector(".temps");
@@ -342,11 +378,11 @@ function display(data) {
 
         /* SAVE */
         tempsInput.addEventListener("change", (e) => {
-            updateField(c.siret, "temps passé", e.target.value, e.target);
+            updateField(c.siret, "temps_passe", e.target.value, e.target);
         });
 
         honosInput.addEventListener("change", (e) => {
-            updateField(c.siret, "honoraires cpta", e.target.value, e.target);
+            updateField(c.siret, "honoraires_cpta", e.target.value, e.target);
         });
 
         calculerLigne(tr);
@@ -365,20 +401,20 @@ function display(data) {
 /* FILTRES */
 function applyFilters() {
 
-    const search = document.getElementById("search").value.toLowerCase();
+    const search   = document.getElementById("search").value.toLowerCase();
     const assistant = document.getElementById("filter-assistant").value.toLowerCase();
-    const collab = document.getElementById("filter-collab").value.toLowerCase();
-    const annee = document.getElementById("filter-annee").value.toLowerCase();
-    const cloture = document.getElementById("filter-cloture").value.toLowerCase();
+    const collab   = document.getElementById("filter-collab").value.toLowerCase();
+    const annee    = document.getElementById("filter-annee").value.toLowerCase();
+    const cloture  = document.getElementById("filter-cloture").value.toLowerCase();
+    const tranche  = document.getElementById("filter-tranche").value;
 
     const filtered = dataGlobal.filter(c => {
-
-        if (search && !(c.nom_client || "").toLowerCase().includes(search)) return false;
-        if (assistant && !(c.assistant || "").toLowerCase().includes(assistant)) return false;
-        if (collab && !(c.collaborateur || "").toLowerCase().includes(collab)) return false;
-        if (annee && !(String(c.annee || "")).includes(annee)) return false;
-        if (cloture && !(c.date_de_cloture || "").toLowerCase().includes(cloture)) return false;
-
+        if (search    && !(c.nom_client    || "").toLowerCase().includes(search))    return false;
+        if (assistant && !(c.assistant     || "").toLowerCase().includes(assistant)) return false;
+        if (collab    && !(c.collaborateur || "").toLowerCase().includes(collab))    return false;
+        if (annee     && !(String(c.annee  || "")).includes(annee))                  return false;
+        if (cloture   && !(c.date_de_cloture || "").toLowerCase().includes(cloture)) return false;
+        if (tranche   && getTranche(c.rendement) !== tranche)                        return false;
         return true;
     });
 
@@ -387,8 +423,9 @@ function applyFilters() {
 
 /* BIND FILTERS */
 function bindFilters() {
-    document.querySelectorAll(".filters-top input").forEach(input => {
-        input.addEventListener("input", applyFilters);
+    document.querySelectorAll(".filters-top input, .filters-top select").forEach(el => {
+        el.addEventListener("input", applyFilters);
+        el.addEventListener("change", applyFilters);
     });
 }
 
