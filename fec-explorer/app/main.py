@@ -621,7 +621,7 @@ def migrate_activite():
             cur.execute("""
                 UPDATE clients SET activite_r = n.libelle
                 FROM naf n
-                WHERE CAST(SPLIT_PART(CAST(code_naf_r AS TEXT), '.', 1) AS INTEGER) = CAST(n.code AS INTEGER)
+                WHERE SPLIT_PART(code_naf_r::text, '.', 1) = n.code::text
                 AND code_naf_r IS NOT NULL AND code_naf_r != '';
             """)
             updated = cur.rowcount
