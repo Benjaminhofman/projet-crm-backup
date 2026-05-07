@@ -667,26 +667,6 @@ def migrate_trigger_activite():
         conn.close()
 
 
-@app.get("/api/debug/columns", summary="Liste les colonnes clients filtrées par pattern")
-def debug_columns():
-    conn = _get_db_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT column_name FROM information_schema.columns
-                WHERE table_name = 'clients' AND (
-                    column_name LIKE '%ca12%' OR
-                    column_name LIKE '%juillet%' OR
-                    column_name LIKE '%is%' OR
-                    column_name LIKE '%liasse%'
-                )
-                ORDER BY column_name;
-            """)
-            columns = [row[0] for row in cur.fetchall()]
-        return {"columns": columns, "count": len(columns)}
-    finally:
-        conn.close()
-
 
 # ── Static files ──────────────────────────────────────────────────────────────
 # Monté en dernier pour ne pas masquer les routes API.
