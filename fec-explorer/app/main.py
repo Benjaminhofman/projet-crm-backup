@@ -518,6 +518,26 @@ def migrate_naf():
         conn.close()
 
 
+@app.get("/api/migrate/activite", summary="Renseigne activite_r depuis code_naf_r via la table naf")
+def migrate_activite():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE clients c
+                SET activite_r = n.libelle
+                FROM naf n
+                WHERE c.code_naf_r IS NOT NULL
+                  AND c.code_naf_r <> ''
+                  AND n.code = LEFT(c.code_naf_r, 1);
+            """)
+            updated = cur.rowcount
+        conn.commit()
+        return {"updated": updated}
+    finally:
+        conn.close()
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 # Monté en dernier pour ne pas masquer les routes API.
 
