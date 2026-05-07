@@ -698,6 +698,25 @@ def migrate_trigger_activite():
 
 
 
+@app.get("/api/migrate/fix_juridique_exceptionnel", summary="Convertit juridique_exceptionnel en TEXT")
+def fix_juridique_exceptionnel():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                ALTER TABLE clients
+                ALTER COLUMN juridique_exceptionnel TYPE TEXT
+                USING juridique_exceptionnel::text;
+            """)
+        conn.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 # Monté en dernier pour ne pas masquer les routes API.
 
