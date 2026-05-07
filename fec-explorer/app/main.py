@@ -523,6 +523,17 @@ def migrate_activite():
     conn = _get_db_conn()
     try:
         with conn.cursor() as cur:
+            # Vérifie que la table naf existe et contient des données
+            try:
+                cur.execute("SELECT COUNT(*) FROM naf;")
+                naf_count = cur.fetchone()[0]
+            except Exception as e:
+                conn.rollback()
+                return {"error": "table naf vide ou inexistante", "detail": str(e)}
+
+            if naf_count == 0:
+                return {"error": "table naf vide ou inexistante"}
+
             cur.execute("""
                 UPDATE clients c
                 SET activite_r = n.libelle
@@ -533,6 +544,9 @@ def migrate_activite():
             updated = cur.rowcount
         conn.commit()
         return {"updated": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
     finally:
         conn.close()
 
