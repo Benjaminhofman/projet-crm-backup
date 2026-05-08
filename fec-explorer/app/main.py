@@ -1358,6 +1358,44 @@ def op_prevoyance_setup():
         conn.close()
 
 
+@app.get("/api/migrate/install_trigger_op_prevoyance", summary="Installe le trigger BEFORE qui calcule op_prevoyance depuis NEW.*")
+def install_trigger_op_prevoyance():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DROP TRIGGER IF EXISTS trg_op_prevoyance ON clients;")
+            cur.execute("DROP FUNCTION IF EXISTS update_op_prevoyance_trigger();")
+            cur.execute("""
+                CREATE FUNCTION update_op_prevoyance_trigger()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF NEW.prevoyance IS NULL OR NEW.structure IS NULL THEN
+                        NEW.op_prevoyance := 'Donnée manquante';
+                    ELSIF LOWER(NEW.prevoyance) = 'non'
+                          AND UPPER(NEW.structure) IN ('EI', 'SARL') THEN
+                        NEW.op_prevoyance := 'OUI';
+                    ELSE
+                        NEW.op_prevoyance := NULL;
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("""
+                CREATE TRIGGER trg_op_prevoyance
+                BEFORE INSERT OR UPDATE OF prevoyance, structure
+                ON clients
+                FOR EACH ROW EXECUTE FUNCTION update_op_prevoyance_trigger();
+            """)
+        conn.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/install_trigger_arbitrage_remuneration", summary="Installe le trigger BEFORE qui calcule arbitrage_remuneration_dirigeant depuis NEW.*")
 def install_trigger_arbitrage_remuneration():
     conn = _get_db_conn()
