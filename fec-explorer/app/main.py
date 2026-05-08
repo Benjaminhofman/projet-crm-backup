@@ -878,6 +878,35 @@ def debug_rendement():
         conn.close()
 
 
+@app.get("/api/migrate/fix_activite_trigger", summary="Corrige update_activite_r() avec SPLIT_PART puis force recalcul")
+def fix_activite_trigger():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE OR REPLACE FUNCTION update_activite_r()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF (TG_OP = 'INSERT' OR NEW.code_naf_r IS DISTINCT FROM OLD.code_naf_r) THEN
+                        SELECT libelle INTO NEW.activite_r
+                        FROM naf
+                        WHERE code = SPLIT_PART(NEW.code_naf_r::text, '.', 1);
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("UPDATE clients SET code_naf_r = code_naf_r;")
+            updated = cur.rowcount
+        conn.commit()
+        return {"status": "ok", "clients_recalcules": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/debug/activite_function", summary="Retourne le code source de la fonction update_activite_r()")
 def debug_activite_function():
     conn = _get_db_conn()
