@@ -1328,6 +1328,27 @@ def arbitrage_remuneration_setup():
         conn.close()
 
 
+@app.get("/api/migrate/age_setup", summary="Ajoute la colonne age et calcule depuis anniversaire")
+def age_setup():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS age INTEGER;")
+            cur.execute("""
+                UPDATE clients
+                SET age = EXTRACT(YEAR FROM AGE(NOW(), anniversaire))
+                WHERE anniversaire IS NOT NULL;
+            """)
+            updated = cur.rowcount
+        conn.commit()
+        return {"updated": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/mission_placement_setup", summary="Calcule la colonne mission_placement depuis ca_r et tresorerie_r")
 def mission_placement_setup():
     conn = _get_db_conn()
