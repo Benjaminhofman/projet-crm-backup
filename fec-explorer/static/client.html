@@ -328,12 +328,19 @@ function getSiret() {
     return params.get("siret");
 }
 
+function fmtVal(v) {
+    if (v === true  || v === "true"  || v === "t") return "Oui";
+    if (v === false || v === "false" || v === "f") return "Non";
+    return v;
+}
+
 function field(label, value, type = "") {
-    if (!value) return "";
+    const display = fmtVal(value);
+    if (!display) return "";
     return `
         <div class="field ${type}">
             <div class="label">${label}</div>
-            <div class="value">${esc(value)}</div>
+            <div class="value">${esc(display)}</div>
         </div>
     `;
 }
