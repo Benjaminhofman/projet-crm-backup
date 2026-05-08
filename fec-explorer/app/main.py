@@ -878,6 +878,20 @@ def debug_rendement():
         conn.close()
 
 
+@app.get("/api/debug/activite_function", summary="Retourne le code source de la fonction update_activite_r()")
+def debug_activite_function():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'update_activite_r';")
+            row = cur.fetchone()
+        return {"definition": row[0] if row else None}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/debug/triggers", summary="Liste les triggers actifs sur la table clients")
 def debug_triggers():
     conn = _get_db_conn()
