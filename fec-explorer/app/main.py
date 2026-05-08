@@ -1397,7 +1397,7 @@ def install_trigger_mission_retraite():
             """)
             cur.execute("""
                 CREATE TRIGGER trg_mission_retraite
-                BEFORE INSERT OR UPDATE OF age
+                BEFORE INSERT OR UPDATE OF age, anniversaire
                 ON clients
                 FOR EACH ROW EXECUTE FUNCTION update_mission_retraite_trigger();
             """)
