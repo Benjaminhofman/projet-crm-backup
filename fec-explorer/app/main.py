@@ -1330,6 +1330,43 @@ def franchise_tva_achrevente_setup():
         conn.close()
 
 
+@app.get("/api/migrate/install_trigger_franchise_achrevente", summary="Installe le trigger BEFORE qui calcule franchise_tva_achrevente depuis NEW.*")
+def install_trigger_franchise_achrevente():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DROP TRIGGER IF EXISTS trg_franchise_achrevente ON clients;")
+            cur.execute("DROP FUNCTION IF EXISTS update_franchise_achrevente_trigger();")
+            cur.execute("""
+                CREATE FUNCTION update_franchise_achrevente_trigger()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF NEW.ca_r IS NULL OR NEW.achat_revente IS NULL THEN
+                        NEW.franchise_tva_achrevente := 'Données manquantes';
+                    ELSIF LOWER(NEW.achat_revente) = 'oui' AND NEW.ca_r BETWEEN 0 AND 85000 THEN
+                        NEW.franchise_tva_achrevente := 'OUI';
+                    ELSE
+                        NEW.franchise_tva_achrevente := 'NON';
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("""
+                CREATE TRIGGER trg_franchise_achrevente
+                BEFORE INSERT OR UPDATE OF ca_r, achat_revente
+                ON clients
+                FOR EACH ROW EXECUTE FUNCTION update_franchise_achrevente_trigger();
+            """)
+        conn.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/franchise_tva_setup", summary="Ajoute et calcule la colonne franchise_tva_prest")
 def franchise_tva_setup():
     conn = _get_db_conn()
