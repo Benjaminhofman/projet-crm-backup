@@ -159,6 +159,12 @@ h3 {
     font-weight: bold;
     color: #d35400;
 }
+
+.field-wide {
+    grid-column: 1 / -1;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
 </style>
 </head>
 
@@ -323,7 +329,7 @@ function getSiret() {
 }
 
 function field(label, value, type = "") {
-    if (!value && value !== 0) return "";
+    if (!value) return "";
     return `
         <div class="field ${type}">
             <div class="label">${label}</div>
@@ -393,9 +399,6 @@ async function loadClient() {
         field("Souhait anniversaire", data.souhait_anniversaire)
     );
 
-    html += block("📝 Commentaire",
-        field("Commentaire", data.commentaire)
-    );
 
     html += block("📞 Contact client",
         field("Contact", data.contact) +
@@ -444,6 +447,19 @@ async function loadClient() {
         field("Trésorerie", data.tresorerie_r) +
         field("Code NAF", data.code_naf_r)
     );
+
+    if (data.commentaires) {
+        html += `
+        <div class="card">
+            <h3>💬 Commentaires</h3>
+            <div class="grid">
+                <div class="field field-wide">
+                    <div class="label">Commentaires</div>
+                    <div class="value">${esc(data.commentaires)}</div>
+                </div>
+            </div>
+        </div>`;
+    }
 
     document.getElementById("client-details").innerHTML = html;
 }
