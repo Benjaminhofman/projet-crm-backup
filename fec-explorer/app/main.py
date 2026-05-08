@@ -1349,6 +1349,67 @@ def age_setup():
         conn.close()
 
 
+@app.get("/api/migrate/mission_retraite_setup", summary="Calcule la colonne mission_retraite depuis age")
+def mission_retraite_setup():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE clients ALTER COLUMN mission_retraite TYPE TEXT;")
+            cur.execute("""
+                UPDATE clients
+                SET mission_retraite = CASE
+                    WHEN age IS NULL THEN 'Données manquantes'
+                    WHEN age > 50 AND age < 65 THEN 'OUI'
+                    ELSE NULL
+                END;
+            """)
+            updated = cur.rowcount
+        conn.commit()
+        return {"updated": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/migrate/install_trigger_mission_retraite", summary="Installe le trigger BEFORE qui calcule mission_retraite depuis age")
+def install_trigger_mission_retraite():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DROP TRIGGER IF EXISTS trg_mission_retraite ON clients;")
+            cur.execute("DROP FUNCTION IF EXISTS update_mission_retraite_trigger();")
+            cur.execute("""
+                CREATE FUNCTION update_mission_retraite_trigger()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF NEW.age IS NULL THEN
+                        NEW.mission_retraite := 'Données manquantes';
+                    ELSIF NEW.age > 50 AND NEW.age < 65 THEN
+                        NEW.mission_retraite := 'OUI';
+                    ELSE
+                        NEW.mission_retraite := NULL;
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("""
+                CREATE TRIGGER trg_mission_retraite
+                BEFORE INSERT OR UPDATE OF age
+                ON clients
+                FOR EACH ROW EXECUTE FUNCTION update_mission_retraite_trigger();
+            """)
+        conn.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/refresh_age", summary="Recalcule la colonne age depuis anniversaire pour tous les clients")
 def refresh_age():
     conn = _get_db_conn()
