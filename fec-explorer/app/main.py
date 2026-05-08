@@ -1209,7 +1209,7 @@ def install_trigger_franchise_tva():
                 FOR EACH ROW EXECUTE FUNCTION update_franchise_tva_trigger();
             """)
         conn.commit()
-        return {"status": "ok", "trigger": "trg_franchise_tva"}
+        return {"status": "ok"}
     except Exception as e:
         conn.rollback()
         return {"error": str(e)}
