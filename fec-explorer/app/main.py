@@ -1349,6 +1349,37 @@ def age_setup():
         conn.close()
 
 
+@app.get("/api/migrate/install_trigger_age", summary="Installe le trigger BEFORE qui calcule age depuis anniversaire")
+def install_trigger_age():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DROP TRIGGER IF EXISTS trg_age ON clients;")
+            cur.execute("DROP FUNCTION IF EXISTS update_age_trigger();")
+            cur.execute("""
+                CREATE FUNCTION update_age_trigger()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.age := EXTRACT(YEAR FROM AGE(NOW(), NEW.anniversaire));
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("""
+                CREATE TRIGGER trg_age
+                BEFORE INSERT OR UPDATE OF anniversaire
+                ON clients
+                FOR EACH ROW EXECUTE FUNCTION update_age_trigger();
+            """)
+        conn.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/mission_placement_setup", summary="Calcule la colonne mission_placement depuis ca_r et tresorerie_r")
 def mission_placement_setup():
     conn = _get_db_conn()
