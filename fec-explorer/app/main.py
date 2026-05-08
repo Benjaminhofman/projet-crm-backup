@@ -1349,6 +1349,26 @@ def age_setup():
         conn.close()
 
 
+@app.get("/api/migrate/refresh_age", summary="Recalcule la colonne age depuis anniversaire pour tous les clients")
+def refresh_age():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE clients
+                SET age = EXTRACT(YEAR FROM AGE(NOW(), anniversaire))
+                WHERE anniversaire IS NOT NULL;
+            """)
+            updated = cur.rowcount
+        conn.commit()
+        return {"updated": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/install_trigger_age", summary="Installe le trigger BEFORE qui calcule age depuis anniversaire")
 def install_trigger_age():
     conn = _get_db_conn()
