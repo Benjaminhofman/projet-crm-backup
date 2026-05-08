@@ -286,8 +286,7 @@ function display(data) {
     data.forEach(c => {
 
         table.innerHTML += `
-        <tr 
-            onmouseenter="showTooltip(event, ${JSON.stringify(c).replace(/"/g, '&quot;')})"
+        <tr
             onmouseleave="hideTooltip()"
             onclick="window.location.href='client.html?siret=${c.siret}'"
         >
@@ -299,24 +298,54 @@ function display(data) {
             <td>${c.collaborateur || ""}</td>
             <td>${fmtDate(c.date_de_cloture)}</td>
 
-            ${buildIndicator(c.mission_retraite === 'OUI')}
-            ${buildIndicator(c.mission_patrimoniale === 'OUI')}
-            ${buildIndicator(['OPPORTUNITÉ FORTE','OPPORTUNITÉ MOYENNE'].includes(c.mission_placement))}
-            ${buildIndicator(c.franchise_tva_prest === 'OUI')}
-            ${buildIndicator(c.franchise_tva_achrevente === 'OUI')}
-            ${buildIndicator(c.op_prevoyance === 'OUI')}
-            ${buildIndicator(c.arbitrage_remuneration_dirigeant === 'OUI')}
+            ${buildIndicator(c.mission_retraite === 'OUI', c.siret, 'retraite')}
+            ${buildIndicator(c.mission_patrimoniale === 'OUI', c.siret, 'patrimoniale')}
+            ${buildIndicator(['OPPORTUNITÉ FORTE','OPPORTUNITÉ MOYENNE'].includes(c.mission_placement), c.siret, 'placement')}
+            ${buildIndicator(c.franchise_tva_prest === 'OUI', c.siret, 'franchise_prest')}
+            ${buildIndicator(c.franchise_tva_achrevente === 'OUI', c.siret, 'franchise_achrevente')}
+            ${buildIndicator(c.op_prevoyance === 'OUI', c.siret, 'prevoyance')}
+            ${buildIndicator(c.arbitrage_remuneration_dirigeant === 'OUI', c.siret, 'arbitrage')}
 
         </tr>`;
     });
 }
 
-// indicateur lecture seule (pas de clic, pas de navigation)
-function buildIndicator(isChecked) {
-    return `<td onclick="event.stopPropagation()" style="cursor:default;">
+// indicateur lecture seule avec tooltip contextuel
+function buildIndicator(isChecked, siret, tooltipType) {
+    return `<td
+        onclick="event.stopPropagation()"
+        onmouseenter="showContextTooltip(event, '${siret}', '${tooltipType}')"
+        onmouseleave="hideTooltip()"
+        style="cursor:default;">
         <input type="checkbox" ${isChecked ? 'checked' : ''} disabled
             style="pointer-events:none; cursor:default; accent-color:#27ae60;">
     </td>`;
+}
+
+function val(v) { return (v !== null && v !== undefined && v !== '') ? v : 'Données manquantes'; }
+
+const TOOLTIP_CONTENT = {
+    retraite:            c => `<b>${c.nom_client || ''}</b><br>Âge : ${val(c.age)}<br>Anniversaire : ${c.anniversaire ? fmtDate(c.anniversaire) : 'Données manquantes'}`,
+    patrimoniale:        c => `<b>${c.nom_client || ''}</b><br>IR (mai) : ${val(c.mai_ir)}`,
+    placement:           c => {
+        const ratio = (c.ca_r && c.tresorerie_r) ? (c.tresorerie_r * 100 / c.ca_r).toFixed(1) + ' %' : 'Données manquantes';
+        return `<b>${c.nom_client || ''}</b><br>CA : ${val(c.ca_r)}<br>Trésorerie : ${val(c.tresorerie_r)}<br>Ratio tréso/CA : ${ratio}`;
+    },
+    franchise_prest:     c => `<b>${c.nom_client || ''}</b><br>CA : ${val(c.ca_r)}<br>Achat/Revente : ${val(c.achat_revente)}`,
+    franchise_achrevente:c => `<b>${c.nom_client || ''}</b><br>CA : ${val(c.ca_r)}<br>Achat/Revente : ${val(c.achat_revente)}`,
+    prevoyance:          c => `<b>${c.nom_client || ''}</b><br>Prévoyance : ${val(c.prevoyance)}<br>Structure : ${val(c.structure)}`,
+    arbitrage:           c => `<b>${c.nom_client || ''}</b><br>Résultat : ${val(c.resultat_r)}`,
+};
+
+function showContextTooltip(event, siret, type) {
+    const client = dataGlobal.find(c => String(c.siret) === String(siret));
+    if (!client) return;
+    const tooltip = document.getElementById("tooltip-client");
+    const fn = TOOLTIP_CONTENT[type];
+    tooltip.innerHTML = fn ? fn(client) : '';
+    tooltip.style.display = "block";
+    tooltip.style.left = event.pageX + 15 + "px";
+    tooltip.style.top = event.pageY + 15 + "px";
 }
 
 // conditions de filtrage par champ
@@ -329,28 +358,6 @@ const FIELD_CONDITIONS = {
     op_prevoyance:                    c => c.op_prevoyance === 'OUI',
     arbitrage_remuneration_dirigeant: c => c.arbitrage_remuneration_dirigeant === 'OUI',
 };
-
-// update airtable
-
-// tooltip
-function showTooltip(event, client) {
-
-    const tooltip = document.getElementById("tooltip-client");
-
-    tooltip.innerHTML = `
-        <strong>${client.nom_client || ""}</strong><br>
-        Code : ${client.code_client || ""}<br>
-        Assistant : ${client.assistant || ""}<br>
-        Collaborateur : ${client.collaborateur || ""}<br>
-        Clôture : ${fmtDate(client.date_de_cloture)}<br>
-        CA : ${client.ca_r || ""}<br>
-        Résultat : ${client.resultat_r || ""}
-    `;
-
-    tooltip.style.display = "block";
-    tooltip.style.left = event.pageX + 15 + "px";
-    tooltip.style.top = event.pageY + 15 + "px";
-}
 
 function hideTooltip() {
     document.getElementById("tooltip-client").style.display = "none";
