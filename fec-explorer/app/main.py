@@ -1389,6 +1389,49 @@ def op_prevoyance_setup():
         conn.close()
 
 
+@app.get("/api/migrate/install_trigger_mission_placement", summary="Installe le trigger BEFORE qui calcule mission_placement depuis NEW.*")
+def install_trigger_mission_placement():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DROP TRIGGER IF EXISTS trg_mission_placement ON clients;")
+            cur.execute("DROP FUNCTION IF EXISTS update_mission_placement_trigger();")
+            cur.execute("""
+                CREATE FUNCTION update_mission_placement_trigger()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF NEW.ca_r IS NULL OR NEW.tresorerie_r IS NULL THEN
+                        NEW.mission_placement := 'Données manquantes';
+                    ELSIF NEW.ca_r BETWEEN 200000 AND 5000000
+                          AND NEW.tresorerie_r > 50000
+                          AND NEW.tresorerie_r * 100.0 / NEW.ca_r > 25 THEN
+                        NEW.mission_placement := 'OPPORTUNITÉ FORTE';
+                    ELSIF NEW.ca_r BETWEEN 100000 AND 5000000
+                          AND NEW.tresorerie_r > 20000
+                          AND NEW.tresorerie_r * 100.0 / NEW.ca_r > 15 THEN
+                        NEW.mission_placement := 'OPPORTUNITÉ MOYENNE';
+                    ELSE
+                        NEW.mission_placement := NULL;
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("""
+                CREATE TRIGGER trg_mission_placement
+                BEFORE INSERT OR UPDATE OF ca_r, tresorerie_r
+                ON clients
+                FOR EACH ROW EXECUTE FUNCTION update_mission_placement_trigger();
+            """)
+        conn.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/install_trigger_op_prevoyance", summary="Installe le trigger BEFORE qui calcule op_prevoyance depuis NEW.*")
 def install_trigger_op_prevoyance():
     conn = _get_db_conn()
