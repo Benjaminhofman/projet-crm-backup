@@ -1301,6 +1301,33 @@ def install_trigger_franchise_tva():
         conn.close()
 
 
+@app.get("/api/migrate/arbitrage_remuneration_setup", summary="Ajoute et calcule la colonne arbitrage_remuneration_dirigeant")
+def arbitrage_remuneration_setup():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                ALTER TABLE clients
+                ADD COLUMN IF NOT EXISTS arbitrage_remuneration_dirigeant TEXT;
+            """)
+            cur.execute("""
+                UPDATE clients
+                SET arbitrage_remuneration_dirigeant = CASE
+                    WHEN resultat_r IS NULL THEN 'Donnée manquante'
+                    WHEN resultat_r > 42500 THEN 'OUI'
+                    ELSE NULL
+                END;
+            """)
+            updated = cur.rowcount
+        conn.commit()
+        return {"status": "ok", "clients_mis_a_jour": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/franchise_tva_achrevente_setup", summary="Ajoute et calcule la colonne franchise_tva_achrevente")
 def franchise_tva_achrevente_setup():
     conn = _get_db_conn()
