@@ -1367,6 +1367,67 @@ def champs_libres_setup():
         conn.close()
 
 
+@app.get("/api/migrate/mission_patrimoniale_setup", summary="Calcule la colonne mission_patrimoniale depuis mai_ir")
+def mission_patrimoniale_setup():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE clients ALTER COLUMN mission_patrimoniale TYPE TEXT;")
+            cur.execute("""
+                UPDATE clients
+                SET mission_patrimoniale = CASE
+                    WHEN mai_ir IS NULL THEN 'Données manquantes'
+                    WHEN mai_ir > 8000 THEN 'OUI'
+                    ELSE NULL
+                END;
+            """)
+            updated = cur.rowcount
+        conn.commit()
+        return {"updated": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
+@app.get("/api/migrate/install_trigger_mission_patrimoniale", summary="Installe le trigger BEFORE qui calcule mission_patrimoniale depuis mai_ir")
+def install_trigger_mission_patrimoniale():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DROP TRIGGER IF EXISTS trg_mission_patrimoniale ON clients;")
+            cur.execute("DROP FUNCTION IF EXISTS update_mission_patrimoniale_trigger();")
+            cur.execute("""
+                CREATE FUNCTION update_mission_patrimoniale_trigger()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF NEW.mai_ir IS NULL THEN
+                        NEW.mission_patrimoniale := 'Données manquantes';
+                    ELSIF NEW.mai_ir > 8000 THEN
+                        NEW.mission_patrimoniale := 'OUI';
+                    ELSE
+                        NEW.mission_patrimoniale := NULL;
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """)
+            cur.execute("""
+                CREATE TRIGGER trg_mission_patrimoniale
+                BEFORE INSERT OR UPDATE OF mai_ir
+                ON clients
+                FOR EACH ROW EXECUTE FUNCTION update_mission_patrimoniale_trigger();
+            """)
+        conn.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/mission_retraite_setup", summary="Calcule la colonne mission_retraite depuis age")
 def mission_retraite_setup():
     conn = _get_db_conn()
