@@ -1338,11 +1338,11 @@ def mission_placement_setup():
                 SET mission_placement = CASE
                     WHEN ca_r IS NULL OR tresorerie_r IS NULL
                         THEN 'Données manquantes'
-                    WHEN ca_r BETWEEN 200000 AND 5000000
+                    WHEN ca_r > 50000
                          AND tresorerie_r > 50000
                          AND tresorerie_r * 100.0 / ca_r > 25
                         THEN 'OPPORTUNITÉ FORTE'
-                    WHEN ca_r BETWEEN 100000 AND 5000000
+                    WHEN ca_r > 50000
                          AND tresorerie_r > 20000
                          AND tresorerie_r * 100.0 / ca_r > 15
                         THEN 'OPPORTUNITÉ MOYENNE'
@@ -1402,11 +1402,11 @@ def install_trigger_mission_placement():
                 BEGIN
                     IF NEW.ca_r IS NULL OR NEW.tresorerie_r IS NULL THEN
                         NEW.mission_placement := 'Données manquantes';
-                    ELSIF NEW.ca_r BETWEEN 200000 AND 5000000
+                    ELSIF NEW.ca_r > 50000
                           AND NEW.tresorerie_r > 50000
                           AND NEW.tresorerie_r * 100.0 / NEW.ca_r > 25 THEN
                         NEW.mission_placement := 'OPPORTUNITÉ FORTE';
-                    ELSIF NEW.ca_r BETWEEN 100000 AND 5000000
+                    ELSIF NEW.ca_r > 50000
                           AND NEW.tresorerie_r > 20000
                           AND NEW.tresorerie_r * 100.0 / NEW.ca_r > 15 THEN
                         NEW.mission_placement := 'OPPORTUNITÉ MOYENNE';
