@@ -1328,6 +1328,36 @@ def arbitrage_remuneration_setup():
         conn.close()
 
 
+@app.get("/api/migrate/op_prevoyance_setup", summary="Ajoute et calcule la colonne op_prevoyance")
+def op_prevoyance_setup():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                ALTER TABLE clients
+                ADD COLUMN IF NOT EXISTS op_prevoyance TEXT;
+            """)
+            cur.execute("""
+                UPDATE clients
+                SET op_prevoyance = CASE
+                    WHEN prevoyance IS NULL OR structure IS NULL
+                        THEN 'Donnée manquante'
+                    WHEN LOWER(prevoyance) = 'non'
+                         AND UPPER(structure) IN ('EI', 'SARL')
+                        THEN 'OUI'
+                    ELSE NULL
+                END;
+            """)
+            updated = cur.rowcount
+        conn.commit()
+        return {"status": "ok", "clients_mis_a_jour": updated}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/install_trigger_arbitrage_remuneration", summary="Installe le trigger BEFORE qui calcule arbitrage_remuneration_dirigeant depuis NEW.*")
 def install_trigger_arbitrage_remuneration():
     conn = _get_db_conn()
