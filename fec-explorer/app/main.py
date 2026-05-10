@@ -1010,6 +1010,27 @@ def debug_triggers():
         conn.close()
 
 
+@app.get("/api/debug/age_check/{siret}", summary="Retourne les données brutes anniversaire/age pour un client")
+def debug_age_check(siret: str):
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT siret, anniversaire, age, anniversaire::text AS anniversaire_brut
+                FROM clients
+                WHERE siret = %s
+            """, (siret,))
+            row = cur.fetchone()
+            if not row:
+                return {"error": f"Client {siret} introuvable"}
+            cols = ["siret", "anniversaire", "age", "anniversaire_brut"]
+            return dict(zip(cols, row))
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/install_trigger_rendement", summary="Installe le trigger BEFORE qui calcule rendement depuis NEW.*")
 def install_trigger_rendement():
     conn = _get_db_conn()
