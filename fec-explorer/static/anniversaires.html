@@ -248,17 +248,18 @@ function computeFiscalEvents(clients) {
 
     const events = [];
 
-    // 2561 — 16 février — 1 événement groupé pour les clients avec dividendes > 1
-    const clients2561 = clients.filter(c => parseFloat(c.dividendes) > 1);
-    if (clients2561.length > 0) {
-        events.push({
-            title: `📋 2561 — ${clients2561.map(c => c.nom_client).join(', ')}`,
-            start: prochaineFecheFixe(2, 16),
-            allDay: true,
-            backgroundColor: '#f39c12',
-            borderColor: '#f39c12'
+    // 2561 — 16 février — 1 événement par client avec dividendes > 1
+    clients
+        .filter(c => parseFloat(c.dividendes) > 1)
+        .forEach(c => {
+            events.push({
+                title: `📋 2561 — ${c.nom_client}`,
+                start: prochaineFecheFixe(2, 16),
+                allDay: true,
+                backgroundColor: '#f39c12',
+                borderColor: '#f39c12'
+            });
         });
-    }
 
     // DAS2 — 5 mai
     events.push({
