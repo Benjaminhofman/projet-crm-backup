@@ -206,7 +206,11 @@ async function loadCalendar() {
             const ageFutur = prochainAnniv.getFullYear() - anneeNaissance;
             const labelAge = anneeNaissance > 1900 ? ` (${ageFutur} ans)` : "";
 
-            const dateStr = prochainAnniv.toISOString().substring(0, 10);
+            // Construction depuis les parties locales pour éviter la reconversion UTC de toISOString()
+            const yyyy = prochainAnniv.getFullYear();
+            const mm   = String(prochainAnniv.getMonth() + 1).padStart(2, '0');
+            const dd   = String(prochainAnniv.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}T00:00:00`; // T00:00:00 sans Z → interprétation locale par FullCalendar
 
             return {
                 title: `${c.nom_client} 🎂${labelAge}`,
