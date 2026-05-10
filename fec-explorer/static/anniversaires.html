@@ -399,28 +399,23 @@ function computeFiscalEvents(clients) {
             }
         });
 
-    // TVS — date selon régime TVA
+    // TVS
     clients
         .filter(c => isTruthy(c.tvs))
         .forEach(c => {
+            const parts = (c.date_de_cloture || '').split('-').map(Number);
+            const moisCloture = parts[1];
+            const jourCloture = parts[2];
             let d;
             if (isTruthy(c.ca12)) {
-                // Régime simplifié (CA12)
-                const parts = (c.date_de_cloture || '').split('-').map(Number);
-                const moisCloture = parts[1];
-                const jourCloture = parts[2];
                 if (moisCloture === 12 && jourCloture === 31) {
-                    // Clôture 31/12 → 5 mai
                     d = new Date(aujourd_hui.getFullYear(), 4, 5);
                     if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, 4, 5);
                 } else {
-                    // Autre clôture → dernier jour du 3e mois après clôture
-                    // new Date(annee, moisCloture + 3, 0) = dernier jour du 3e mois
                     d = new Date(aujourd_hui.getFullYear(), moisCloture + 3, 0);
                     if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, moisCloture + 3, 0);
                 }
             } else {
-                // Régime réel normal → 27 janvier N+1
                 d = new Date(aujourd_hui.getFullYear(), 0, 27);
                 if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, 0, 27);
             }
