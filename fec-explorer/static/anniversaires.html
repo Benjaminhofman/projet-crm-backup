@@ -333,6 +333,12 @@ function computeFiscalEvents(clients) {
             // Solde IS — 15 du 4e mois après la clôture (exception 31/12 → mai = +5)
             // Formule générale : ((moisCloture - 1 + 4) % 12) + 1, sauf mois=12 → 5
             const moisSolde = moisCloture === 12 ? 5 : ((moisCloture - 1 + 4) % 12) + 1;
+
+            // Debug — clients dont le solde IS tombe en mai (moisSolde=5)
+            if (moisSolde === 5) {
+                console.log(`[IS Solde mai] ${c.nom_client} | moisCloture=${moisCloture} jourCloture=${jourCloture} | date_de_cloture=${c.date_de_cloture}`);
+            }
+
             const solde = new Date(aujourd_hui.getFullYear(), moisSolde - 1, 15);
             if (solde < aujourd_hui) solde.setFullYear(aujourd_hui.getFullYear() + 1);
             events.push({
@@ -349,6 +355,12 @@ function computeFiscalEvents(clients) {
                 const moisAcompte = ((moisCloture - 1 + offset) % 12) + 1;
                 const acompte = new Date(aujourd_hui.getFullYear(), moisAcompte - 1, 15);
                 if (acompte < aujourd_hui) acompte.setFullYear(aujourd_hui.getFullYear() + 1);
+
+                // Debug — acomptes clôture 31/12 : doit donner mars/juin/sept/déc
+                if (moisCloture === 12 && jourCloture === 31) {
+                    console.log(`[IS Acompte 31/12] ${c.nom_client} | offset=${offset} → moisAcompte=${moisAcompte} | date=${toLocalDateStr(acompte)}`);
+                }
+
                 events.push({
                     title: `💰 Acompte IS — ${c.nom_client}`,
                     start: toLocalDateStr(acompte),
