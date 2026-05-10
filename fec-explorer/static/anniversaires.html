@@ -357,25 +357,37 @@ function computeFiscalEvents(clients) {
             }
         });
 
-    // CVAE — Solde 5 mai + acomptes 15 juin et 15 sept
+    // CVAE — Solde 5 mai (tous) + acomptes 15 juin/sept (ca_r > 500 000 ou ca_r inconnu)
     clients
         .filter(c => isTruthy(c.cvae))
         .forEach(c => {
-            [
-                [5,  5,  `📘 CVAE Solde — ${c.nom_client}`],
-                [6,  15, `📘 CVAE Acompte — ${c.nom_client}`],
-                [9,  15, `📘 CVAE Acompte — ${c.nom_client}`]
-            ].forEach(([mois, jour, titre]) => {
-                const d = new Date(aujourd_hui.getFullYear(), mois - 1, jour);
-                if (d < aujourd_hui) d.setFullYear(aujourd_hui.getFullYear() + 1);
-                events.push({
-                    title: titre,
-                    start: toLocalDateStr(d),
-                    allDay: true,
-                    backgroundColor: '#9b59b6',
-                    borderColor: '#9b59b6'
-                });
+            // Solde — tous les clients CVAE
+            const solde = new Date(aujourd_hui.getFullYear(), 4, 5);
+            if (solde < aujourd_hui) solde.setFullYear(aujourd_hui.getFullYear() + 1);
+            events.push({
+                title: `📘 CVAE solde — ${c.nom_client}`,
+                start: toLocalDateStr(solde),
+                allDay: true,
+                backgroundColor: '#9b59b6',
+                borderColor: '#9b59b6'
             });
+
+            // Acomptes — uniquement si ca_r > 500 000 ou ca_r non renseigné (sécurité)
+            const car = parseFloat(c.ca_r);
+            const acomptesRequis = isNaN(car) || c.ca_r === null || c.ca_r === '' || car > 500000;
+            if (acomptesRequis) {
+                [[6, 15], [9, 15]].forEach(([mois, jour]) => {
+                    const d = new Date(aujourd_hui.getFullYear(), mois - 1, jour);
+                    if (d < aujourd_hui) d.setFullYear(aujourd_hui.getFullYear() + 1);
+                    events.push({
+                        title: `📘 Acompte CVAE — ${c.nom_client}`,
+                        start: toLocalDateStr(d),
+                        allDay: true,
+                        backgroundColor: '#9b59b6',
+                        borderColor: '#9b59b6'
+                    });
+                });
+            }
         });
 
     // TVS — 5 mai
