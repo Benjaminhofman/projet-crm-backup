@@ -191,10 +191,10 @@ async function loadCalendar() {
     const events = data
         .filter(c => c["anniversaire"])
         .map(c => {
-            const dateNaissance = new Date(c["anniversaire"]);
-            const mois = dateNaissance.getMonth(); // 0-based
-            const jour = dateNaissance.getDate();
-            const anneeNaissance = dateNaissance.getFullYear();
+            // Parsing manuel pour éviter le décalage UTC→local de new Date("yyyy-mm-dd")
+            const [anneeNaissance, moisRaw, jourRaw] = c["anniversaire"].split('-').map(Number);
+            const mois = moisRaw - 1; // 0-based pour le constructeur Date
+            const jour = jourRaw;
 
             // Prochain anniversaire : année courante, ou suivante si déjà passé
             let prochainAnniv = new Date(aujourd_hui.getFullYear(), mois, jour);
