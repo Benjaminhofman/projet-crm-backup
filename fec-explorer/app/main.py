@@ -171,6 +171,28 @@ def get_clients():
         conn.close()
 
 
+@app.get("/api/calendrier/fiscal", summary="Retourne les échéances fiscales de tous les clients")
+def get_calendrier_fiscal():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT siret, nom_client, date_de_cloture,
+                       is, cvae, tvs, ca12, liasse, dividendes
+                FROM clients
+                ORDER BY nom_client
+            """)
+            rows = [
+                {k: _serialize(v) for k, v in row.items()}
+                for row in cur.fetchall()
+            ]
+        return {"clients": rows}
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 @app.get("/api/clients/columns", summary="Liste les colonnes et types PostgreSQL de la table clients")
 def get_clients_columns():
     conn = _get_db_conn()
