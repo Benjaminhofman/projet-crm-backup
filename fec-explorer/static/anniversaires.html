@@ -185,24 +185,32 @@ async function loadCalendar() {
 
     const data = await fetchClients();
 
-    const currentYear = new Date().getFullYear(); // 🔥 dynamique
+    const aujourd_hui = new Date();
+    aujourd_hui.setHours(0, 0, 0, 0);
 
-    // 🔥 transformation des anniversaires en events
     const events = data
         .filter(c => c["anniversaire"])
         .map(c => {
+            const dateNaissance = new Date(c["anniversaire"]);
+            const mois = dateNaissance.getMonth(); // 0-based
+            const jour = dateNaissance.getDate();
+            const anneeNaissance = dateNaissance.getFullYear();
 
-            const date = new Date(c["anniversaire"]);
+            // Prochain anniversaire : année courante, ou suivante si déjà passé
+            let prochainAnniv = new Date(aujourd_hui.getFullYear(), mois, jour);
+            if (prochainAnniv < aujourd_hui) {
+                prochainAnniv = new Date(aujourd_hui.getFullYear() + 1, mois, jour);
+            }
 
-            const month = String(date.getMonth() + 1).padStart(2,'0');
-            const day = String(date.getDate()).padStart(2,'0');
+            // Âge qu'aura le client à son prochain anniversaire
+            const ageFutur = prochainAnniv.getFullYear() - anneeNaissance;
+            const labelAge = anneeNaissance > 1900 ? ` (${ageFutur} ans)` : "";
 
-            // 🔥 utilisation du champ AGE Airtable
-            const age = c.age ? ` (${c.age} ans)` : "";
+            const dateStr = prochainAnniv.toISOString().substring(0, 10);
 
             return {
-                title: `${c.nom_client} 🎂${age}`,
-                start: `${currentYear}-${month}-${day}`, // 🔥 clé du système
+                title: `${c.nom_client} 🎂${labelAge}`,
+                start: dateStr,
                 allDay: true
             };
         });
