@@ -304,12 +304,14 @@ function computeFiscalEvents(clients) {
                 deadline = new Date(aujourd_hui.getFullYear(), 4, 20);
                 if (deadline < aujourd_hui) deadline = new Date(aujourd_hui.getFullYear() + 1, 4, 20);
             } else {
-                // Autre clôture → prochaine occurrence + 3 mois + 15j
-                let cloture = new Date(aujourd_hui.getFullYear(), moisCloture - 1, jourCloture);
-                deadline = new Date(cloture.getFullYear(), cloture.getMonth() + 3, cloture.getDate() + 15);
+                // Deadline = dernier jour du 3e mois après clôture + 15j calendaires
+                // new Date(annee, moisCloture + 3, 0) → day 0 = dernier jour du mois précédent
+                // ex: clôture 31/03 → new Date(2026, 6, 0) = 30 juin → +15 = 15 juillet ✅
+                const base = new Date(aujourd_hui.getFullYear(), moisCloture + 3, 0);
+                deadline = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 15);
                 if (deadline < aujourd_hui) {
-                    cloture = new Date(aujourd_hui.getFullYear() + 1, moisCloture - 1, jourCloture);
-                    deadline = new Date(cloture.getFullYear(), cloture.getMonth() + 3, cloture.getDate() + 15);
+                    const baseN1 = new Date(aujourd_hui.getFullYear() + 1, moisCloture + 3, 0);
+                    deadline = new Date(baseN1.getFullYear(), baseN1.getMonth(), baseN1.getDate() + 15);
                 }
             }
 
