@@ -252,7 +252,7 @@ function computeFiscalEvents(clients) {
     const clients2561 = clients.filter(c => parseFloat(c.dividendes) > 1);
     if (clients2561.length > 0) {
         events.push({
-            title: `📋 2561 (${clients2561.length} client${clients2561.length > 1 ? 's' : ''})`,
+            title: `📋 2561 — ${clients2561.map(c => c.nom_client).join(', ')}`,
             start: prochaineFecheFixe(2, 16),
             allDay: true,
             backgroundColor: '#f39c12',
