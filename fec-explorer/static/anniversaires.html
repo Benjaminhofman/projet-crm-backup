@@ -322,6 +322,41 @@ function computeFiscalEvents(clients) {
             });
         });
 
+    // IS — Solde et acomptes
+    clients
+        .filter(c => isTruthy(c.is) && c.date_de_cloture)
+        .forEach(c => {
+            const parts = c.date_de_cloture.split('-').map(Number);
+            const moisCloture = parts[1];
+            const jourCloture = parts[2];
+
+            // Solde IS — 15 mai, prochaine occurrence
+            const solde = new Date(aujourd_hui.getFullYear(), 4, 15);
+            if (solde < aujourd_hui) solde.setFullYear(aujourd_hui.getFullYear() + 1);
+            events.push({
+                title: `💰 Solde IS — ${c.nom_client}`,
+                start: toLocalDateStr(solde),
+                allDay: true,
+                backgroundColor: '#e67e22',
+                borderColor: '#e67e22'
+            });
+
+            // Acomptes IS — uniquement clôture 31/12 : 15 mars, juin, sept, déc
+            if (moisCloture === 12 && jourCloture === 31) {
+                [[3, 15], [6, 15], [9, 15], [12, 15]].forEach(([mois, jour]) => {
+                    const acompte = new Date(aujourd_hui.getFullYear(), mois - 1, jour);
+                    if (acompte < aujourd_hui) acompte.setFullYear(aujourd_hui.getFullYear() + 1);
+                    events.push({
+                        title: `💰 Acompte IS — ${c.nom_client}`,
+                        start: toLocalDateStr(acompte),
+                        allDay: true,
+                        backgroundColor: '#e67e22',
+                        borderColor: '#e67e22'
+                    });
+                });
+            }
+        });
+
     return events;
 }
 
