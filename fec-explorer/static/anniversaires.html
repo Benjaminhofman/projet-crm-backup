@@ -393,6 +393,21 @@ function computeFiscalEvents(clients) {
             });
         });
 
+    // CA12 — déclaration annuelle 5 mai
+    clients
+        .filter(c => isTruthy(c.ca12))
+        .forEach(c => {
+            const d = new Date(aujourd_hui.getFullYear(), 4, 5);
+            if (d < aujourd_hui) d.setFullYear(aujourd_hui.getFullYear() + 1);
+            events.push({
+                title: `🟢 CA12 — ${c.nom_client}`,
+                start: toLocalDateStr(d),
+                allDay: true,
+                backgroundColor: '#27ae60',
+                borderColor: '#27ae60'
+            });
+        });
+
     return events;
 }
 
