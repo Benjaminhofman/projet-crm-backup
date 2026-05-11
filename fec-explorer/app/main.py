@@ -2,14 +2,17 @@ import logging
 import os
 import re
 import threading
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Dict, List
+
+from jose import JWTError, jwt
 
 logger = logging.getLogger(__name__)
 
 import psycopg2
 import psycopg2.extras
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -85,6 +88,9 @@ class UpdateRequest(BaseModel):
     siret: str
     field: str
     value: object
+
+class LoginRequest(BaseModel):
+    password: str
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -173,6 +179,39 @@ def _coerce_import_value(val: Any, data_type: str) -> Any:
 
     # Texte et autres types : inchangé
     return s
+
+
+# ── Auth ─────────────────────────────────────────────────────────────────────
+
+_JWT_ALGO = "HS256"
+
+@app.post("/api/auth/login", summary="Authentifie avec mot de passe, retourne un JWT valable 24h")
+def auth_login(body: LoginRequest):
+    crm_password = os.environ.get("CRM_PASSWORD", "")
+    jwt_secret   = os.environ.get("JWT_SECRET", "")
+    if not crm_password or not jwt_secret:
+        raise HTTPException(status_code=500, detail="Variables CRM_PASSWORD ou JWT_SECRET non définies.")
+    if body.password != crm_password:
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect.")
+    expiry  = datetime.now(timezone.utc) + timedelta(hours=24)
+    payload = {"sub": "crm_user", "exp": expiry}
+    token   = jwt.encode(payload, jwt_secret, algorithm=_JWT_ALGO)
+    return {"token": token, "expiry": "24h"}
+
+
+@app.get("/api/auth/verify", summary="Vérifie la validité d'un token JWT (Authorization: Bearer <token>)")
+def auth_verify(authorization: str = Header(default="")):
+    jwt_secret = os.environ.get("JWT_SECRET", "")
+    if not jwt_secret:
+        return {"valid": False, "reason": "JWT_SECRET non défini côté serveur"}
+    if not authorization.startswith("Bearer "):
+        return {"valid": False, "reason": "Header Authorization manquant ou mal formé"}
+    token = authorization[len("Bearer "):]
+    try:
+        jwt.decode(token, jwt_secret, algorithms=[_JWT_ALGO])
+        return {"valid": True}
+    except JWTError:
+        return {"valid": False, "reason": "Token invalide ou expiré"}
 
 
 # ── Routes API ────────────────────────────────────────────────────────────────
