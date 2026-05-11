@@ -183,17 +183,58 @@ def _coerce_import_value(val: Any, data_type: str) -> Any:
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
 
-_JWT_ALGO = "HS256"
+_JWT_ALGO      = "HS256"
+_MAX_ATTEMPTS  = 5
+_BLOCK_MINUTES = 15
+
+# {ip: {"count": int, "blocked_until": datetime | None}}
+_login_attempts: Dict[str, Dict] = {}
+
 
 @app.post("/api/auth/login", summary="Authentifie avec mot de passe, retourne un JWT valable 24h")
-def auth_login(body: LoginRequest):
+def auth_login(body: LoginRequest, request: Request):
+    ip  = request.client.host if request.client else "unknown"
+    now = datetime.now(timezone.utc)
+
+    state = _login_attempts.get(ip, {"count": 0, "blocked_until": None})
+
+    # Vérifie si l'IP est encore bloquée
+    if state["blocked_until"]:
+        if now < state["blocked_until"]:
+            secs      = int((state["blocked_until"] - now).total_seconds())
+            remaining = max(1, (secs + 59) // 60)   # arrondi au plafond
+            raise HTTPException(
+                status_code=429,
+                detail=f"Trop de tentatives, réessayez dans {remaining} minute{'s' if remaining > 1 else ''}.",
+            )
+        # Blocage expiré : repart à zéro
+        state = {"count": 0, "blocked_until": None}
+
     crm_password = os.environ.get("CRM_PASSWORD", "")
     jwt_secret   = os.environ.get("JWT_SECRET", "")
     if not crm_password or not jwt_secret:
         raise HTTPException(status_code=500, detail="Variables CRM_PASSWORD ou JWT_SECRET non définies.")
+
     if body.password != crm_password:
-        raise HTTPException(status_code=401, detail="Mot de passe incorrect.")
-    expiry  = datetime.now(timezone.utc) + timedelta(hours=24)
+        state["count"] += 1
+        if state["count"] >= _MAX_ATTEMPTS:
+            state["blocked_until"] = now + timedelta(minutes=_BLOCK_MINUTES)
+            _login_attempts[ip] = state
+            raise HTTPException(
+                status_code=429,
+                detail=f"Trop de tentatives, réessayez dans {_BLOCK_MINUTES} minutes.",
+            )
+        _login_attempts[ip] = state
+        remaining_tries = _MAX_ATTEMPTS - state["count"]
+        raise HTTPException(
+            status_code=401,
+            detail=f"Mot de passe incorrect. ({remaining_tries} tentative{'s' if remaining_tries > 1 else ''} restante{'s' if remaining_tries > 1 else ''})",
+        )
+
+    # Succès : reset du compteur pour cette IP
+    _login_attempts.pop(ip, None)
+
+    expiry  = now + timedelta(hours=24)
     payload = {"sub": "crm_user", "exp": expiry}
     token   = jwt.encode(payload, jwt_secret, algorithm=_JWT_ALGO)
     return {"token": token, "expiry": "24h"}
