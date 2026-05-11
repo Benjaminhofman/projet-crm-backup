@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -66,6 +66,21 @@ class UpdateRequest(BaseModel):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def verify_admin_token(authorization: str = Header(default="")):
+    """Protège les endpoints /api/migrate/* et /api/debug/* par un token Bearer."""
+    expected = os.environ.get("ADMIN_TOKEN", "")
+    if not expected:
+        raise HTTPException(
+            status_code=500,
+            detail="Variable ADMIN_TOKEN non définie côté serveur.",
+        )
+    if authorization != f"Bearer {expected}":
+        raise HTTPException(
+            status_code=401,
+            detail="Token admin invalide ou manquant. Header requis : Authorization: Bearer <ADMIN_TOKEN>",
+        )
+
 
 def _get_db_conn():
     database_url = os.environ.get("DATABASE_URL")
@@ -494,7 +509,7 @@ def upload_fec(body: FolderRequest):
     }
 
 
-@app.get("/api/migrate/anciennete", summary="Ajoute la colonne anciennete et la calcule depuis date_entree")
+@app.get("/api/migrate/anciennete", summary="Ajoute la colonne anciennete et la calcule depuis date_entree", dependencies=[Depends(verify_admin_token)])
 def migrate_anciennete():
     conn = _get_db_conn()
     try:
@@ -513,7 +528,7 @@ def migrate_anciennete():
         conn.close()
 
 
-@app.get("/api/migrate/anciennete/refresh", summary="Recalcule l'ancienneté de tous les clients")
+@app.get("/api/migrate/anciennete/refresh", summary="Recalcule l'ancienneté de tous les clients", dependencies=[Depends(verify_admin_token)])
 def refresh_anciennete():
     conn = _get_db_conn()
     try:
@@ -531,7 +546,7 @@ def refresh_anciennete():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_anciennete", summary="Installe le trigger trg_anciennete sur date_entree")
+@app.get("/api/migrate/install_trigger_anciennete", summary="Installe le trigger trg_anciennete sur date_entree", dependencies=[Depends(verify_admin_token)])
 def install_trigger_anciennete():
     conn = _get_db_conn()
     try:
@@ -651,7 +666,7 @@ _NAF_DATA = [
 ]
 
 
-@app.get("/api/migrate/naf", summary="Crée la table NAF et insère les données hardcodées")
+@app.get("/api/migrate/naf", summary="Crée la table NAF et insère les données hardcodées", dependencies=[Depends(verify_admin_token)])
 def migrate_naf():
     conn = _get_db_conn()
     try:
@@ -681,7 +696,7 @@ def migrate_naf():
         conn.close()
 
 
-@app.get("/api/migrate/activite", summary="Renseigne activite_r depuis code_naf_r via la table naf")
+@app.get("/api/migrate/activite", summary="Renseigne activite_r depuis code_naf_r via la table naf", dependencies=[Depends(verify_admin_token)])
 def migrate_activite():
     conn = _get_db_conn()
     try:
@@ -713,7 +728,7 @@ def migrate_activite():
         conn.close()
 
 
-@app.get("/api/migrate/trigger-activite", summary="Crée le trigger PostgreSQL qui maintient activite_r à jour")
+@app.get("/api/migrate/trigger-activite", summary="Crée le trigger PostgreSQL qui maintient activite_r à jour", dependencies=[Depends(verify_admin_token)])
 def migrate_trigger_activite():
     conn = _get_db_conn()
     try:
@@ -748,7 +763,7 @@ def migrate_trigger_activite():
 
 
 
-@app.get("/api/migrate/fix_juridique_exceptionnel", summary="Convertit juridique_exceptionnel en TEXT")
+@app.get("/api/migrate/fix_juridique_exceptionnel", summary="Convertit juridique_exceptionnel en TEXT", dependencies=[Depends(verify_admin_token)])
 def fix_juridique_exceptionnel():
     conn = _get_db_conn()
     try:
@@ -909,7 +924,7 @@ def rendement_detail(siret: str):
     }
 
 
-@app.get("/api/debug/rendement", summary="Retourne les données rendement de tous les clients triés par score DESC")
+@app.get("/api/debug/rendement", summary="Retourne les données rendement de tous les clients triés par score DESC", dependencies=[Depends(verify_admin_token)])
 def debug_rendement():
     conn = _get_db_conn()
     try:
@@ -928,7 +943,7 @@ def debug_rendement():
         conn.close()
 
 
-@app.get("/api/migrate/fix_activite_trigger", summary="Corrige update_activite_r() avec SPLIT_PART puis force recalcul")
+@app.get("/api/migrate/fix_activite_trigger", summary="Corrige update_activite_r() avec SPLIT_PART puis force recalcul", dependencies=[Depends(verify_admin_token)])
 def fix_activite_trigger():
     conn = _get_db_conn()
     try:
@@ -957,7 +972,7 @@ def fix_activite_trigger():
         conn.close()
 
 
-@app.get("/api/migrate/force_recalc_activite", summary="Recalcule activite_r depuis naf via SPLIT_PART sur code_naf_r")
+@app.get("/api/migrate/force_recalc_activite", summary="Recalcule activite_r depuis naf via SPLIT_PART sur code_naf_r", dependencies=[Depends(verify_admin_token)])
 def force_recalc_activite():
     conn = _get_db_conn()
     try:
@@ -980,7 +995,7 @@ def force_recalc_activite():
         conn.close()
 
 
-@app.get("/api/debug/naf_sample", summary="Échantillon de codes NAF pour vérifier le contenu de la table")
+@app.get("/api/debug/naf_sample", summary="Échantillon de codes NAF pour vérifier le contenu de la table", dependencies=[Depends(verify_admin_token)])
 def debug_naf_sample():
     conn = _get_db_conn()
     try:
@@ -998,7 +1013,7 @@ def debug_naf_sample():
         conn.close()
 
 
-@app.get("/api/debug/activite_function", summary="Retourne le code source de la fonction update_activite_r()")
+@app.get("/api/debug/activite_function", summary="Retourne le code source de la fonction update_activite_r()", dependencies=[Depends(verify_admin_token)])
 def debug_activite_function():
     conn = _get_db_conn()
     try:
@@ -1012,7 +1027,7 @@ def debug_activite_function():
         conn.close()
 
 
-@app.get("/api/debug/triggers", summary="Liste les triggers actifs sur la table clients")
+@app.get("/api/debug/triggers", summary="Liste les triggers actifs sur la table clients", dependencies=[Depends(verify_admin_token)])
 def debug_triggers():
     conn = _get_db_conn()
     try:
@@ -1032,7 +1047,7 @@ def debug_triggers():
         conn.close()
 
 
-@app.get("/api/debug/age_check/{siret}", summary="Retourne les données brutes anniversaire/age pour un client")
+@app.get("/api/debug/age_check/{siret}", summary="Retourne les données brutes anniversaire/age pour un client", dependencies=[Depends(verify_admin_token)])
 def debug_age_check(siret: str):
     conn = _get_db_conn()
     try:
@@ -1053,7 +1068,7 @@ def debug_age_check(siret: str):
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_rendement", summary="Installe le trigger BEFORE qui calcule rendement depuis NEW.*")
+@app.get("/api/migrate/install_trigger_rendement", summary="Installe le trigger BEFORE qui calcule rendement depuis NEW.*", dependencies=[Depends(verify_admin_token)])
 def install_trigger_rendement():
     conn = _get_db_conn()
     try:
@@ -1165,7 +1180,7 @@ def install_trigger_rendement():
         conn.close()
 
 
-@app.get("/api/migrate/rendement_setup", summary="Crée la colonne rendement et la fonction calc_rendement()")
+@app.get("/api/migrate/rendement_setup", summary="Crée la colonne rendement et la fonction calc_rendement()", dependencies=[Depends(verify_admin_token)])
 def rendement_setup():
     conn = _get_db_conn()
     try:
@@ -1288,7 +1303,7 @@ def rendement_setup():
         conn.close()
 
 
-@app.get("/api/migrate/rendement_trigger", summary="Crée le trigger qui recalcule rendement automatiquement")
+@app.get("/api/migrate/rendement_trigger", summary="Crée le trigger qui recalcule rendement automatiquement", dependencies=[Depends(verify_admin_token)])
 def rendement_trigger():
     conn = _get_db_conn()
     try:
@@ -1317,7 +1332,7 @@ def rendement_trigger():
         conn.close()
 
 
-@app.get("/api/migrate/rendement_recalc", summary="Recalcule rendement pour tous les clients")
+@app.get("/api/migrate/rendement_recalc", summary="Recalcule rendement pour tous les clients", dependencies=[Depends(verify_admin_token)])
 def rendement_recalc():
     conn = _get_db_conn()
     try:
@@ -1333,7 +1348,7 @@ def rendement_recalc():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_franchise_tva", summary="Installe le trigger BEFORE qui calcule franchise_tva_prest depuis NEW.*")
+@app.get("/api/migrate/install_trigger_franchise_tva", summary="Installe le trigger BEFORE qui calcule franchise_tva_prest depuis NEW.*", dependencies=[Depends(verify_admin_token)])
 def install_trigger_franchise_tva():
     conn = _get_db_conn()
     try:
@@ -1372,7 +1387,7 @@ def install_trigger_franchise_tva():
         conn.close()
 
 
-@app.get("/api/migrate/arbitrage_remuneration_setup", summary="Ajoute et calcule la colonne arbitrage_remuneration_dirigeant")
+@app.get("/api/migrate/arbitrage_remuneration_setup", summary="Ajoute et calcule la colonne arbitrage_remuneration_dirigeant", dependencies=[Depends(verify_admin_token)])
 def arbitrage_remuneration_setup():
     conn = _get_db_conn()
     try:
@@ -1399,7 +1414,7 @@ def arbitrage_remuneration_setup():
         conn.close()
 
 
-@app.get("/api/migrate/age_setup", summary="Ajoute la colonne age et calcule depuis anniversaire")
+@app.get("/api/migrate/age_setup", summary="Ajoute la colonne age et calcule depuis anniversaire", dependencies=[Depends(verify_admin_token)])
 def age_setup():
     conn = _get_db_conn()
     try:
@@ -1420,7 +1435,7 @@ def age_setup():
         conn.close()
 
 
-@app.get("/api/migrate/champs_libres_setup", summary="Ajoute les colonnes commentaires, code_naf_r et prevoyance si absentes")
+@app.get("/api/migrate/champs_libres_setup", summary="Ajoute les colonnes commentaires, code_naf_r et prevoyance si absentes", dependencies=[Depends(verify_admin_token)])
 def champs_libres_setup():
     colonnes = ["commentaires", "code_naf_r", "prevoyance"]
     conn = _get_db_conn()
@@ -1438,7 +1453,7 @@ def champs_libres_setup():
         conn.close()
 
 
-@app.get("/api/migrate/mission_patrimoniale_setup", summary="Calcule la colonne mission_patrimoniale depuis mai_ir")
+@app.get("/api/migrate/mission_patrimoniale_setup", summary="Calcule la colonne mission_patrimoniale depuis mai_ir", dependencies=[Depends(verify_admin_token)])
 def mission_patrimoniale_setup():
     conn = _get_db_conn()
     try:
@@ -1462,7 +1477,7 @@ def mission_patrimoniale_setup():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_mission_patrimoniale", summary="Installe le trigger BEFORE qui calcule mission_patrimoniale depuis mai_ir")
+@app.get("/api/migrate/install_trigger_mission_patrimoniale", summary="Installe le trigger BEFORE qui calcule mission_patrimoniale depuis mai_ir", dependencies=[Depends(verify_admin_token)])
 def install_trigger_mission_patrimoniale():
     conn = _get_db_conn()
     try:
@@ -1499,7 +1514,7 @@ def install_trigger_mission_patrimoniale():
         conn.close()
 
 
-@app.get("/api/migrate/mission_retraite_setup", summary="Calcule la colonne mission_retraite depuis age")
+@app.get("/api/migrate/mission_retraite_setup", summary="Calcule la colonne mission_retraite depuis age", dependencies=[Depends(verify_admin_token)])
 def mission_retraite_setup():
     conn = _get_db_conn()
     try:
@@ -1523,7 +1538,7 @@ def mission_retraite_setup():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_mission_retraite", summary="Installe le trigger BEFORE qui calcule mission_retraite depuis age")
+@app.get("/api/migrate/install_trigger_mission_retraite", summary="Installe le trigger BEFORE qui calcule mission_retraite depuis age", dependencies=[Depends(verify_admin_token)])
 def install_trigger_mission_retraite():
     conn = _get_db_conn()
     try:
@@ -1560,7 +1575,7 @@ def install_trigger_mission_retraite():
         conn.close()
 
 
-@app.get("/api/migrate/refresh_age", summary="Recalcule la colonne age depuis anniversaire pour tous les clients")
+@app.get("/api/migrate/refresh_age", summary="Recalcule la colonne age depuis anniversaire pour tous les clients", dependencies=[Depends(verify_admin_token)])
 def refresh_age():
     conn = _get_db_conn()
     try:
@@ -1580,7 +1595,7 @@ def refresh_age():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_age", summary="Installe le trigger BEFORE qui calcule age depuis anniversaire")
+@app.get("/api/migrate/install_trigger_age", summary="Installe le trigger BEFORE qui calcule age depuis anniversaire", dependencies=[Depends(verify_admin_token)])
 def install_trigger_age():
     conn = _get_db_conn()
     try:
@@ -1611,7 +1626,7 @@ def install_trigger_age():
         conn.close()
 
 
-@app.get("/api/migrate/mission_placement_setup", summary="Calcule la colonne mission_placement depuis ca_r et tresorerie_r")
+@app.get("/api/migrate/mission_placement_setup", summary="Calcule la colonne mission_placement depuis ca_r et tresorerie_r", dependencies=[Depends(verify_admin_token)])
 def mission_placement_setup():
     conn = _get_db_conn()
     try:
@@ -1642,7 +1657,7 @@ def mission_placement_setup():
         conn.close()
 
 
-@app.get("/api/migrate/op_prevoyance_setup", summary="Ajoute et calcule la colonne op_prevoyance")
+@app.get("/api/migrate/op_prevoyance_setup", summary="Ajoute et calcule la colonne op_prevoyance", dependencies=[Depends(verify_admin_token)])
 def op_prevoyance_setup():
     conn = _get_db_conn()
     try:
@@ -1672,7 +1687,7 @@ def op_prevoyance_setup():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_mission_placement", summary="Installe le trigger BEFORE qui calcule mission_placement depuis NEW.*")
+@app.get("/api/migrate/install_trigger_mission_placement", summary="Installe le trigger BEFORE qui calcule mission_placement depuis NEW.*", dependencies=[Depends(verify_admin_token)])
 def install_trigger_mission_placement():
     conn = _get_db_conn()
     try:
@@ -1715,7 +1730,7 @@ def install_trigger_mission_placement():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_op_prevoyance", summary="Installe le trigger BEFORE qui calcule op_prevoyance depuis NEW.*")
+@app.get("/api/migrate/install_trigger_op_prevoyance", summary="Installe le trigger BEFORE qui calcule op_prevoyance depuis NEW.*", dependencies=[Depends(verify_admin_token)])
 def install_trigger_op_prevoyance():
     conn = _get_db_conn()
     try:
@@ -1753,7 +1768,7 @@ def install_trigger_op_prevoyance():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_arbitrage_remuneration", summary="Installe le trigger BEFORE qui calcule arbitrage_remuneration_dirigeant depuis NEW.*")
+@app.get("/api/migrate/install_trigger_arbitrage_remuneration", summary="Installe le trigger BEFORE qui calcule arbitrage_remuneration_dirigeant depuis NEW.*", dependencies=[Depends(verify_admin_token)])
 def install_trigger_arbitrage_remuneration():
     conn = _get_db_conn()
     try:
@@ -1790,7 +1805,7 @@ def install_trigger_arbitrage_remuneration():
         conn.close()
 
 
-@app.get("/api/migrate/franchise_tva_achrevente_setup", summary="Ajoute et calcule la colonne franchise_tva_achrevente")
+@app.get("/api/migrate/franchise_tva_achrevente_setup", summary="Ajoute et calcule la colonne franchise_tva_achrevente", dependencies=[Depends(verify_admin_token)])
 def franchise_tva_achrevente_setup():
     conn = _get_db_conn()
     try:
@@ -1819,7 +1834,7 @@ def franchise_tva_achrevente_setup():
         conn.close()
 
 
-@app.get("/api/migrate/install_trigger_franchise_achrevente", summary="Installe le trigger BEFORE qui calcule franchise_tva_achrevente depuis NEW.*")
+@app.get("/api/migrate/install_trigger_franchise_achrevente", summary="Installe le trigger BEFORE qui calcule franchise_tva_achrevente depuis NEW.*", dependencies=[Depends(verify_admin_token)])
 def install_trigger_franchise_achrevente():
     conn = _get_db_conn()
     try:
@@ -1856,7 +1871,7 @@ def install_trigger_franchise_achrevente():
         conn.close()
 
 
-@app.get("/api/migrate/franchise_tva_setup", summary="Ajoute et calcule la colonne franchise_tva_prest")
+@app.get("/api/migrate/franchise_tva_setup", summary="Ajoute et calcule la colonne franchise_tva_prest", dependencies=[Depends(verify_admin_token)])
 def franchise_tva_setup():
     conn = _get_db_conn()
     try:
