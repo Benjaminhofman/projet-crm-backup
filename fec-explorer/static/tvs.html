@@ -38,17 +38,6 @@
 .table-scroll table td:nth-child(-n+6) { background: #fff; }
 .table-scroll table tr:nth-child(even) td:nth-child(-n+6) { background: #f8f9fc; }
 .table-scroll table tr:hover td:nth-child(-n+6) { background: #e8f0fe; }
-/* Barre de défilement miroir — sticky bas de page */
-.scroll-mirror {
-    position: sticky;
-    bottom: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    height: 18px;
-    background: #f4f6fb;
-    border-top: 1px solid #dde3f0;
-    z-index: 10;
-}
 #scroll-mirror-inner { height: 1px; }
 </style>
 </head>
@@ -69,7 +58,7 @@
     <input id="filter-cloture" placeholder="Clôture...">
 </div>
 
-<div class="scroll-mirror" id="scroll-mirror"><div id="scroll-mirror-inner"></div></div>
+<div id="scroll-mirror" style="position:fixed;bottom:0;overflow-x:auto;overflow-y:hidden;width:100%;height:18px;z-index:100"><div id="scroll-mirror-inner"></div></div>
 <div class="table-scroll" id="table-scroll">
 <table>
 <thead><tr id="table-head">
@@ -307,20 +296,15 @@ display = function(data) {
     requestAnimationFrame(syncMirrorWidth);
 };
 
+const _mirror   = document.getElementById('scroll-mirror');
+const _scroller = document.getElementById('table-scroll');
+
 function syncMirrorWidth() {
-    const inner   = document.getElementById('scroll-mirror-inner');
-    const scroller = document.getElementById('table-scroll');
-    if (inner && scroller) inner.style.width = scroller.scrollWidth + 'px';
+    document.getElementById('scroll-mirror-inner').style.width = _scroller.scrollWidth + 'px';
 }
 
-(function initMirrorScroll() {
-    const mirror   = document.getElementById('scroll-mirror');
-    const scroller = document.getElementById('table-scroll');
-    if (!mirror || !scroller) return;
-    let busy = false;
-    mirror.addEventListener('scroll',   () => { if (!busy) { busy = true; scroller.scrollLeft = mirror.scrollLeft;   busy = false; } });
-    scroller.addEventListener('scroll', () => { if (!busy) { busy = true; mirror.scrollLeft   = scroller.scrollLeft; busy = false; } });
-})();
+_scroller.addEventListener('scroll', () => { _mirror.scrollLeft   = _scroller.scrollLeft; });
+_mirror.addEventListener('scroll',   () => { _scroller.scrollLeft = _mirror.scrollLeft; });
 
 initDeclaratifPage({
     titre: "Suivi TVS",
