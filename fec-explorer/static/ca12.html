@@ -4,6 +4,45 @@
 <meta charset="UTF-8">
 <title>Suivi CA12</title>
 <link rel="stylesheet" href="decl-shared.css">
+<style>
+/* Wrapper scrollable horizontal */
+.table-scroll {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.table-scroll table {
+    overflow: visible;
+    border-radius: 0;
+    box-shadow: none;
+    min-width: max-content;
+}
+/* Colonnes dynamiques (7e et au-delà) : 100px minimum */
+.table-scroll table th:nth-child(n+7),
+.table-scroll table td:nth-child(n+7) {
+    min-width: 100px;
+}
+.table-scroll table td:nth-child(n+7) input {
+    width: 74px;
+}
+/* 6 colonnes fixes sticky left */
+.table-scroll table th:nth-child(1), .table-scroll table td:nth-child(1) { position: sticky; left: 0px;   min-width: 65px;  z-index: 2; }
+.table-scroll table th:nth-child(2), .table-scroll table td:nth-child(2) { position: sticky; left: 65px;  min-width: 160px; z-index: 2; }
+.table-scroll table th:nth-child(3), .table-scroll table td:nth-child(3) { position: sticky; left: 225px; min-width: 110px; z-index: 2; }
+.table-scroll table th:nth-child(4), .table-scroll table td:nth-child(4) { position: sticky; left: 335px; min-width: 120px; z-index: 2; }
+.table-scroll table th:nth-child(5), .table-scroll table td:nth-child(5) { position: sticky; left: 455px; min-width: 58px;  z-index: 2; }
+.table-scroll table th:nth-child(6), .table-scroll table td:nth-child(6) { position: sticky; left: 513px; min-width: 60px;  z-index: 2; border-right: 2px solid #c0c8e8; }
+/* Backgrounds explicites pour les sticky */
+.table-scroll table th:nth-child(-n+6) { background: #273c75; z-index: 3; }
+.table-scroll table td:nth-child(-n+6) { background: #fff; }
+.table-scroll table tr:nth-child(even) td:nth-child(-n+6) { background: #f8f9fc; }
+.table-scroll table tr:hover td:nth-child(-n+6) { background: #e8f0fe; }
+/* Séparateur visuel avant les colonnes acomptes */
+.table-scroll table th:nth-child(19), .table-scroll table td:nth-child(19) {
+    border-left: 2px solid #c0c8e8;
+}
+#scroll-mirror-inner { height: 1px; }
+</style>
 </head>
 <body>
 
@@ -22,38 +61,36 @@
     <input id="filter-cloture" placeholder="Clôture...">
 </div>
 
+<div id="scroll-mirror" style="position:fixed;bottom:0;overflow-x:auto;overflow-y:hidden;width:100%;height:18px;z-index:100"><div id="scroll-mirror-inner"></div></div>
+<div class="table-scroll" id="table-scroll">
 <table>
 <thead><tr id="table-head">
     <th>Code</th><th>Nom</th><th>Assistant</th><th>Collaborateur</th><th>Année</th><th>Clôture</th>
 </tr></thead>
 <tbody id="table"></tbody>
 </table>
+</div>
 
 <script>
 const API_URL = "/api";
 
-// Variable globale partagée entre toutes les pages déclaratives
 let dataGlobal = [];
 
-// Échappement HTML pour prévenir les injections XSS
 function esc(val) {
     const div = document.createElement('div');
     div.textContent = val ?? '';
     return div.innerHTML;
 }
 
-// Formatage date ISO → YYYY-MM-DD
 function formatDate(dateStr) {
     if (!dateStr) return "";
     return dateStr.substring(0, 10);
 }
 
-// Score de rentabilité (retourne la valeur numérique brute)
 function getRentabiliteScore(val) {
     return parseFloat(val) || 0;
 }
 
-// Chargement des clients depuis l'API avec gestion d'erreur
 async function fetchClients() {
     try {
         const res = await fetch(API_URL + "/clients");
@@ -65,14 +102,12 @@ async function fetchClients() {
     }
 }
 
-// Attache applyFilters() sur tous les inputs correspondant au sélecteur CSS
 function bindFilterInputs(selector) {
     document.querySelectorAll(selector).forEach(el => {
         el.addEventListener("input", applyFilters);
     });
 }
 
-// Mise à jour d'un champ texte/date/nombre dans PostgreSQL
 async function updateField(siret, field, value, el) {
     if (el) el.style.background = "#fff3cd";
     try {
@@ -89,7 +124,6 @@ async function updateField(siret, field, value, el) {
     }
 }
 
-// Mise à jour d'une case à cocher dans PostgreSQL
 async function updateCheckbox(siret, field, value, el) {
     if (el) el.style.outline = "2px solid orange";
     try {
@@ -106,7 +140,6 @@ async function updateCheckbox(siret, field, value, el) {
     }
 }
 
-// Mise à jour d'un select dans PostgreSQL
 async function updateSelect(siret, field, value, el) {
     if (el) el.style.outline = "2px solid orange";
     try {
@@ -123,59 +156,156 @@ async function updateSelect(siret, field, value, el) {
     }
 }
 
-// Export CSV — séparateur point-virgule, BOM UTF-8 pour compatibilité Excel
-// columns (optionnel) : [{label, field}, ...] — si absent, exporte toutes les clés
 function exportCSV(data, filename, columns) {
-    if (!data || !data.length) {
-        alert("Aucune donnée à exporter.");
-        return;
-    }
-
+    if (!data || !data.length) { alert("Aucune donnée à exporter."); return; }
     let headers, rows;
-
     if (columns) {
         headers = columns.map(c => c.label);
-        rows = data.map(row =>
-            columns.map(c => '"' + String(row[c.field] ?? '').replace(/"/g, '""') + '"').join(';')
-        );
+        rows = data.map(row => columns.map(c => '"' + String(row[c.field] ?? '').replace(/"/g, '""') + '"').join(';'));
     } else {
         const keys = [...new Set(data.flatMap(r => Object.keys(r)))].filter(k => k !== 'id');
         headers = keys;
-        rows = data.map(row =>
-            keys.map(k => '"' + String(row[k] ?? '').replace(/"/g, '""') + '"').join(';')
-        );
+        rows = data.map(row => keys.map(k => '"' + String(row[k] ?? '').replace(/"/g, '""') + '"').join(';'));
     }
-
-    const csv = '﻿' + [
-        headers.map(h => '"' + h.replace(/"/g, '""') + '"').join(';'),
-        ...rows
-    ].join('\n');
-
+    const csv = '﻿' + [headers.map(h => '"' + h.replace(/"/g, '""') + '"').join(';'), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || 'export.csv';
-    a.click();
+    a.href = url; a.download = filename || 'export.csv'; a.click();
     URL.revokeObjectURL(url);
 }
 </script>
 <script src="decl-engine.js"></script>
 <script>
+// 12 colonnes solde (mois actif uniquement éditable)
+const CA12_SOLDE_COLS = [
+    { header: "Janv solde", field: "janvier_ca12_solde"   },
+    { header: "Févr solde", field: "fevrier_ca12_solde"   },
+    { header: "Mars solde", field: "mars_ca12_solde"      },
+    { header: "Avr solde",  field: "avril_ca12_solde"     },
+    { header: "Mai solde",  field: "mai_ca12_solde"       },
+    { header: "Juin solde", field: "juin_ca12_solde"      },
+    { header: "Juil solde", field: "juillet_ca12_solde"   },
+    { header: "Août solde", field: "aout_ca12_solde"      },
+    { header: "Sept solde", field: "septembre_ca12_solde" },
+    { header: "Oct solde",  field: "octobre_ca12_solde"   },
+    { header: "Nov solde",  field: "novembre_ca12_solde"  },
+    { header: "Déc solde",  field: "decembre_ca12_solde"  }
+];
+
+// 2 colonnes acomptes (toujours éditables pour les clients ca12=true)
+const CA12_ACOMPTE_COLS = [
+    { header: "Juil CA12", field: "juillet_ca12"  },
+    { header: "Déc CA12",  field: "decembre_ca12" }
+];
+
+// Index 0-based du mois solde actif selon la clôture
+function getMoisActifSolde(c) {
+    if (!c.date_de_cloture) return 4; // mai par défaut
+    const moisClo = parseInt(c.date_de_cloture.split('-')[1]);
+    if (moisClo === 12) return 4; // mai
+    let m = moisClo + 3;
+    if (m > 12) m -= 12;
+    return m - 1; // index 0-based
+}
+
+async function saveCA12Mois(siret, field, value, el) {
+    el.style.background = '#fff3cd';
+    try {
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [field]: value === '' ? null : parseFloat(value) })
+        });
+        if (!res.ok) throw new Error();
+        el.style.background = '#d4edda';
+        setTimeout(() => { el.style.background = '#fff'; }, 1800);
+    } catch {
+        el.style.background = '#f8d7da';
+    }
+}
+
+// Surcharge display() pour le rendu CA12 spécifique
+display = function(data) {
+    _currentData = data;
+    const table = document.getElementById('table');
+    document.getElementById('counter').textContent = 'Nombre de dossiers : ' + data.length;
+
+    if (!data.length) {
+        table.innerHTML = `<tr class="loading-row"><td colspan="20">Aucun résultat</td></tr>`;
+        return;
+    }
+
+    const frag = document.createDocumentFragment();
+    data.forEach(c => {
+        const tr = document.createElement('tr');
+        const actifIdx = getMoisActifSolde(c);
+
+        tr.innerHTML = `
+            <td>${esc(c.code_client)}</td>
+            <td class="name"><a href="client.html?siret=${c.siret}" class="client-link">${esc(c.nom_client)}</a></td>
+            <td>${esc(c.assistant)}</td>
+            <td>${esc(c.collaborateur)}</td>
+            <td>${esc(c.annee)}</td>
+            <td>${c.date_de_cloture ? c.date_de_cloture.slice(8,10) + '/' + c.date_de_cloture.slice(5,7) : ''}</td>
+        `;
+
+        // Colonnes solde : mois actif éditable, autres grisés
+        CA12_SOLDE_COLS.forEach((col, idx) => {
+            const td  = document.createElement('td');
+            const inp = document.createElement('input');
+            inp.type  = 'text';
+            inp.value = c[col.field] != null ? c[col.field] : '';
+            if (idx === actifIdx) {
+                inp.style.background = '#fff';
+                inp.onchange = function () { saveCA12Mois(c.siret, col.field, this.value, this); };
+            } else {
+                inp.disabled         = true;
+                inp.style.background = '#f0f0f0';
+                inp.style.color      = '#aaa';
+                inp.style.cursor     = 'not-allowed';
+            }
+            td.appendChild(inp);
+            tr.appendChild(td);
+        });
+
+        // Colonnes acomptes : toujours éditables
+        CA12_ACOMPTE_COLS.forEach(col => {
+            const td  = document.createElement('td');
+            const inp = document.createElement('input');
+            inp.type  = 'text';
+            inp.value = c[col.field] != null ? c[col.field] : '';
+            inp.style.background = '#fff';
+            inp.onchange = function () { saveCA12Mois(c.siret, col.field, this.value, this); };
+            td.appendChild(inp);
+            tr.appendChild(td);
+        });
+
+        frag.appendChild(tr);
+    });
+
+    table.innerHTML = '';
+    table.appendChild(frag);
+    requestAnimationFrame(syncMirrorWidth);
+};
+
+const _mirror   = document.getElementById('scroll-mirror');
+const _scroller = document.getElementById('table-scroll');
+
+function syncMirrorWidth() {
+    document.getElementById('scroll-mirror-inner').style.width = _scroller.scrollWidth + 'px';
+}
+
+_scroller.addEventListener('scroll', () => { _mirror.scrollLeft   = _scroller.scrollLeft; });
+_mirror.addEventListener('scroll',   () => { _scroller.scrollLeft = _mirror.scrollLeft; });
+
 initDeclaratifPage({
     titre: "Suivi CA12",
     emoji: "📊",
-    filterField: "ca12",
-    columns: [
-        { header: "Juillet CA12",  field: "juillet_ca12" },
-        { header: "Décembre CA12", field: "decembre_ca12" },
-        { header: "Mai CA12",      field: "mai_ca12" }
-    ]
+    requireFn: c => c.ca12 === true || c.ca12 === 'true' || c.ca12 === 't',
+    columns: [...CA12_SOLDE_COLS, ...CA12_ACOMPTE_COLS]
 });
 </script>
 
-
-<script src="/auth.js"></script>
-<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>
