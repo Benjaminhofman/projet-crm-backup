@@ -2095,6 +2095,22 @@ def migrate_ca12_solde_setup():
         conn.close()
 
 
+@app.get("/api/migrate/cvae_acomptes_setup", summary="Ajoute les colonnes acompte CVAE juin et septembre")
+def migrate_cvae_acomptes_setup():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS acompte_cvae_juin NUMERIC")
+            cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS acompte_cvae_septembre NUMERIC")
+        conn.commit()
+        return {"ok": True}
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 # Monté en dernier pour ne pas masquer les routes API.
 
