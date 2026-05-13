@@ -1,3 +1,5 @@
+import csv
+import io
 import logging
 import os
 import re
@@ -12,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 import psycopg2
 import psycopg2.extras
-from fastapi import Body, FastAPI, Header, HTTPException, Request
+from fastapi import Body, FastAPI, Header, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -479,6 +481,61 @@ def delete_client(siret: str):
     finally:
         conn.close()
 
+
+
+@app.post("/api/clients/import", summary="Import CSV → UPSERT clients")
+async def import_clients_csv(file: UploadFile = File(...)):
+    raw = await file.read()
+    text = raw.decode("utf-8-sig")  # gère le BOM éventuel
+
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT column_name, data_type "
+                "FROM information_schema.columns WHERE table_name='clients'"
+            )
+            col_types = {row[0]: row[1] for row in cur.fetchall()}
+
+        reader = csv.DictReader(io.StringIO(text))
+        upserted = 0
+        errors: List[str] = []
+
+        for i, row in enumerate(reader):
+            siret = str(row.get("siret", "")).strip()
+            if not siret:
+                errors.append(f"Ligne {i + 2} : siret manquant")
+                continue
+
+            updates: Dict[str, Any] = {}
+            for col, val in row.items():
+                if col == "siret" or col not in col_types:
+                    continue
+                updates[col] = None if val == "" else val
+
+            cols   = ["siret"] + list(updates.keys())
+            vals   = [siret]   + list(updates.values())
+            params = ", ".join(["%s"] * len(cols))
+            set_clause = ", ".join(f'"{c}"=EXCLUDED."{c}"' for c in updates)
+
+            sql = (
+                f'INSERT INTO clients ({", ".join(f"{chr(34)}{c}{chr(34)}" for c in cols)}) '
+                f"VALUES ({params}) "
+                f'ON CONFLICT (siret) DO UPDATE SET {set_clause}'
+            )
+
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(sql, vals)
+                conn.commit()
+                upserted += 1
+            except psycopg2.Error as e:
+                conn.rollback()
+                errors.append(f"{siret} : {e.pgerror or str(e)}")
+
+        return {"success": True, "upserted": upserted, "errors": errors}
+    finally:
+        conn.close()
 
 
 @app.post("/api/fec/upload", summary="Parse un dossier FEC et retourne les indicateurs")
