@@ -1171,6 +1171,25 @@ def debug_triggers():
         conn.close()
 
 
+@app.get("/api/debug/colonnes_tvs_ca12", summary="Liste les colonnes TVS et CA12 de la table clients")
+def debug_colonnes_tvs_ca12():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'clients'
+                  AND (column_name LIKE '%tvs%' OR column_name LIKE '%ca12%')
+                ORDER BY column_name
+            """)
+            return {"colonnes": [row[0] for row in cur.fetchall()]}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/debug/age_check/{siret}", summary="Retourne les données brutes anniversaire/age pour un client")
 def debug_age_check(siret: str):
     conn = _get_db_conn()
