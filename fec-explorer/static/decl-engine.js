@@ -4,13 +4,6 @@
 let _pageConfig = null;
 let _currentData = [];
 
-function formatJJMM(d) {
-    if (!d) return "";
-    const p = String(d).split("-");
-    if (p.length >= 3) return p[2].substring(0, 2) + "/" + p[1];
-    return d;
-}
-
 function initDeclaratifPage(config) {
     _pageConfig = config;
 
@@ -52,7 +45,7 @@ function display(data) {
             <td>${esc(c.assistant)}</td>
             <td>${esc(c.collaborateur)}</td>
             <td>${esc(c.annee)}</td>
-            <td>${formatJJMM(c.date_de_cloture)}</td>
+            <td>${esc(c.date_de_cloture)}</td>
         `;
 
         // Colonnes dynamiques définies par la config de la page
@@ -133,15 +126,11 @@ async function load() {
 
     const data = await fetchClients();
 
-    console.log("filterField:", _pageConfig.filterField);
-    console.log("sample value:", data[0]?.[_pageConfig.filterField]);
-
-    dataGlobal = _pageConfig.filterField
-        ? data.filter(c => c[_pageConfig.filterField] === true
-            || c[_pageConfig.filterField] === "true"
-            || c[_pageConfig.filterField] === 1
-            || c[_pageConfig.filterField] === "1")
-        : data;
+    dataGlobal = _pageConfig.requireFn
+        ? data.filter(_pageConfig.requireFn)
+        : _pageConfig.filterField
+            ? data.filter(c => c[_pageConfig.filterField] === true)
+            : data;
 
     display(dataGlobal);
     bindFilterInputs(".filters-top input");

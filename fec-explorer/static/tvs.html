@@ -259,7 +259,7 @@ display = function(data) {
 initDeclaratifPage({
     titre: "Suivi TVS",
     emoji: "🚗",
-    filterField: "TVS",
+    requireFn: c => c.tvs === true || c.tvs === 'true' || c.tvs === 't',
     columns: TVS_COLS
 });
 </script>
