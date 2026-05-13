@@ -666,6 +666,21 @@ def upload_fec(body: FolderRequest):
     }
 
 
+@app.get("/api/migrate/mai_cvae_setup", summary="Ajoute la colonne mai_cvae NUMERIC si absente")
+def migrate_mai_cvae_setup():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS mai_cvae NUMERIC")
+        conn.commit()
+        return {"ok": True}
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/anciennete", summary="Ajoute la colonne anciennete et la calcule depuis date_entree")
 def migrate_anciennete():
     conn = _get_db_conn()
