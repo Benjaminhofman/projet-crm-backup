@@ -67,6 +67,7 @@ app.add_middleware(
 _MIGRATE_PUBLIC = {
     "/api/migrate/tvs_mois_setup",
     "/api/migrate/ca12_solde_setup",
+    "/api/debug/colonnes_tvs_ca12",
 }
 
 @app.middleware("http")
