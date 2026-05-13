@@ -1929,31 +1929,35 @@ function closeImportModal() {
 async function confirmImport() {
     if (!importRows.length) return;
 
-    // Conversion typée : récupère les types PostgreSQL puis applique la bonne conversion
-    const types   = await fetchColumnTypes();
-    const payload = importRows.map(r => {
-        const row = {};
-        Object.entries(r).forEach(([k, v]) => {
-            const converted = convertFieldByType(v, types[k] || 'text');
-            if (converted !== null) row[k] = converted;
-        });
-        return row;
-    });
+    // Reconstruction CSV depuis importRows (le backend gère "" → NULL nativement)
+    const headers  = Object.keys(importRows[0]);
+    const csvLines = [
+        headers.join(','),
+        ...importRows.map(r => headers.map(h => {
+            const s = String(r[h] ?? '');
+            return s.includes(',') || s.includes('"') || s.includes('\n')
+                ? `"${s.replace(/"/g, '""')}"` : s;
+        }).join(','))
+    ];
+    const blob = new Blob([csvLines.join('\n')], { type: 'text/csv' });
+    const fd   = new FormData();
+    fd.append('file', blob, 'import.csv');
 
     const btn = document.getElementById('btn-confirm-import');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Import…';
-    showImportFeedback('loading', `Import de ${payload.length} ligne(s) en cours…`);
+    showImportFeedback('loading', `Import de ${importRows.length} ligne(s) en cours…`);
 
     try {
-        const res  = await fetch(API_URL + "/clients/import", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
+        const res  = await fetch(API_URL + "/clients/import", { method: "POST", body: fd });
         const json = await res.json();
         if (!res.ok) {
-            showImportFeedback('error', `❌ ${json.detail || 'Erreur serveur'}`);
+            const detail = Array.isArray(json.detail)
+                ? json.detail.map(e => e.msg).join(', ')
+                : (json.detail || 'Erreur serveur');
+            showImportFeedback('error', `❌ ${detail}`);
+            btn.disabled = false;
+            btn.textContent = '⬆ Confirmer l\'import';
         } else {
             let msg = `✅ ${json.upserted} ligne(s) importée(s).`;
             if (json.errors?.length)
