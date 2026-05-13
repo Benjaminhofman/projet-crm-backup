@@ -7,7 +7,7 @@
 <style>
 /* Wrapper scrollable horizontal — barre native masquée */
 .table-scroll {
-    overflow-x: auto;
+    overflow-x: scroll;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     scrollbar-width: none;
@@ -43,7 +43,6 @@
 .table-scroll table th:nth-child(19), .table-scroll table td:nth-child(19) {
     border-left: 2px solid #c0c8e8;
 }
-#scroll-mirror-inner { height: 1px; }
 </style>
 </head>
 <body>
@@ -63,14 +62,15 @@
     <input id="filter-cloture" placeholder="Clôture...">
 </div>
 
-<div id="scroll-mirror" style="position:fixed;bottom:0;left:0;overflow-x:auto;overflow-y:hidden;width:100vw;height:18px;z-index:100"><div id="scroll-mirror-inner"></div></div>
-<div class="table-scroll" id="table-scroll">
+<div style="height:calc(100vh - 280px);overflow-y:auto;overflow-x:hidden;">
+<div class="table-scroll" id="table-scroll" style="overflow-x:scroll;">
 <table>
 <thead><tr id="table-head">
     <th>Code</th><th>Nom</th><th>Assistant</th><th>Collaborateur</th><th>Année</th><th>Clôture</th>
 </tr></thead>
 <tbody id="table"></tbody>
 </table>
+</div>
 </div>
 
 <script>
@@ -288,18 +288,8 @@ display = function(data) {
 
     table.innerHTML = '';
     table.appendChild(frag);
-    requestAnimationFrame(() => requestAnimationFrame(syncMirrorWidth));
 };
 
-const _mirror   = document.getElementById('scroll-mirror');
-const _scroller = document.getElementById('table-scroll');
-
-function syncMirrorWidth() {
-    document.getElementById('scroll-mirror-inner').style.width = _scroller.scrollWidth + 'px';
-}
-
-_scroller.addEventListener('scroll', () => { _mirror.scrollLeft   = _scroller.scrollLeft; });
-_mirror.addEventListener('scroll',   () => { _scroller.scrollLeft = _mirror.scrollLeft; });
 
 initDeclaratifPage({
     titre: "Suivi CA12",
