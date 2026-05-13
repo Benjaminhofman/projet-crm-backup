@@ -165,15 +165,27 @@ function exportCSV(data, filename, columns) {
 initDeclaratifPage({
     titre: "Suivi CVAE",
     emoji: "📊",
-    filterField: "cvae",
+    filterField: "CVAE",
     columns: [
-        { header: "Mai CVAE", field: "mai_cvae" }
+        { header: "Mai CVAE", field: "mai_cvae" },
+        {
+            header: "Acompte juin",
+            field: "acompte_cvae_juin",
+            type: "number",
+            // Actif si ca_r > 500 000 ou ca_r null ; grisé sinon
+            disabledFn: c => c.ca_r != null && parseFloat(c.ca_r) <= 500000,
+            usePatch: true
+        },
+        {
+            header: "Acompte septembre",
+            field: "acompte_cvae_septembre",
+            type: "number",
+            disabledFn: c => c.ca_r != null && parseFloat(c.ca_r) <= 500000,
+            usePatch: true
+        }
     ]
 });
 </script>
 
-
-<script src="/auth.js"></script>
-<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>

@@ -75,6 +75,24 @@ function display(data) {
                 inp.onchange = function () { updateField(c.siret, col.field, this.value, this); };
                 td.appendChild(inp);
 
+            } else if (col.type === 'number') {
+                const inp = document.createElement('input');
+                inp.type = 'number';
+                inp.value = c[col.field] != null ? c[col.field] : '';
+                const isDisabled = col.disabledFn && col.disabledFn(c);
+                if (isDisabled) {
+                    inp.disabled = true;
+                    inp.style.background = '#f0f0f0';
+                }
+                inp.onchange = function () {
+                    if (col.usePatch) {
+                        patchField(c.siret, col.field, this.value, this);
+                    } else {
+                        updateField(c.siret, col.field, this.value, this);
+                    }
+                };
+                td.appendChild(inp);
+
             } else {
                 // Type texte par défaut
                 const inp = document.createElement('input');
@@ -134,6 +152,24 @@ async function load() {
 
     display(dataGlobal);
     bindFilterInputs(".filters-top input");
+}
+
+// Sauvegarde via PATCH /api/client/{siret} — pour les champs numériques spécifiques
+async function patchField(siret, field, value, el) {
+    if (el) el.style.background = "#fff3cd";
+    const payload = { [field]: value === '' ? null : Number(value) };
+    try {
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.background = "#d4edda";
+        setTimeout(() => { if (el) el.style.background = ""; }, 2000);
+    } catch {
+        if (el) el.style.background = "#f8d7da";
+    }
 }
 
 // Export CSV du tableau affiché (données filtrées)
