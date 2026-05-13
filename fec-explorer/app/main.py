@@ -511,7 +511,14 @@ async def import_clients_csv(file: UploadFile = File(...)):
             for col, val in row.items():
                 if col == "siret" or col not in col_types:
                     continue
-                updates[col] = None if val == "" else val
+                if val == "":
+                    updates[col] = None
+                else:
+                    if "date" in col_types[col] and "/" in val:
+                        parts = val.split("/")
+                        if len(parts) == 3:
+                            val = f"{parts[2]}-{parts[1]}-{parts[0]}"
+                    updates[col] = val
 
             cols   = ["siret"] + list(updates.keys())
             vals   = [siret]   + list(updates.values())
