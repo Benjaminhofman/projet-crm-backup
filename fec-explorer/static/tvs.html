@@ -7,10 +7,11 @@
 <style>
 /* Wrapper scrollable horizontal — barre native masquée */
 .table-scroll {
-    overflow-x: auto;
+    overflow-x: scroll;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     scrollbar-width: none;
+    padding-bottom: 20px;
 }
 .table-scroll::-webkit-scrollbar { display: none; }
 /* Le tableau s'étend librement — override decl-shared.css */
@@ -19,6 +20,7 @@
     border-radius: 0;
     box-shadow: none;
     min-width: max-content;
+    table-layout: auto;
 }
 /* Colonnes mois (7e colonne et au-delà) : 100px minimum */
 .table-scroll table th:nth-child(n+7),
