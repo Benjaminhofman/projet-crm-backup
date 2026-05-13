@@ -67,6 +67,7 @@ app.add_middleware(
 _MIGRATE_PUBLIC = {
     "/api/migrate/tvs_mois_setup",
     "/api/migrate/ca12_solde_setup",
+    "/api/migrate/drop_mai_ca12",
     "/api/debug/colonnes_tvs_ca12",
 }
 
@@ -2057,6 +2058,21 @@ def migrate_tvs_mois_setup():
             for col in cols:
                 cur.execute(f"ALTER TABLE clients ADD COLUMN IF NOT EXISTS {col} NUMERIC")
             cur.execute("UPDATE clients SET janvier_tvs = NULL, mai_tvs = NULL")
+        conn.commit()
+        return {"ok": True}
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.get("/api/migrate/drop_mai_ca12", summary="Supprime la colonne mai_ca12 de la table clients")
+def migrate_drop_mai_ca12():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE clients DROP COLUMN IF EXISTS mai_ca12")
         conn.commit()
         return {"ok": True}
     except psycopg2.Error as e:
