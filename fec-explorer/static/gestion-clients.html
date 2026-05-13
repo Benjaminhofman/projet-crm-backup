@@ -1951,20 +1951,21 @@ async function confirmImport() {
     try {
         const res  = await fetch(API_URL + "/clients/import", { method: "POST", body: fd });
         const json = await res.json();
-        if (!res.ok) {
+        if (json.errors && json.errors.length > 0) {
+            showImportFeedback('error', `❌ ${json.errors.join(', ')}`);
+            btn.disabled = false;
+            btn.textContent = '⬆ Confirmer l\'import';
+        } else if (json.upserted) {
+            showImportFeedback('success', `✅ ${json.upserted} ligne(s) importée(s).`);
+            allClients = [];
+            setTimeout(() => { closeImportModal(); loadBaseTab(); }, 2800);
+        } else if (!res.ok) {
             const detail = Array.isArray(json.detail)
                 ? json.detail.map(e => e.msg).join(', ')
                 : (json.detail || 'Erreur serveur');
             showImportFeedback('error', `❌ ${detail}`);
             btn.disabled = false;
             btn.textContent = '⬆ Confirmer l\'import';
-        } else {
-            let msg = `✅ ${json.upserted} ligne(s) importée(s).`;
-            if (json.errors?.length)
-                msg += `  ⚠️ ${json.errors.length} erreur(s) : ${json.errors.slice(0, 3).join(' | ')}`;
-            showImportFeedback('success', msg);
-            allClients = [];
-            setTimeout(() => { closeImportModal(); loadBaseTab(); }, 2800);
         }
     } catch(e) {
         showImportFeedback('error', `❌ Erreur réseau : ${e.message}`);
