@@ -60,7 +60,7 @@
     <input id="filter-cloture" placeholder="Clôture...">
 </div>
 
-<div id="scroll-mirror" style="position:fixed;bottom:0;overflow-x:auto;overflow-y:hidden;width:100%;height:18px;z-index:100"><div id="scroll-mirror-inner"></div></div>
+<div id="scroll-mirror" style="position:fixed;bottom:0;left:0;overflow-x:auto;overflow-y:hidden;width:100vw;height:18px;z-index:100"><div id="scroll-mirror-inner"></div></div>
 <div class="table-scroll" id="table-scroll">
 <table>
 <thead><tr id="table-head">
@@ -295,7 +295,7 @@ display = function(data) {
 
     table.innerHTML = '';
     table.appendChild(frag);
-    requestAnimationFrame(syncMirrorWidth);
+    requestAnimationFrame(() => requestAnimationFrame(syncMirrorWidth));
 };
 
 const _mirror   = document.getElementById('scroll-mirror');
