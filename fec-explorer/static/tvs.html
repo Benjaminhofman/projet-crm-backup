@@ -5,12 +5,14 @@
 <title>Suivi TVS</title>
 <link rel="stylesheet" href="decl-shared.css">
 <style>
-/* Wrapper scrollable horizontal */
+/* Wrapper scrollable horizontal — barre native masquée */
 .table-scroll {
     overflow-x: auto;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    scrollbar-width: none;
 }
+.table-scroll::-webkit-scrollbar { display: none; }
 /* Le tableau s'étend librement — override decl-shared.css */
 .table-scroll table {
     overflow: visible;
