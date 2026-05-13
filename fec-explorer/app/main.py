@@ -1992,6 +1992,28 @@ def franchise_tva_setup():
         conn.close()
 
 
+@app.get("/api/migrate/tvs_mois_setup", summary="Ajoute les colonnes mensuelles TVS et remet janvier/mai à NULL")
+def migrate_tvs_mois_setup():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cols = [
+                "fevrier_tvs", "mars_tvs", "avril_tvs", "juin_tvs",
+                "juillet_tvs", "aout_tvs", "septembre_tvs",
+                "octobre_tvs", "novembre_tvs", "decembre_tvs",
+            ]
+            for col in cols:
+                cur.execute(f"ALTER TABLE clients ADD COLUMN IF NOT EXISTS {col} NUMERIC")
+            cur.execute("UPDATE clients SET janvier_tvs = NULL, mai_tvs = NULL")
+        conn.commit()
+        return {"ok": True}
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 # Monté en dernier pour ne pas masquer les routes API.
 
