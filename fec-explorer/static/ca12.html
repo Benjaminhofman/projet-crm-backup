@@ -298,7 +298,7 @@ display = function(data) {
 initDeclaratifPage({
     titre: "Suivi CA12",
     emoji: "📊",
-    requireFn: c => c.ca12 === true || c.ca12 === 'true' || c.ca12 === 't',
+    requireFn: c => c.ca12 === true || c.ca12 === 'true' || c.ca12 === 't' || c.ca12 === 1,
     columns: [...CA12_SOLDE_COLS, ...CA12_ACOMPTE_COLS]
 });
 </script>

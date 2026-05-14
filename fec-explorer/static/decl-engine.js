@@ -161,7 +161,7 @@ async function load() {
         : _pageConfig.filterField
             ? data.filter(c => {
                 const v = c[_pageConfig.filterField];
-                return v === true || v === 't' || v === 'true';
+                return v === true || v === 't' || v === 'true' || v === 1;
             })
             : data;
 
