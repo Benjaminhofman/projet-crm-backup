@@ -135,7 +135,6 @@ function formatDate(dateStr) {
     if (!dateStr) return "";
     return dateStr.substring(0, 10);
 }
-function fmtDate(d){if(!d)return"";const p=String(d).split("-");return p.length>=3?p[2].substring(0,2)+"/"+p[1]:d;}
 
 // Score de rentabilité (retourne la valeur numérique brute)
 function getRentabiliteScore(val) {
@@ -163,7 +162,6 @@ function bindFilterInputs(selector) {
 
 // Mise à jour d'un champ texte/date/nombre dans PostgreSQL
 async function updateField(siret, field, value, el) {
-    console.log("updateField appelé:", siret, field, value);
     if (el) el.style.background = "#fff3cd";
     try {
         const res = await fetch(API_URL + "/update-airtable", {
@@ -294,11 +292,11 @@ function display(data) {
             <td>${c.nom_client || ""}</td>
             <td>${c.assistant || ""}</td>
             <td>${c.collaborateur || ""}</td>
-            <td>${fmtDate(c.date_de_cloture)}</td>
-            ${buildSelect(c, "suivi_mission_retraite")}
-            ${buildSelect(c, "suivi_mission_patrimoniale")}
-            ${buildSelect(c, "suivi_mission_placement")}
-            ${buildSelect(c, "suivi_mission_prevoyance")}
+            <td>${c.date_de_cloture || ""}</td>
+            ${buildSelect(c, "suivi mission retraite")}
+            ${buildSelect(c, "suivi mission patrimoniale")}
+            ${buildSelect(c, "suivi mission placement")}
+            ${buildSelect(c, "suivi mission prevoyance")}
 
         </tr>`;
     });
@@ -325,6 +323,17 @@ function buildSelect(c, field) {
     </td>`;
 }
 
+// update airtable
+async function updateField(id, field, value) {
+    await fetch(API_URL + "/update-airtable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, field, value })
+    });
+
+    const client = dataGlobal.find(c => c.siret === id);
+    if (client) client[field] = value;
+}
 
 // navigation (comme opportunités)
 function openClient(id) {
@@ -376,8 +385,5 @@ async function load() {
 load();
 </script>
 
-
-<script src="/auth.js"></script>
-<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>

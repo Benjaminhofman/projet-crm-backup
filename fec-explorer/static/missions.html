@@ -129,7 +129,6 @@ function formatDate(dateStr) {
     if (!dateStr) return "";
     return dateStr.substring(0, 10);
 }
-function fmtDate(d){if(!d)return"";const p=String(d).split("-");return p.length>=3?p[2].substring(0,2)+"/"+p[1]:d;}
 
 // Score de rentabilité (retourne la valeur numérique brute)
 function getRentabiliteScore(val) {
@@ -263,12 +262,12 @@ function display(data) {
             <td>${c.nom_client || ""}</td>
             <td>${c.assistant || ""}</td>
             <td>${c.collaborateur || ""}</td>
-            <td>${fmtDate(c.date_de_cloture)}</td>
+            <td>${c.date_de_cloture || ""}</td>
 
-            ${buildTextarea(c, "juridique_exceptionnel")}
+            ${buildTextarea(c, "juridique exceptionnel")}
             ${buildTextarea(c, "previsionnel")}
             ${buildTextarea(c, "eval")}
-            ${buildTextarea(c, "prevoyance_s")}
+            ${buildTextarea(c, "prevoyance S")}
             ${buildTextarea(c, "patrimoniale")}
             ${buildTextarea(c, "placement")}
 
@@ -279,7 +278,7 @@ function display(data) {
 // 🔥 génération textarea
 function buildTextarea(c, field) {
     return `
-    <td onclick="event.stopPropagation()" style="cursor:default;">
+    <td>
         <textarea
             onclick="event.stopPropagation()"
             onchange="updateField('${c.siret}', '${field}', this.value)"
@@ -323,8 +322,5 @@ async function load() {
 load();
 </script>
 
-
-<script src="/auth.js"></script>
-<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>

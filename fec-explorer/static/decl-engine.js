@@ -134,7 +134,11 @@ function applyFilters() {
         if (assistant && !(c.assistant       || "").toLowerCase().includes(assistant)) return false;
         if (collab    && !(c.collaborateur   || "").toLowerCase().includes(collab))    return false;
         if (annee     && !(String(c.annee    || "")).includes(annee))                  return false;
-        if (cloture   && !(c.date_de_cloture || "").toLowerCase().includes(cloture))   return false;
+        if (cloture) {
+            const iso = (c.date_de_cloture || "").toLowerCase();
+            const jjmm = formatClotureJJMM(c.date_de_cloture).toLowerCase();
+            if (!iso.includes(cloture) && !jjmm.includes(cloture)) return false;
+        }
         return true;
     });
 

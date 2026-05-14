@@ -215,13 +215,6 @@ function formatDate(dateStr) {
     return dateStr.substring(0, 10);
 }
 
-function formatJJMM(d) {
-    if (!d) return "";
-    const p = String(d).split("-");
-    if (p.length >= 3) return p[2].substring(0, 2) + "/" + p[1];
-    return d;
-}
-
 // Score de rentabilité (retourne la valeur numérique brute)
 function getRentabiliteScore(val) {
     return parseFloat(val) || 0;
@@ -399,7 +392,7 @@ function display(data) {
             <td>${esc(c.assistant)}</td>
             <td>${esc(c.collaborateur)}</td>
             <td>${esc(c.annee)}</td>
-            <td>${formatJJMM(c.date_de_cloture)}</td>
+            <td>${esc(c.date_de_cloture)}</td>
             <td class="separator"></td>
         `;
 
@@ -476,8 +469,5 @@ async function load() {
 load();
 </script>
 
-
-<script src="/auth.js"></script>
-<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>

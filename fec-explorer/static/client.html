@@ -159,12 +159,6 @@ h3 {
     font-weight: bold;
     color: #d35400;
 }
-
-.field-wide {
-    grid-column: 1 / -1;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
 </style>
 </head>
 
@@ -175,11 +169,11 @@ h3 {
     <a href="index.html" class="back">⬅ Retour</a>
 
     <div class="actions">
-        <a id="create-link" href="gestion-clients.html" class="btn btn-create">
+        <a id="create-link" href="#" target="_blank" class="btn btn-create">
             ➕ Créer client
         </a>
 
-        <a id="edit-link" href="gestion-clients.html" class="btn btn-edit">
+        <a id="edit-link" href="#" target="_blank" class="btn btn-edit">
             ✏️ Modifier
         </a>
     </div>
@@ -328,23 +322,12 @@ function getSiret() {
     return params.get("siret");
 }
 
-function fmtVal(v) {
-    if (v === true  || v === "true"  || v === "t") return "Oui";
-    if (v === false || v === "false" || v === "f") return "Non";
-    if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) {
-        const [y, m, d] = v.substring(0, 10).split("-");
-        return `${d}/${m}/${y}`;
-    }
-    return v;
-}
-
 function field(label, value, type = "") {
-    const display = fmtVal(value);
-    if (!display) return "";
+    if (!value && value !== 0) return "";
     return `
         <div class="field ${type}">
             <div class="label">${label}</div>
-            <div class="value">${esc(display)}</div>
+            <div class="value">${esc(value)}</div>
         </div>
     `;
 }
@@ -363,8 +346,17 @@ async function loadClient() {
     const res = await fetch(API_URL + "/client/" + siret);
     const data = await res.json();
 
+    const createLink = data.creer_client;
+    const editLink = data.lien_modification;
+
+    const createBtn = document.getElementById("create-link");
     const editBtn = document.getElementById("edit-link");
-    if (siret) editBtn.href = `gestion-clients.html?siret=${siret}&action=modifier`;
+
+    if (createLink) createBtn.href = createLink;
+    else createBtn.classList.add("disabled");
+
+    if (editLink) editBtn.href = editLink;
+    else editBtn.classList.add("disabled");
 
     // 🔥 CALCULS
     const tempsPasse = parseFloat(data.temps_passe) || 0;
@@ -401,6 +393,9 @@ async function loadClient() {
         field("Souhait anniversaire", data.souhait_anniversaire)
     );
 
+    html += block("📝 Commentaire",
+        field("Commentaire", data.commentaire)
+    );
 
     html += block("📞 Contact client",
         field("Contact", data.contact) +
@@ -450,27 +445,11 @@ async function loadClient() {
         field("Code NAF", data.code_naf_r)
     );
 
-    if (data.commentaires) {
-        html += `
-        <div class="card">
-            <h3>💬 Commentaires</h3>
-            <div class="grid">
-                <div class="field field-wide">
-                    <div class="label">Commentaires</div>
-                    <div class="value">${esc(data.commentaires)}</div>
-                </div>
-            </div>
-        </div>`;
-    }
-
     document.getElementById("client-details").innerHTML = html;
 }
 
 loadClient();
 </script>
 
-
-<script src="/auth.js"></script>
-<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>
