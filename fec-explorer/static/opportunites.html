@@ -401,12 +401,12 @@ function showIndicatorTooltip(event, c, field) {
     } else if (field === 'franchise_tva_prest') {
         html = `<strong>Franchise TVA prestataires</strong><br>
             CA : ${eur(c.ca_r)}<br>
-            Résultat : ${val(c.franchise_tva_prest)}`;
+            Achat/revente : ${val(c.achat_revente)}`;
 
     } else if (field === 'franchise_tva_achrevente') {
         html = `<strong>Franchise TVA achat/revente</strong><br>
             CA : ${eur(c.ca_r)}<br>
-            Résultat : ${val(c.franchise_tva_achrevente)}`;
+            Achat/revente : ${val(c.achat_revente)}`;
 
     } else if (field === 'op_prevoyance') {
         html = `<strong>Prévoyance</strong><br>
