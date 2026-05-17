@@ -44,10 +44,10 @@ function bindFilterInputs(selector) {
 async function updateField(siret, field, value, el) {
     if (el) el.style.background = "#fff3cd";
     try {
-        const res = await fetch(API_URL + "/update-airtable", {
-            method: "POST",
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ siret, field, value })
+            body: JSON.stringify({ [field]: value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.background = "#d4edda";
@@ -61,10 +61,10 @@ async function updateField(siret, field, value, el) {
 async function updateCheckbox(siret, field, value, el) {
     if (el) el.style.outline = "2px solid orange";
     try {
-        const res = await fetch(API_URL + "/update-airtable", {
-            method: "POST",
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ siret, field, value })
+            body: JSON.stringify({ [field]: value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.outline = "2px solid green";
@@ -78,10 +78,10 @@ async function updateCheckbox(siret, field, value, el) {
 async function updateSelect(siret, field, value, el) {
     if (el) el.style.outline = "2px solid orange";
     try {
-        const res = await fetch(API_URL + "/update-airtable", {
-            method: "POST",
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ siret, field, value })
+            body: JSON.stringify({ [field]: value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.outline = "2px solid green";

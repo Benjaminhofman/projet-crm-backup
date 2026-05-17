@@ -134,10 +134,10 @@ function display(data) {
             <td>${c["collaborateur"] || ""}</td>
             <td>${(v => { if (!v) return ''; const p = v.split('-'); return p[2] + '/' + p[1]; })(c["date de cloture"])}</td>
 
-            ${buildTextarea(c, "juridique exceptionnel")}
+            ${buildTextarea(c, "juridique_exceptionnel")}
             ${buildTextarea(c, "previsionnel")}
             ${buildTextarea(c, "eval")}
-            ${buildTextarea(c, "prevoyance S")}
+            ${buildTextarea(c, "prevoyance_s")}
             ${buildTextarea(c, "patrimoniale")}
             ${buildTextarea(c, "placement")}
 
