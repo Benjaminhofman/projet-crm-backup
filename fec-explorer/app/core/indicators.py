@@ -312,11 +312,6 @@ def calculate_indicators(rows: list) -> list:
         res  = vals["produits"] - vals["charges"] + c781 + c791
         caf  = res + vals["dotations_amortissements"] - c781
 
-        if siret == "798376810":  # DEBUG temporaire
-            print(f"[DEBUG 798376810] produits={vals['produits']} charges={vals['charges']} "
-                  f"c781={c781} c791={c791} dotations={vals['dotations_amortissements']} "
-                  f"res={res} caf={caf}")
-
         bfr  = vals["stocks"] + vals["clients"] - abs(vals["fournisseurs"])
         immo = (
             vals["materiel_transport"] + vals["fond_commerce"] + vals["constructions"]
