@@ -3,6 +3,8 @@ import io
 import logging
 import os
 import re
+import shutil
+import tempfile
 import threading
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -22,6 +24,7 @@ from pydantic import BaseModel
 
 from app.core.fec_parser import parse_multiple_fec
 from app.core.indicators import calculate_indicators
+from app.core.postgres_sync import sync_all
 
 def _recalcul_anciennete():
     """Recalcule anciennete pour tous les clients avec date_entree."""
@@ -577,6 +580,103 @@ def upload_fec(body: FolderRequest):
         "nb_entites":  len(indicateurs),
         "indicateurs": indicateurs,
     }
+
+
+_PATTERN_FEC_NAME = re.compile(r"^(\d{9})FEC\d{8}\.txt$", re.IGNORECASE)
+
+
+@app.post("/api/fec/upload-browser", summary="Import FEC multi-fichiers depuis le navigateur")
+async def upload_fec_browser(files: List[UploadFile] = File(...)):
+    """
+    Accepte plusieurs fichiers FEC (multipart), les parse, calcule les indicateurs
+    et synchronise en PostgreSQL. Retourne un résultat par fichier.
+    """
+    results = []
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        valid_files: list[tuple[str, str]] = []  # (filename, siret)
+
+        for f in files:
+            filename = f.filename or ""
+            match = _PATTERN_FEC_NAME.match(filename)
+            if not match:
+                results.append({
+                    "filename": filename,
+                    "siret": None,
+                    "status": "error",
+                    "nb_indicateurs": 0,
+                    "message": "Nom de fichier invalide (attendu : SIREN+FEC+DATE.txt)",
+                })
+                continue
+
+            siret = match.group(1)
+            dest = os.path.join(tmpdir, filename)
+            content = await f.read()
+            with open(dest, "wb") as fout:
+                fout.write(content)
+            valid_files.append((filename, siret))
+
+        if not valid_files:
+            return {"results": results}
+
+        try:
+            rows = parse_multiple_fec(tmpdir)
+        except Exception as e:
+            for filename, siret in valid_files:
+                results.append({
+                    "filename": filename,
+                    "siret": siret,
+                    "status": "error",
+                    "nb_indicateurs": 0,
+                    "message": f"Erreur parsing FEC : {e}",
+                })
+            return {"results": results}
+
+        if not rows:
+            for filename, siret in valid_files:
+                results.append({
+                    "filename": filename,
+                    "siret": siret,
+                    "status": "error",
+                    "nb_indicateurs": 0,
+                    "message": "Aucune donnée FEC trouvée dans le fichier",
+                })
+            return {"results": results}
+
+        indicateurs = calculate_indicators(rows)
+        siret_to_ind = {str(ind.get("siret", "")): ind for ind in indicateurs}
+
+        for filename, siret in valid_files:
+            ind = siret_to_ind.get(siret)
+            if not ind:
+                results.append({
+                    "filename": filename,
+                    "siret": siret,
+                    "status": "error",
+                    "nb_indicateurs": 0,
+                    "message": "Aucun indicateur calculé (fichier vide ou comptes non reconnus)",
+                })
+                continue
+
+            nb_ind = sum(1 for k, v in ind.items() if k != "siret" and v is not None)
+            try:
+                sync_result = sync_all([ind])
+                status = "ok" if sync_result["errors"] == 0 else "warning"
+                msg = "" if sync_result["errors"] == 0 else f"{sync_result['errors']} erreur(s) lors de la synchronisation PostgreSQL"
+            except Exception as e:
+                status = "error"
+                msg = f"Erreur sync PostgreSQL : {e}"
+                nb_ind = 0
+
+            results.append({
+                "filename": filename,
+                "siret": siret,
+                "status": status,
+                "nb_indicateurs": nb_ind,
+                "message": msg,
+            })
+
+    return {"results": results}
 
 
 @app.get("/api/migrate/mai_cvae_setup", summary="Ajoute la colonne mai_cvae NUMERIC si absente")

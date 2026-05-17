@@ -638,6 +638,75 @@ input:focus, select:focus {
     margin-right: 6px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Onglet Import FEC ── */
+.fec-drop-zone {
+    border: 2px dashed #c0c7d4;
+    border-radius: 12px;
+    padding: 36px 24px;
+    text-align: center;
+    background: #f8f9fc;
+    transition: border-color .2s, background .2s;
+    cursor: pointer;
+    margin-bottom: 18px;
+    user-select: none;
+}
+.fec-drop-zone:hover  { border-color: #273c75; background: #eef1f9; }
+.fec-drop-zone.drag-over { border-color: #273c75; background: #dbe4f7; border-style: solid; }
+.fec-drop-icon { font-size: 2.4rem; margin-bottom: 10px; }
+.fec-drop-zone p { font-size: 14px; color: #555; margin-bottom: 6px; }
+.fec-drop-hint { font-size: 12px; color: #aaa; margin-bottom: 14px; font-family: monospace; }
+
+.fec-file-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+.fec-file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #f8f9fc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    transition: background .12s;
+}
+.fec-file-item.fec-invalid { border-color: #f5c6cb; background: #fdf2f2; }
+.fec-file-icon  { font-size: 1.1rem; flex-shrink: 0; }
+.fec-file-info  { flex: 1; min-width: 0; }
+.fec-file-name  { display: block; font-size: 13px; font-weight: 600; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fec-file-siret { display: block; font-size: 11px; color: #7f8c8d; font-family: monospace; margin-top: 2px; }
+.fec-file-size  { font-size: 11px; color: #aaa; white-space: nowrap; flex-shrink: 0; }
+.fec-remove-btn {
+    background: none; border: none; color: #bbb; font-size: 14px; cursor: pointer;
+    padding: 2px 6px; border-radius: 4px; transition: color .12s, background .12s; flex-shrink: 0;
+}
+.fec-remove-btn:hover { color: #e74c3c; background: #fdecea; }
+
+.fec-result-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border: 1px solid transparent;
+    animation: modal-in .18s ease;
+}
+.fec-result-item.success { background: #d4edda; border-color: #c3e6cb; }
+.fec-result-item.error   { background: #f8d7da; border-color: #f5c6cb; }
+.fec-result-item.warning { background: #fff3cd; border-color: #ffeeba; }
+.fec-result-item.pending { background: #e2f0fb; border-color: #bee5eb; }
+.fec-res-status { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.fec-res-info   { flex: 1; min-width: 0; }
+.fec-res-name   { display: block; font-size: 13px; font-weight: 600; color: #2c3e50; }
+.fec-res-detail { display: block; font-size: 12px; color: #555; margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -652,6 +721,7 @@ input:focus, select:focus {
     <button class="tab-btn"        onclick="showTab('modifier', this)">✏️ Modifier</button>
     <button class="tab-btn"        onclick="showTab('supprimer', this)">🗑 Supprimer</button>
     <button class="tab-btn"        onclick="showTab('base', this)">📋 Base de données</button>
+    <button class="tab-btn"        onclick="showTab('fec', this)">📂 Import FEC</button>
 </div>
 
 <div class="container">
@@ -1109,6 +1179,49 @@ input:focus, select:focus {
                 <button class="btn-page" id="db-prev" onclick="dbChangePage(-1)">← Précédent</button>
                 <button class="btn-page" id="db-next" onclick="dbChangePage(+1)">Suivant →</button>
             </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ONGLET 5 — IMPORT FEC
+═══════════════════════════════════════════════════════════════ -->
+<div id="tab-fec" class="tab-panel">
+
+    <div class="card">
+        <div class="card-title">📂 Import de fichiers FEC</div>
+
+        <div class="fec-drop-zone" id="fec-drop-zone">
+            <div class="fec-drop-icon">📂</div>
+            <p><strong>Déposez vos fichiers FEC ici</strong></p>
+            <p class="fec-drop-hint">Format attendu : 123456789FEC20241231.txt</p>
+            <button class="btn btn-outline" style="margin-top:8px"
+                    onclick="event.stopPropagation(); document.getElementById('fec-file-input').click()">
+                Sélectionner fichiers FEC
+            </button>
+        </div>
+        <input type="file" id="fec-file-input" accept=".txt" multiple style="display:none">
+
+        <div id="fec-file-list" style="display:none; margin-top:4px">
+            <div class="fec-file-list-header">
+                <span id="fec-file-count">0 fichier(s)</span>
+                <button class="btn btn-outline" style="font-size:12px;padding:5px 12px"
+                        onclick="clearFecFiles()">✕ Tout effacer</button>
+            </div>
+            <div id="fec-files-container"></div>
+        </div>
+
+        <div class="form-footer" style="margin-top:10px">
+            <button class="btn btn-primary" id="btn-fec-import"
+                    onclick="launchFecImport()" disabled>
+                ⬆ Lancer l'import
+            </button>
+        </div>
+
+        <div id="fec-results" style="display:none; margin-top:18px">
+            <div class="card-title" style="margin-bottom:12px">Résultats de l'import</div>
+            <div id="fec-results-container"></div>
         </div>
     </div>
 
@@ -1981,9 +2094,155 @@ function showImportFeedback(type, msg) {
 }
 
 // Ferme la modal au clic sur le fond
-document.getElementById('import-modal').addEventListener('click', e => {
+const _importModalEl = document.getElementById('import-modal');
+if (_importModalEl) _importModalEl.addEventListener('click', e => {
     if (e.target === e.currentTarget) closeImportModal();
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ONGLET 5 — IMPORT FEC
+// ══════════════════════════════════════════════════════════════════════════════
+
+const _FEC_PATTERN = /^(\d{9})FEC\d{8}\.txt$/i;
+let fecSelectedFiles = [];
+
+function addFecFiles(fileList) {
+    Array.from(fileList).forEach(f => {
+        if (!fecSelectedFiles.find(x => x.name === f.name)) fecSelectedFiles.push(f);
+    });
+    renderFecFileList();
+}
+
+function renderFecFileList() {
+    const listDiv   = document.getElementById('fec-file-list');
+    const container = document.getElementById('fec-files-container');
+    const btn       = document.getElementById('btn-fec-import');
+    if (!fecSelectedFiles.length) {
+        listDiv.style.display = 'none';
+        btn.disabled = true;
+        return;
+    }
+    const validCount = fecSelectedFiles.filter(f => _FEC_PATTERN.test(f.name)).length;
+    listDiv.style.display = 'block';
+    document.getElementById('fec-file-count').textContent =
+        `${fecSelectedFiles.length} fichier(s) — ${validCount} valide(s)`;
+    btn.disabled = validCount === 0;
+    container.innerHTML = fecSelectedFiles.map((f, i) => {
+        const m     = _FEC_PATTERN.exec(f.name);
+        const valid = !!m;
+        const siret = m ? m[1] : null;
+        const size  = (f.size / 1024).toFixed(1);
+        const name  = f.name.replace(/</g, '&lt;');
+        return `<div class="fec-file-item${valid ? '' : ' fec-invalid'}">
+            <span class="fec-file-icon">${valid ? '✅' : '❌'}</span>
+            <div class="fec-file-info">
+                <span class="fec-file-name">${name}</span>
+                <span class="fec-file-siret">${valid ? 'SIREN : ' + siret : 'Nom invalide — attendu : 9chiffres+FEC+8chiffres.txt'}</span>
+            </div>
+            <span class="fec-file-size">${size} Ko</span>
+            <button class="fec-remove-btn" onclick="removeFecFile(${i})" title="Retirer">✕</button>
+        </div>`;
+    }).join('');
+}
+
+function removeFecFile(idx) {
+    fecSelectedFiles.splice(idx, 1);
+    renderFecFileList();
+}
+
+function clearFecFiles() {
+    fecSelectedFiles = [];
+    renderFecFileList();
+    document.getElementById('fec-results').style.display = 'none';
+}
+
+(function setupFecDragDrop() {
+    const zone = document.getElementById('fec-drop-zone');
+    if (!zone) return;
+    zone.addEventListener('click', () => document.getElementById('fec-file-input').click());
+    zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        addFecFiles(e.dataTransfer.files);
+    });
+    document.getElementById('fec-file-input').addEventListener('change', e => {
+        addFecFiles(e.target.files);
+        e.target.value = '';
+    });
+})();
+
+async function launchFecImport() {
+    const validFiles = fecSelectedFiles.filter(f => _FEC_PATTERN.test(f.name));
+    if (!validFiles.length) return;
+
+    const btn = document.getElementById('btn-fec-import');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Import en cours…';
+
+    const resultsDiv = document.getElementById('fec-results');
+    const resCont    = document.getElementById('fec-results-container');
+    resultsDiv.style.display = 'block';
+    resCont.innerHTML = validFiles.map(f => {
+        const name = f.name.replace(/</g, '&lt;');
+        return `<div class="fec-result-item pending">
+            <span class="fec-res-status">⏳</span>
+            <div class="fec-res-info">
+                <span class="fec-res-name">${name}</span>
+                <span class="fec-res-detail">Import en cours…</span>
+            </div></div>`;
+    }).join('');
+    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    const fd = new FormData();
+    validFiles.forEach(f => fd.append('files', f, f.name));
+
+    try {
+        const res  = await fetch('/api/fec/upload-browser', { method: 'POST', body: fd });
+        const json = await res.json();
+
+        if (!res.ok) {
+            const detail = String(json.detail || json.message || 'Erreur serveur').replace(/</g,'&lt;');
+            resCont.innerHTML = `<div class="fec-result-item error">
+                <span class="fec-res-status">❌</span>
+                <div class="fec-res-info">
+                    <span class="fec-res-name">Erreur HTTP ${res.status}</span>
+                    <span class="fec-res-detail">${detail}</span>
+                </div></div>`;
+            return;
+        }
+
+        resCont.innerHTML = json.results.map(r => {
+            const cls    = r.status === 'ok' ? 'success' : r.status === 'warning' ? 'warning' : 'error';
+            const icon   = r.status === 'ok' ? '✅' : r.status === 'warning' ? '⚠️' : '❌';
+            const fname  = String(r.filename || '').replace(/</g,'&lt;');
+            const detail = r.status === 'ok'
+                ? `${r.nb_indicateurs} indicateur(s) mis à jour en base`
+                : String(r.message || 'Erreur inconnue').replace(/</g,'&lt;');
+            const siretSpan = r.siret
+                ? `<code style="font-family:monospace;font-size:11px;color:#666">SIREN ${r.siret}</code> — `
+                : '';
+            return `<div class="fec-result-item ${cls}">
+                <span class="fec-res-status">${icon}</span>
+                <div class="fec-res-info">
+                    <span class="fec-res-name">${fname}</span>
+                    <span class="fec-res-detail">${siretSpan}${detail}</span>
+                </div></div>`;
+        }).join('');
+
+    } catch(e) {
+        resCont.innerHTML = `<div class="fec-result-item error">
+            <span class="fec-res-status">❌</span>
+            <div class="fec-res-info">
+                <span class="fec-res-name">Erreur réseau</span>
+                <span class="fec-res-detail">${String(e.message).replace(/</g,'&lt;')}</span>
+            </div></div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '⬆ Lancer l\'import';
+    }
+}
 </script>
 
 <!-- ── Modal Import CSV ── -->
