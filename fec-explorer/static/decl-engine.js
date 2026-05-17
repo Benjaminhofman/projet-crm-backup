@@ -4,14 +4,6 @@
 let _pageConfig = null;
 let _currentData = [];
 
-function formatClotureJJMM(dateStr) {
-    if (!dateStr) return '';
-    const s = String(dateStr).substring(0, 10);
-    const parts = s.split('-');
-    if (parts.length !== 3) return s;
-    return `${parts[2]}/${parts[1]}`;
-}
-
 function initDeclaratifPage(config) {
     _pageConfig = config;
 
@@ -53,7 +45,7 @@ function display(data) {
             <td>${esc(c.assistant)}</td>
             <td>${esc(c.collaborateur)}</td>
             <td>${esc(c.annee)}</td>
-            <td>${esc(formatClotureJJMM(c.date_de_cloture))}</td>
+            <td>${esc(c.date_de_cloture)}</td>
         `;
 
         // Colonnes dynamiques définies par la config de la page
@@ -81,24 +73,6 @@ function display(data) {
                 inp.type = 'date';
                 inp.value = formatDate(c[col.field]);
                 inp.onchange = function () { updateField(c.siret, col.field, this.value, this); };
-                td.appendChild(inp);
-
-            } else if (col.type === 'number') {
-                const inp = document.createElement('input');
-                inp.type = 'number';
-                inp.value = c[col.field] != null ? c[col.field] : '';
-                const isDisabled = col.disabledFn && col.disabledFn(c);
-                if (isDisabled) {
-                    inp.disabled = true;
-                    inp.style.background = '#f0f0f0';
-                }
-                inp.onchange = function () {
-                    if (col.usePatch) {
-                        patchField(c.siret, col.field, this.value, this);
-                    } else {
-                        updateField(c.siret, col.field, this.value, this);
-                    }
-                };
                 td.appendChild(inp);
 
             } else {
@@ -134,11 +108,7 @@ function applyFilters() {
         if (assistant && !(c.assistant       || "").toLowerCase().includes(assistant)) return false;
         if (collab    && !(c.collaborateur   || "").toLowerCase().includes(collab))    return false;
         if (annee     && !(String(c.annee    || "")).includes(annee))                  return false;
-        if (cloture) {
-            const iso = (c.date_de_cloture || "").toLowerCase();
-            const jjmm = formatClotureJJMM(c.date_de_cloture).toLowerCase();
-            if (!iso.includes(cloture) && !jjmm.includes(cloture)) return false;
-        }
+        if (cloture   && !(c.date_de_cloture || "").toLowerCase().includes(cloture))   return false;
         return true;
     });
 
@@ -156,35 +126,12 @@ async function load() {
 
     const data = await fetchClients();
 
-    dataGlobal = _pageConfig.requireFn
-        ? data.filter(_pageConfig.requireFn)
-        : _pageConfig.filterField
-            ? data.filter(c => {
-                const v = c[_pageConfig.filterField];
-                return v === true || v === 't' || v === 'true' || v === 1;
-            })
-            : data;
+    dataGlobal = _pageConfig.filterField
+        ? data.filter(c => c[_pageConfig.filterField] === true)
+        : data;
 
     display(dataGlobal);
     bindFilterInputs(".filters-top input");
-}
-
-// Sauvegarde via PATCH /api/client/{siret} — pour les champs numériques spécifiques
-async function patchField(siret, field, value, el) {
-    if (el) el.style.background = "#fff3cd";
-    const payload = { [field]: value === '' ? null : Number(value) };
-    try {
-        const res = await fetch(`${API_URL}/client/${siret}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error();
-        if (el) el.style.background = "#d4edda";
-        setTimeout(() => { if (el) el.style.background = ""; }, 2000);
-    } catch {
-        if (el) el.style.background = "#f8d7da";
-    }
 }
 
 // Export CSV du tableau affiché (données filtrées)
