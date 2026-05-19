@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -165,30 +165,9 @@ function exportCSV(data, filename, columns) {
 initDeclaratifPage({
     titre: "Suivi CVAE",
     emoji: "📊",
-    filterField: "cvae",
+    filterField: "CVAE",
     columns: [
-        {
-            header: "Mai CVAE",
-            field: "mai_cvae",
-            type: "number",
-            // Actif si ca_r >= 500 000 ou ca_r null ; grisé si ca_r < 500 000
-            disabledFn: c => c.ca_r != null && parseFloat(c.ca_r) <= 500000,
-            usePatch: true
-        },
-        {
-            header: "Acompte juin",
-            field: "acompte_cvae_juin",
-            type: "number",
-            disabledFn: c => c.ca_r != null && parseFloat(c.ca_r) <= 500000,
-            usePatch: true
-        },
-        {
-            header: "Acompte septembre",
-            field: "acompte_cvae_septembre",
-            type: "number",
-            disabledFn: c => c.ca_r != null && parseFloat(c.ca_r) <= 500000,
-            usePatch: true
-        }
+        { header: "Mai CVAE", field: "mai_cvae", disabledFn: c => !(c.ca_r > 500000) }
     ]
 });
 </script>

@@ -45,7 +45,7 @@ function display(data) {
             <td>${esc(c.assistant)}</td>
             <td>${esc(c.collaborateur)}</td>
             <td>${esc(c.annee)}</td>
-            <td>${esc(c.date_de_cloture)}</td>
+            <td>${(v => { if (!v) return ''; const p = v.split('-'); return p[2]+'/'+p[1]; })(c.date_de_cloture)}</td>
         `;
 
         // Colonnes dynamiques définies par la config de la page
@@ -80,6 +80,10 @@ function display(data) {
                 const inp = document.createElement('input');
                 inp.type = 'text';
                 inp.value = c[col.field] || '';
+                if (col.disabledFn && col.disabledFn(c)) {
+                    inp.disabled = true;
+                    inp.style.background = '#f0f0f0';
+                }
                 inp.onchange = function () { updateField(c.siret, col.field, this.value, this); };
                 td.appendChild(inp);
             }
