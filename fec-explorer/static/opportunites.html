@@ -110,13 +110,13 @@ tr:hover {
 <tr id="filters-opportunites">
 <td colspan="6"></td>
 
-<td><input type="checkbox" data-field="mission retraite"></td>
-<td><input type="checkbox" data-field="mission patrimoniale"></td>
-<td><input type="checkbox" data-field="mission placement"></td>
-<td><input type="checkbox" data-field="franchise TVA prest"></td>
-<td><input type="checkbox" data-field="franchise TVA achrevente"></td>
-<td><input type="checkbox" data-field="op Prevoyance"></td>
-<td><input type="checkbox" data-field="arbitrage rémunération dirigeant"></td>
+<td><input type="checkbox" data-field="mission_retraite"></td>
+<td><input type="checkbox" data-field="mission_patrimoniale"></td>
+<td><input type="checkbox" data-field="mission_placement"></td>
+<td><input type="checkbox" data-field="franchise_tva_prest"></td>
+<td><input type="checkbox" data-field="franchise_tva_achrevente"></td>
+<td><input type="checkbox" data-field="op_prevoyance"></td>
+<td><input type="checkbox" data-field="arbitrage_remuneration_dirigeant"></td>
 
 </tr>
 
@@ -156,6 +156,13 @@ function esc(val) {
 function formatDate(dateStr) {
     if (!dateStr) return "";
     return dateStr.substring(0, 10);
+}
+
+// Formatage date ISO → JJ/MM pour l'affichage
+function fmtDate(d) {
+    if (!d) return "";
+    const p = String(d).split("-");
+    return p.length >= 3 ? p[2].substring(0, 2) + "/" + p[1] : d;
 }
 
 // Score de rentabilité (retourne la valeur numérique brute)
@@ -296,47 +303,54 @@ function display(data) {
             <td>${c.nom_client || ""}</td>
             <td>${c.assistant || ""}</td>
             <td>${c.collaborateur || ""}</td>
-            <td>${c.date_de_cloture || ""}</td>
+            <td>${fmtDate(c.date_de_cloture)}</td>
 
-            ${buildCheckbox(c, "mission retraite")}
-            ${buildCheckbox(c, "mission patrimoniale")}
-            ${buildCheckbox(c, "mission placement")}
-            ${buildCheckbox(c, "franchise TVA prest")}
-            ${buildCheckbox(c, "franchise TVA achrevente")}
-            ${buildCheckbox(c, "op Prevoyance")}
-            ${buildCheckbox(c, "arbitrage rémunération dirigeant")}
+            ${buildIndicator(c, "mission_retraite")}
+            ${buildIndicator(c, "mission_patrimoniale")}
+            ${buildIndicator(c, "mission_placement")}
+            ${buildIndicator(c, "franchise_tva_prest")}
+            ${buildIndicator(c, "franchise_tva_achrevente")}
+            ${buildIndicator(c, "op_prevoyance")}
+            ${buildIndicator(c, "arbitrage_remuneration_dirigeant")}
 
         </tr>`;
     });
 }
 
-// checkbox dynamique
-function buildCheckbox(c, field) {
+// Indicateur lecture seule — reflète un trigger PostgreSQL, jamais cliquable
+function isActive(c, field) {
+    if (field === 'mission_placement')
+        return c[field] === 'OPPORTUNITÉ FORTE' || c[field] === 'OPPORTUNITÉ MOYENNE';
+    return c[field] === 'OUI';
+}
+
+function buildIndicator(c, field) {
+    const active = isActive(c, field);
+    const cj = JSON.stringify(c).replace(/"/g, '&quot;');
     return `
-    <td>
+    <td
+        onmouseenter="showIndicatorTooltip(event, ${cj}, '${field}')"
+        onmouseleave="hideTooltip()"
+    >
         <input type="checkbox"
-            ${c[field] ? "checked" : ""}
-            onchange="updateField('${c.siret}', '${field}', this.checked)">
+            ${active ? "checked" : ""}
+            disabled
+            style="pointer-events:none;">
     </td>`;
 }
 
-// update airtable
-
-// tooltip
+// tooltip survol ligne
 function showTooltip(event, client) {
-
     const tooltip = document.getElementById("tooltip-client");
-
     tooltip.innerHTML = `
-        <strong>${client["nom client"] || ""}</strong><br>
-        Code : ${client["code client"] || ""}<br>
-        Assistant : ${client["assistant"] || ""}<br>
-        Collaborateur : ${client["collaborateur"] || ""}<br>
-        Clôture : ${client["date de cloture"] || ""}<br>
-        CA : ${client["CA R"] || ""}<br>
-        Résultat : ${client["resultat R"] || ""}
+        <strong>${client.nom_client || ""}</strong><br>
+        Code : ${client.code_client || ""}<br>
+        Assistant : ${client.assistant || ""}<br>
+        Collaborateur : ${client.collaborateur || ""}<br>
+        Clôture : ${fmtDate(client.date_de_cloture)}<br>
+        CA : ${client.ca_r || ""}<br>
+        Résultat : ${client.resultat_r || ""}
     `;
-
     tooltip.style.display = "block";
     tooltip.style.left = event.pageX + 15 + "px";
     tooltip.style.top = event.pageY + 15 + "px";
@@ -344,6 +358,47 @@ function showTooltip(event, client) {
 
 function hideTooltip() {
     document.getElementById("tooltip-client").style.display = "none";
+}
+
+// tooltip survol indicateur — affiche les données constitutives du trigger
+function showIndicatorTooltip(event, c, field) {
+    const tooltip = document.getElementById("tooltip-client");
+
+    const eur = v => (v !== null && v !== undefined && v !== '')
+        ? Number(v).toLocaleString('fr-FR') + ' €'
+        : '<em style="color:#aaa">Données manquantes</em>';
+    const val = v => (v !== null && v !== undefined && v !== '')
+        ? v : '<em style="color:#aaa">Données manquantes</em>';
+    const fmtFull = d => {
+        if (!d) return '<em style="color:#aaa">Données manquantes</em>';
+        const p = String(d).split('-');
+        return p.length >= 3 ? p[2].substring(0, 2) + '/' + p[1] + '/' + p[0] : d;
+    };
+
+    let html = '';
+    if (field === 'mission_retraite') {
+        html = `<strong>Retraite</strong><br>Âge : ${val(c.age)}<br>Anniversaire : ${fmtFull(c.anniversaire)}`;
+    } else if (field === 'mission_patrimoniale') {
+        html = `<strong>Patrimoniale</strong><br>MAI IR : ${eur(c.mai_ir)}`;
+    } else if (field === 'mission_placement') {
+        const ratio = (c.ca_r && c.tresorerie_r)
+            ? (c.tresorerie_r * 100 / c.ca_r).toFixed(1) + ' %'
+            : '<em style="color:#aaa">Données manquantes</em>';
+        html = `<strong>Placement</strong><br>CA : ${eur(c.ca_r)}<br>Trésorerie : ${eur(c.tresorerie_r)}<br>Ratio tréso/CA : ${ratio}`;
+    } else if (field === 'franchise_tva_prest') {
+        html = `<strong>Franchise TVA prestataires</strong><br>CA : ${eur(c.ca_r)}<br>Achat/revente : ${val(c.achat_revente)}`;
+    } else if (field === 'franchise_tva_achrevente') {
+        html = `<strong>Franchise TVA achat/revente</strong><br>CA : ${eur(c.ca_r)}<br>Achat/revente : ${val(c.achat_revente)}`;
+    } else if (field === 'op_prevoyance') {
+        html = `<strong>Prévoyance</strong><br>Prévoyance souscrite : ${val(c.prevoyance)}<br>Structure : ${val(c.structure)}`;
+    } else if (field === 'arbitrage_remuneration_dirigeant') {
+        html = `<strong>Arbitrage rémunération</strong><br>Résultat : ${eur(c.resultat_r)}`;
+    }
+
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (event.pageX + 15) + 'px';
+    tooltip.style.top  = (event.pageY + 15) + 'px';
 }
 
 // filtres
@@ -365,7 +420,7 @@ function applyFilters() {
         if (annee && !(String(c.annee)).includes(annee)) return false;
         if (cloture && !(c.date_de_cloture || "").toLowerCase().includes(cloture)) return false;
 
-        return checkedFields.every(f => Boolean(c[f]) === true);
+        return checkedFields.every(f => isActive(c, f));
     });
 
     display(filtered);
@@ -390,5 +445,7 @@ async function load() {
 load();
 </script>
 
+<script src="/auth.js"></script>
+<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>
