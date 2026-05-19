@@ -1297,18 +1297,24 @@ async function loadAllClients() {
     }
 }
 
-function populateCollaborateurList() {
+async function populateCollaborateurList() {
     const dl = document.getElementById('list-collaborateur');
     if (!dl) return;
-    const values = [...new Set(allClients.map(c => c.collaborateur).filter(Boolean))].sort();
-    dl.innerHTML = values.map(v => `<option value="${v}">`).join('');
+    try {
+        const r    = await fetch('/api/clients/distinct?field=collaborateur');
+        const vals = await r.json();
+        dl.innerHTML = vals.map(v => `<option value="${v}">`).join('');
+    } catch { /* datalist laissé vide en cas d'erreur réseau */ }
 }
 
-function populateAssistantList() {
+async function populateAssistantList() {
     const dl = document.getElementById('list-assistant');
     if (!dl) return;
-    const values = [...new Set(allClients.map(c => c.assistant).filter(Boolean))].sort();
-    dl.innerHTML = values.map(v => `<option value="${v}">`).join('');
+    try {
+        const r    = await fetch('/api/clients/distinct?field=assistant');
+        const vals = await r.json();
+        dl.innerHTML = vals.map(v => `<option value="${v}">`).join('');
+    } catch { /* datalist laissé vide en cas d'erreur réseau */ }
 }
 
 // Chargement au démarrage pour que les datalists soient prêts dès l'onglet Créer
@@ -1316,6 +1322,9 @@ loadAllClients();
 
 // Lecture des paramètres URL au chargement : action=modifier + siret → formulaire pré-rempli
 document.addEventListener('DOMContentLoaded', function () {
+    populateCollaborateurList();
+    populateAssistantList();
+
     const params = new URLSearchParams(window.location.search);
     const siret  = params.get('siret');
     const action = params.get('action');
