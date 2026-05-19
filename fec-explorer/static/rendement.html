@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -75,220 +75,19 @@ input {
     font-weight: bold;
 }
 
-.badge-rendement {
+.skeleton {
     display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: bold;
-    color: white;
-}
-.badge-excellent { background: #27ae60; }
-.badge-bon       { background: #2980b9; }
-.badge-moyen     { background: #f39c12; }
-.badge-faible    { background: #e74c3c; }
-
-.td-rendement {
-    cursor: pointer;
-}
-.td-rendement:hover .badge-rendement {
-    opacity: 0.85;
-    transform: scale(1.05);
-    transition: all .15s;
+    background: linear-gradient(90deg, #e8eaf0 25%, #d4d8e2 50%, #e8eaf0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.4s infinite;
+    border-radius: 4px;
+    height: 14px;
+    width: 75%;
 }
 
-/* ── Modal Rendement ── */
-.modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.45);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-.modal-overlay.open { display: flex; }
-
-.modal-box {
-    background: white;
-    border-radius: 14px;
-    width: 100%;
-    max-width: 560px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0,0,0,.35);
-    animation: modal-in .2s ease;
-}
-@keyframes modal-in {
-    from { transform: translateY(18px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 18px 20px 14px;
-    border-bottom: 2px solid #f0f2f5;
-    position: sticky;
-    top: 0;
-    background: white;
-    z-index: 1;
-}
-.modal-header h3 {
-    color: #273c75;
-    font-size: 1rem;
-    font-weight: 700;
-    margin: 0;
-}
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: #777;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background .15s;
-}
-.modal-close:hover { background: #f0f2f5; color: #2c3e50; }
-
-.modal-body {
-    padding: 20px;
-}
-
-/* Score global */
-.modal-score-global {
-    text-align: center;
-    margin-bottom: 22px;
-    padding: 18px;
-    background: #f8f9fc;
-    border-radius: 12px;
-}
-.modal-score-number {
-    font-size: 3rem;
-    font-weight: 800;
-    line-height: 1;
-    margin-bottom: 8px;
-}
-.modal-score-badge {
-    display: inline-block;
-    padding: 5px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 700;
-    color: white;
-}
-
-/* Grille 4 cartes */
-.modal-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-@media (max-width: 480px) {
-    .modal-cards { grid-template-columns: 1fr; }
-}
-
-.modal-card {
-    background: #f8f9fc;
-    border-radius: 10px;
-    padding: 14px;
-    border-left: 4px solid #273c75;
-}
-.modal-card.non-renseigne {
-    border-left-color: #ccc;
-    opacity: .7;
-}
-.modal-card-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: #273c75;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    margin-bottom: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.modal-card-poids {
-    font-size: 11px;
-    color: #888;
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
-}
-.modal-card-valeur {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 6px;
-}
-.modal-card-pts {
-    font-size: 12px;
-    color: #555;
-    margin-bottom: 8px;
-}
-
-/* Barre de progression */
-.progress-bar-wrap {
-    background: #e0e0e0;
-    border-radius: 6px;
-    height: 8px;
-    overflow: hidden;
-    margin-bottom: 6px;
-}
-.progress-bar-fill {
-    height: 100%;
-    border-radius: 6px;
-    transition: width .4s ease;
-}
-.fill-excellent { background: #27ae60; }
-.fill-bon       { background: #2980b9; }
-.fill-moyen     { background: #f39c12; }
-.fill-faible    { background: #e74c3c; }
-.fill-vide      { background: #ccc; width: 0 !important; }
-
-.modal-card-seuil {
-    font-size: 11px;
-    color: #888;
-    font-style: italic;
-}
-
-/* Message plafond / complet */
-.modal-score-msg {
-    margin-top: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 5px 12px;
-    border-radius: 20px;
-    display: inline-block;
-}
-.modal-score-msg--plafond {
-    background: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffc107;
-}
-.modal-score-msg--complet {
-    background: #d1e7dd;
-    color: #0a5c36;
-    border: 1px solid #a3cfbb;
-}
-
-/* Footer */
-.modal-footer {
-    text-align: center;
-    font-size: 12px;
-    color: #888;
-    padding-top: 14px;
-    border-top: 1px solid #f0f2f5;
-    margin-top: 4px;
+@keyframes skeleton-shine {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
 }
 </style>
 </head>
@@ -307,13 +106,6 @@ input {
     <input id="filter-collab" placeholder="Collaborateur...">
     <input id="filter-annee" placeholder="Année...">
     <input id="filter-cloture" placeholder="Clôture...">
-    <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;">
-        <option value="">Toutes tranches</option>
-        <option value="excellent">⭐ Excellent (≥80)</option>
-        <option value="bon">👍 Bon (60-79)</option>
-        <option value="moyen">⚠️ Moyen (40-59)</option>
-        <option value="faible">🔴 Faible (&lt;40)</option>
-    </select>
 </div>
 
 <table>
@@ -338,30 +130,35 @@ input {
 <tbody id="table"></tbody>
 </table>
 
-<!-- MODAL DÉTAIL RENDEMENT -->
-<div class="modal-overlay" id="modal-rendement" role="dialog" aria-modal="true">
-    <div class="modal-box" id="modal-box">
-        <div class="modal-header">
-            <h3 id="modal-title">Détail du rendement</h3>
-            <button class="modal-close" id="modal-close" aria-label="Fermer">×</button>
-        </div>
-        <div class="modal-body" id="modal-body">
-            <p style="text-align:center;color:#888">Chargement…</p>
-        </div>
-    </div>
-</div>
-
 <script>
 const API_URL = "/api";
 
+// Échappement HTML pour prévenir les injections XSS
 function esc(val) {
     const div = document.createElement('div');
     div.textContent = val ?? '';
     return div.innerHTML;
 }
 
-function fmtDate(d){if(!d)return"";const p=String(d).split("-");return p.length>=3?p[2].substring(0,2)+"/"+p[1]:d;}
+// Formatage date ISO → YYYY-MM-DD
+function formatDate(dateStr) {
+    if (!dateStr) return "";
+    return dateStr.substring(0, 10);
+}
 
+// Score de rentabilité (retourne la valeur numérique brute)
+function getRentabiliteScore(val) {
+    return parseFloat(val) || 0;
+}
+
+// Attache applyFilters() sur tous les inputs correspondant au sélecteur CSS
+function bindFilterInputs(selector) {
+    document.querySelectorAll(selector).forEach(el => {
+        el.addEventListener("input", applyFilters);
+    });
+}
+
+// Mise à jour d'un champ texte/date/nombre dans PostgreSQL
 async function updateField(siret, field, value, el) {
     if (el) el.style.background = "#fff3cd";
     try {
@@ -377,262 +174,223 @@ async function updateField(siret, field, value, el) {
         if (el) el.style.background = "#f8d7da";
     }
 }
+
+// Mise à jour d'une case à cocher dans PostgreSQL
+async function updateCheckbox(siret, field, value, el) {
+    if (el) el.style.outline = "2px solid orange";
+    try {
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ [field]: value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.outline = "2px solid green";
+        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
+    } catch {
+        if (el) el.style.outline = "2px solid red";
+    }
+}
+
+// Mise à jour d'un select dans PostgreSQL
+async function updateSelect(siret, field, value, el) {
+    if (el) el.style.outline = "2px solid orange";
+    try {
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ [field]: value })
+        });
+        if (!res.ok) throw new Error();
+        if (el) el.style.outline = "2px solid green";
+        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
+    } catch {
+        if (el) el.style.outline = "2px solid red";
+    }
+}
+
+// Export CSV — séparateur point-virgule, BOM UTF-8 pour compatibilité Excel
+// columns (optionnel) : [{label, field}, ...] — si absent, exporte toutes les clés
+function exportCSV(data, filename, columns) {
+    if (!data || !data.length) {
+        alert("Aucune donnée à exporter.");
+        return;
+    }
+
+    let headers, rows;
+
+    if (columns) {
+        headers = columns.map(c => c.label);
+        rows = data.map(row =>
+            columns.map(c => '"' + String(row[c.field] ?? '').replace(/"/g, '""') + '"').join(';')
+        );
+    } else {
+        const keys = [...new Set(data.flatMap(r => Object.keys(r)))].filter(k => k !== 'id');
+        headers = keys;
+        rows = data.map(row =>
+            keys.map(k => '"' + String(row[k] ?? '').replace(/"/g, '""') + '"').join(';')
+        );
+    }
+
+    const csv = '﻿' + [
+        headers.map(h => '"' + h.replace(/"/g, '""') + '"').join(';'),
+        ...rows
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
 </script>
 
 <script>
-(function(){
+let _currentPage = 1;
+const _LIMIT = 50;
 
-let dataGlobal = [];
-
-/* ── LOAD DATA ── */
-async function load() {
-    const res = await fetch(API_URL + "/clients");
-    const data = await res.json();
-    dataGlobal = data.sort((a, b) => (parseFloat(b.rendement) || 0) - (parseFloat(a.rendement) || 0));
-    display(dataGlobal);
-    bindFilters();
-}
-
-/* ── BADGE RENDEMENT ── */
-function badgeRendement(val) {
-    const n = parseFloat(val);
-    if (isNaN(n) || val === null || val === "") return "<span style='color:#aaa'>—</span>";
-    let cls, label;
-    if      (n >= 80) { cls = "badge-excellent"; label = "Excellent"; }
-    else if (n >= 60) { cls = "badge-bon";       label = "Bon"; }
-    else if (n >= 40) { cls = "badge-moyen";     label = "Moyen"; }
-    else              { cls = "badge-faible";     label = "Faible"; }
-    return `<span class="badge-rendement ${cls}">${Math.round(n)} — ${label}</span>`;
-}
-
-function getTranche(val) {
-    const n = parseFloat(val);
-    if (isNaN(n)) return "faible";
-    if (n >= 80) return "excellent";
-    if (n >= 60) return "bon";
-    if (n >= 40) return "moyen";
-    return "faible";
-}
-
-/* ── COULEUR €/h ── */
+/* COULEUR RENDEMENT (score 0-100) */
 function getColor(val) {
-    if (val < 50) return "#e74c3c";
-    if (val < 80) return "#f39c12";
+    if (val < 40) return "#e74c3c";
+    if (val < 60) return "#f39c12";
     return "#27ae60";
 }
 
-/* ── CALCUL €/h ── */
+/* CALCUL €/h en live */
 function calculerLigne(row) {
     const temps = parseFloat(row.querySelector(".temps").value) || 0;
     const honos = parseFloat(row.querySelector(".honos").value) || 0;
     const resultCell = row.querySelector(".result");
     if (temps === 0) { resultCell.innerText = "-"; return; }
     const taux = honos / temps;
-    resultCell.innerHTML = `<span style="color:${getColor(taux)}">${taux.toFixed(2)}</span>`;
+    let color = "#27ae60";
+    if (taux < 50) color = "#e74c3c";
+    else if (taux < 80) color = "#f39c12";
+    resultCell.innerHTML = `<span style="color:${color}">${taux.toFixed(2)}</span>`;
 }
 
-/* ── DISPLAY ── */
+/* DISPLAY */
 function display(data) {
     const table = document.getElementById("table");
     table.innerHTML = "";
-
+    if (!data.length) {
+        table.innerHTML = "<tr><td colspan='13'>Aucun résultat</td></tr>";
+        return;
+    }
     data.forEach(c => {
         const tr = document.createElement("tr");
-
+        const rendement = parseFloat(c.rendement ?? 0);
         tr.innerHTML = `
-        <td>${esc(c.code_client || "")}</td>
-        <td><b>${esc(c.nom_client || "")}</b></td>
-        <td>${esc(c.assistant || "")}</td>
-        <td>${esc(c.collaborateur || "")}</td>
-        <td>${esc(c.annee || "")}</td>
-        <td>${fmtDate(c.date_de_cloture)}</td>
-        <td>${esc(c.ca_r || "")}</td>
-        <td>${esc(c.resultat_r || "")}</td>
-        <td>${esc(c.anciennete || "")}</td>
+        <td>${esc(c.code_client)}</td>
+        <td><b>${esc(c.nom_client)}</b></td>
+        <td>${esc(c.assistant)}</td>
+        <td>${esc(c.collaborateur)}</td>
+        <td>${esc(c.annee)}</td>
+        <td>${(v => { if (!v) return ''; const p = v.split('-'); return p[2]+'/'+p[1]; })(c.date_de_cloture)}</td>
+        <td>${c.ca_r || ""}</td>
+        <td>${c.resultat_r || ""}</td>
+        <td>${c.anciennete || ""}</td>
         <td><input class="temps" value="${c.temps_passe ?? ""}"></td>
         <td><input class="honos" value="${c.honoraires_cpta ?? ""}"></td>
         <td class="result">-</td>
-        <td class="td-rendement" title="Voir le détail">${badgeRendement(c.rendement)}</td>
+        <td style="font-weight:bold; color:${getColor(rendement)};">
+            ${rendement ? Math.round(rendement) : "—"}
+        </td>
         `;
 
         const tempsInput = tr.querySelector(".temps");
         const honosInput = tr.querySelector(".honos");
 
-        tempsInput.addEventListener("input",  () => calculerLigne(tr));
-        honosInput.addEventListener("input",  () => calculerLigne(tr));
-        tempsInput.addEventListener("change", (e) => updateField(c.siret, "temps_passe",      e.target.value, e.target));
-        honosInput.addEventListener("change", (e) => updateField(c.siret, "honoraires_cpta",  e.target.value, e.target));
+        tempsInput.addEventListener("input", () => calculerLigne(tr));
+        honosInput.addEventListener("input", () => calculerLigne(tr));
+
+        tempsInput.addEventListener("change", (e) => {
+            updateField(c.siret, "temps_passe", e.target.value, e.target);
+        });
+        honosInput.addEventListener("change", (e) => {
+            updateField(c.siret, "honoraires_cpta", e.target.value, e.target);
+        });
 
         calculerLigne(tr);
 
-        /* Clic ligne → fiche client sauf input ou cellule rendement */
         tr.addEventListener('click', (e) => {
-            if (e.target.closest('input')) return;
-            if (e.target.closest('.td-rendement')) {
-                openRendementModal(c.siret, c.nom_client);
-                return;
+            if (!e.target.closest('input')) {
+                window.location.href = 'client.html?siret=' + c.siret;
             }
-            window.location.href = 'client.html?siret=' + c.siret;
         });
 
         table.appendChild(tr);
     });
 }
 
-/* ── FILTRES ── */
-function applyFilters() {
-    const search    = document.getElementById("search").value.toLowerCase();
-    const assistant = document.getElementById("filter-assistant").value.toLowerCase();
-    const collab    = document.getElementById("filter-collab").value.toLowerCase();
-    const annee     = document.getElementById("filter-annee").value.toLowerCase();
-    const cloture   = document.getElementById("filter-cloture").value.toLowerCase();
-    const tranche   = document.getElementById("filter-tranche").value;
-
-    const filtered = dataGlobal.filter(c => {
-        if (search    && !(c.nom_client    || "").toLowerCase().includes(search))     return false;
-        if (assistant && !(c.assistant     || "").toLowerCase().includes(assistant))  return false;
-        if (collab    && !(c.collaborateur || "").toLowerCase().includes(collab))     return false;
-        if (annee     && !(String(c.annee  || "")).includes(annee))                   return false;
-        if (cloture   && !(c.date_de_cloture || "").toLowerCase().includes(cloture)) return false;
-        if (tranche   && getTranche(c.rendement) !== tranche)                         return false;
-        return true;
-    });
-
-    display(filtered);
+function renderPagination(page, pages, total) {
+    let pag = document.getElementById('pagination');
+    if (!pag) {
+        pag = document.createElement('div');
+        pag.id = 'pagination';
+        pag.style.cssText = 'display:flex;align-items:center;gap:12px;margin-top:10px;font-size:14px;';
+        document.querySelector('table').after(pag);
+    }
+    pag.innerHTML = `
+        <button onclick="loadPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}
+            style="padding:5px 12px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:white;">
+            ◀ Précédent
+        </button>
+        <span>Page ${page}/${pages} — ${total} dossier${total > 1 ? 's' : ''}</span>
+        <button onclick="loadPage(${page + 1})" ${page >= pages ? 'disabled' : ''}
+            style="padding:5px 12px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:white;">
+            Suivant ▶
+        </button>
+    `;
 }
 
-function bindFilters() {
-    document.querySelectorAll(".filters-top input, .filters-top select").forEach(el => {
-        el.addEventListener("input",  applyFilters);
-        el.addEventListener("change", applyFilters);
-    });
-}
+async function loadPage(page = 1) {
+    _currentPage = page;
 
-/* ══════════════════════════════════════
-   MODAL DÉTAIL RENDEMENT
-══════════════════════════════════════ */
+    document.getElementById("table").innerHTML = Array.from({ length: 8 }, () => `
+        <tr>
+            ${Array.from({ length: 13 }, () => `<td><span class="skeleton"></span></td>`).join('')}
+        </tr>
+    `).join('');
 
-const overlay   = document.getElementById("modal-rendement");
-const modalBody = document.getElementById("modal-body");
-const modalTitle = document.getElementById("modal-title");
+    const get = id => (document.getElementById(id) || {value: ''}).value.trim();
+    const search       = get("search");
+    const assistant    = get("filter-assistant");
+    const collaborateur = get("filter-collab");
+    const annee        = get("filter-annee");
+    const cloture      = get("filter-cloture");
 
-function openModal() {
-    overlay.classList.add("open");
-    document.addEventListener("keydown", onEscape);
-}
-
-function closeModal() {
-    overlay.classList.remove("open");
-    document.removeEventListener("keydown", onEscape);
-}
-
-function onEscape(e) { if (e.key === "Escape") closeModal(); }
-
-document.getElementById("modal-close").addEventListener("click", closeModal);
-overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
-
-async function openRendementModal(siret, nomClient) {
-    modalTitle.textContent = "Détail du rendement — " + (nomClient || siret);
-    modalBody.innerHTML = '<p style="text-align:center;color:#888;padding:20px">Chargement…</p>';
-    openModal();
+    const params = new URLSearchParams({ page, limit: _LIMIT });
+    if (search)        params.set("search", search);
+    if (assistant)     params.set("assistant", assistant);
+    if (collaborateur) params.set("collaborateur", collaborateur);
+    if (annee)         params.set("annee", annee);
+    if (cloture)       params.set("cloture", cloture);
 
     try {
-        const res = await fetch(API_URL + "/rendement_detail/" + encodeURIComponent(siret));
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const d = await res.json();
-        renderModalBody(d);
-    } catch(err) {
-        modalBody.innerHTML = `<p style="color:#e74c3c;text-align:center">Erreur : ${esc(err.message)}</p>`;
+        const res = await fetch(`${API_URL}/clients?${params}`);
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        const response = await res.json();
+        display(response.data ?? []);
+        renderPagination(response.page, response.pages, response.total);
+    } catch (err) {
+        console.error("Erreur loadPage:", err);
+        document.getElementById("table").innerHTML =
+            `<tr><td colspan="13" style="color:#e74c3c;padding:20px;">Erreur de chargement</td></tr>`;
     }
 }
 
-/* Couleur + classe fill selon pct */
-function fillClass(pct) {
-    if (pct >= 80) return "fill-excellent";
-    if (pct >= 60) return "fill-bon";
-    if (pct >= 40) return "fill-moyen";
-    return "fill-faible";
+function applyFilters() {
+    loadPage(1);
 }
 
-/* Config affichage des 4 facteurs */
-const FACTEURS_CONFIG = [
-    { key: "taux_horaire", label: "Taux horaire", icon: "⏱" },
-    { key: "anciennete",   label: "Ancienneté",   icon: "📅" },
-    { key: "ca",           label: "CA",            icon: "💰" },
-    { key: "resultat",     label: "Résultat",      icon: "📊" },
-];
+document.querySelectorAll(".filters-top input").forEach(el => {
+    el.addEventListener("input", applyFilters);
+});
 
-function renderModalBody(d) {
-    const score = d.score_global;
-    const nb    = d.nb_facteurs_renseignes ?? 0;
-
-    /* Score global */
-    let scoreCls = "badge-faible", scoreColor = "#e74c3c";
-    let scoreLabel = "Faible";
-    if (score === null || score === undefined) {
-        scoreColor = "#aaa";
-    } else if (score >= 80) { scoreCls = "badge-excellent"; scoreColor = "#27ae60"; scoreLabel = "Excellent"; }
-    else if (score >= 60)   { scoreCls = "badge-bon";       scoreColor = "#2980b9"; scoreLabel = "Bon"; }
-    else if (score >= 40)   { scoreCls = "badge-moyen";     scoreColor = "#f39c12"; scoreLabel = "Moyen"; }
-
-    const scoreDisplay = score !== null && score !== undefined ? Math.round(score) : "—";
-    const plafond      = d.plafond_applique ?? null;
-
-    /* Message sous le score */
-    let msgPlafond = "";
-    if (score !== null) {
-        if (nb === 4) {
-            msgPlafond = `<div class="modal-score-msg modal-score-msg--complet">✅ Score complet (4 facteurs sur 4)</div>`;
-        } else if (plafond !== null) {
-            msgPlafond = `<div class="modal-score-msg modal-score-msg--plafond">⚠️ Score plafonné à ${plafond} (calculé sur ${nb} facteur${nb > 1 ? 's' : ''} sur 4)</div>`;
-        }
-    }
-
-    let html = `
-    <div class="modal-score-global">
-        <div class="modal-score-number" style="color:${scoreColor}">${scoreDisplay}</div>
-        <span class="modal-score-badge ${score !== null ? scoreCls : ''}"
-              style="${score === null ? 'background:#aaa' : ''}">
-            ${score !== null ? scoreLabel : 'Données insuffisantes'}
-        </span>
-        ${msgPlafond}
-    </div>
-    <div class="modal-cards">`;
-
-    FACTEURS_CONFIG.forEach(cfg => {
-        const f = d.facteurs?.[cfg.key];
-        if (!f) return;
-
-        const renseigne = f.renseigne;
-        const pct       = f.points_max > 0 ? Math.round((f.points_obtenus / f.points_max) * 100) : 0;
-        const barFill   = renseigne ? fillClass(pct) : "fill-vide";
-        const barWidth  = renseigne ? pct : 0;
-
-        html += `
-        <div class="modal-card ${renseigne ? '' : 'non-renseigne'}">
-            <div class="modal-card-title">
-                <span>${cfg.icon} ${cfg.label}</span>
-                <span class="modal-card-poids">Poids ${f.poids_pct}%</span>
-            </div>
-            <div class="modal-card-valeur">${esc(f.valeur_affichee)}</div>
-            <div class="modal-card-pts">${f.points_obtenus} / ${f.points_max} pts</div>
-            <div class="progress-bar-wrap">
-                <div class="progress-bar-fill ${barFill}" style="width:${barWidth}%"></div>
-            </div>
-            <div class="modal-card-seuil">${esc(f.libelle_seuil)}</div>
-        </div>`;
-    });
-
-    html += `</div>
-    <div class="modal-footer">Calculé sur ${nb} facteur${nb > 1 ? 's' : ''} / 4</div>`;
-
-    modalBody.innerHTML = html;
-}
-
-/* ── INIT ── */
-load();
-
-})();
+loadPage(1);
 </script>
 
 </body>
