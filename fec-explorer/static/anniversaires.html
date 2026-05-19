@@ -277,7 +277,7 @@ function esc(val) {
 
 async function fetchClients() {
     try {
-        const res = await fetch(API_URL + "/clients");
+        const res = await fetch(API_URL + "/clients?limit=0");
         if (!res.ok) throw new Error("HTTP " + res.status);
         return await res.json();
     } catch (err) {
