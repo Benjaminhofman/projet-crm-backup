@@ -448,6 +448,23 @@ async function loadClient() {
         field("Capital", data.capital)
     );
 
+    html += block("🔍 Détail charges",
+        field("Loyer", data.loyer_r) +
+        field("Assurance", data.assurance_r) +
+        field("Banque", data.banque_r) +
+        field("Honoraires", data.honoraires_r) +
+        field("Sous-traitance", data.sous_traitance) +
+        field("Personnel ext.", data.personnel_exterieur) +
+        field("Déplacement", data.deplacement_r) +
+        field("Publicité", data.publicite_r) +
+        field("Télécom", data.frais_telecom) +
+        field("Entretien", data.entretien_reparation) +
+        field("Impôts taxes", data.impots_taxes) +
+        field("Dot. amort.", data.dotations_amortissements) +
+        field("Impôt sociétés", data.impot_societes) +
+        field("CFE", data.cfe_r)
+    );
+
     document.getElementById("client-details").innerHTML = html;
 }
 
