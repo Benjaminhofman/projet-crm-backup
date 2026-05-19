@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <title>Détail client</title>
@@ -317,6 +317,8 @@ function exportCSV(data, filename, columns) {
 </script>
 <script>
 
+function fmtDate(v) { if (!v) return ''; const p = v.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+
 function getSiret() {
     const params = new URLSearchParams(window.location.search);
     return params.get("siret");
@@ -366,13 +368,14 @@ async function loadClient() {
     let html = "";
 
     html += block("🧾 Identification client",
+        field("Rendement", data.rendement != null ? data.rendement + ' / 100' : null, "kpi-taux") +
         field("Nom client", data.nom_client, "highlight") +
         field("Activité", data.activite_r, "highlight") +
         field("Code client", data.code_client) +
         field("Année", data.annee) +
-        field("Date de clôture", data.date_de_cloture) +
-        field("Date entrée", data.date_entree) +
-        field("Anniversaire", data["anniversaire"]) +
+        field("Date de clôture", fmtDate(data.date_de_cloture)) +
+        field("Date entrée", fmtDate(data.date_entree)) +
+        field("Anniversaire", fmtDate(data["anniversaire"])) +
         field("Structure", data.structure) +
         field("Age", data.age) +
         field("Ancienneté", data["ancienneté"]) +
@@ -429,7 +432,7 @@ async function loadClient() {
 
     html += block("💰 Chiffres clés",
         field("CA", data.ca_r, "kpi-ca") +
-        field("Résultat", data.resultat, "kpi-resultat") +
+        field("Résultat", data.resultat_r, "kpi-resultat") +
         field("Assurance", data.assurance_r) +
         field("Déplacement", data.deplacement_r) +
         field("Loyer", data.loyer_r) +
