@@ -225,10 +225,11 @@ async function fetchClients() {
     try {
         const res = await fetch(API_URL + "/clients");
         if (!res.ok) throw new Error("Erreur HTTP " + res.status);
-        return await res.json();
+        const response = await res.json();
+        return response;
     } catch (err) {
         console.error("Erreur fetchClients:", err);
-        return [];
+        return { data: [], total: 0 };
     }
 }
 
@@ -243,10 +244,10 @@ function bindFilterInputs(selector) {
 async function updateField(siret, field, value, el) {
     if (el) el.style.background = "#fff3cd";
     try {
-        const res = await fetch(API_URL + "/update-airtable", {
-            method: "POST",
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ siret, field, value })
+            body: JSON.stringify({ [field]: value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.background = "#d4edda";
@@ -260,10 +261,10 @@ async function updateField(siret, field, value, el) {
 async function updateCheckbox(siret, field, value, el) {
     if (el) el.style.outline = "2px solid orange";
     try {
-        const res = await fetch(API_URL + "/update-airtable", {
-            method: "POST",
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ siret, field, value })
+            body: JSON.stringify({ [field]: value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.outline = "2px solid green";
@@ -277,10 +278,10 @@ async function updateCheckbox(siret, field, value, el) {
 async function updateSelect(siret, field, value, el) {
     if (el) el.style.outline = "2px solid orange";
     try {
-        const res = await fetch(API_URL + "/update-airtable", {
-            method: "POST",
+        const res = await fetch(`${API_URL}/client/${siret}`, {
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ siret, field, value })
+            body: JSON.stringify({ [field]: value })
         });
         if (!res.ok) throw new Error();
         if (el) el.style.outline = "2px solid green";
@@ -373,7 +374,6 @@ function buildFilterRow() {
 // Affichage du tableau
 function display(data) {
     const table = document.getElementById("table");
-    document.getElementById("counter").textContent = "Nombre de dossiers : " + data.length;
 
     if (!data.length) {
         table.innerHTML = `<tr><td colspan="18" style="text-align:center;padding:20px;color:#999;">Aucun résultat</td></tr>`;
@@ -459,7 +459,9 @@ async function load() {
         </tr>
     `).join('');
 
-    dataGlobal = await fetchClients();
+    const response = await fetchClients();
+    dataGlobal = response.data ?? [];
+    document.getElementById("counter").textContent = "Nombre de dossiers : " + (response.total ?? dataGlobal.length);
 
     buildFilterRow();
     display(dataGlobal);
