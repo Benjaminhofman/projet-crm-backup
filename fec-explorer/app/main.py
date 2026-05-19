@@ -216,17 +216,56 @@ def auth_verify(authorization: str = Header(default="")):
 
 # ── Routes API ────────────────────────────────────────────────────────────────
 
-@app.get("/api/clients", summary="Liste tous les clients depuis PostgreSQL")
-def get_clients():
+@app.get("/api/clients", summary="Liste les clients avec pagination et filtres")
+def get_clients(
+    page: int = 1,
+    limit: int = 50,
+    search: str = "",
+    collaborateur: str = "",
+    assistant: str = "",
+    annee: str = "",
+    cloture: str = "",
+):
     conn = _get_db_conn()
     try:
+        conditions = []
+        params = []
+
+        if search:
+            conditions.append("(nom_client ILIKE %s OR code_client ILIKE %s OR siret ILIKE %s)")
+            params += [f"%{search}%", f"%{search}%", f"%{search}%"]
+        if collaborateur:
+            conditions.append("collaborateur ILIKE %s")
+            params.append(f"%{collaborateur}%")
+        if assistant:
+            conditions.append("assistant ILIKE %s")
+            params.append(f"%{assistant}%")
+        if annee:
+            conditions.append("annee::text ILIKE %s")
+            params.append(f"%{annee}%")
+        if cloture:
+            conditions.append("date_de_cloture::text ILIKE %s")
+            params.append(f"%{cloture}%")
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT * FROM clients ORDER BY siret")
+            cur.execute(f"SELECT COUNT(*) FROM clients {where}", params)
+            total = cur.fetchone()["count"]
+
+            offset = (page - 1) * limit
+            cur.execute(
+                f"SELECT * FROM clients {where} ORDER BY nom_client LIMIT %s OFFSET %s",
+                params + [limit, offset],
+            )
             rows = [
                 {k: _serialize(v) for k, v in row.items()}
                 for row in cur.fetchall()
             ]
-        return rows
+
+        import math
+        pages = math.ceil(total / limit) if limit else 1
+        return {"data": rows, "total": total, "page": page, "pages": pages}
     except psycopg2.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
