@@ -293,10 +293,10 @@ function display(data) {
             <td>${c.assistant || ""}</td>
             <td>${c.collaborateur || ""}</td>
             <td>${c.date_de_cloture || ""}</td>
-            ${buildSelect(c, "suivi mission retraite")}
-            ${buildSelect(c, "suivi mission patrimoniale")}
-            ${buildSelect(c, "suivi mission placement")}
-            ${buildSelect(c, "suivi mission prevoyance")}
+            ${buildSelect(c, "suivi_mission_retraite")}
+            ${buildSelect(c, "suivi_mission_patrimoniale")}
+            ${buildSelect(c, "suivi_mission_placement")}
+            ${buildSelect(c, "suivi_mission_prevoyance")}
 
         </tr>`;
     });
@@ -321,18 +321,6 @@ function buildSelect(c, field) {
 
         </select>
     </td>`;
-}
-
-// update airtable
-async function updateField(id, field, value) {
-    await fetch(API_URL + "/update-airtable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, field, value })
-    });
-
-    const client = dataGlobal.find(c => c.siret === id);
-    if (client) client[field] = value;
 }
 
 // navigation (comme opportunités)
@@ -386,5 +374,7 @@ async function load() {
 load();
 </script>
 
+<script src="/auth.js"></script>
+<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>
