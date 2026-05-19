@@ -254,22 +254,9 @@ def get_clients(
 
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
-        _COLS = """siret, nom_client, code_client, collaborateur, assistant,
-            annee, date_de_cloture, structure, activite_r, ca_r,
-            resultat_r, honoraires_cpta, temps_passe, rendement,
-            anciennete, "is", cvae, tvs, ca12, liasse, impot_sur_le_revenu,
-            cotisation_fonciere_entreprise, dividendes, situation, tbb,
-            juridique, edi_liasse, "2067_liasse", "2069_rci_liasse",
-            mission_retraite, mission_patrimoniale,
-            mission_placement, franchise_tva_prest,
-            franchise_tva_achrevente, op_prevoyance,
-            arbitrage_remuneration_dirigeant, tresorerie_r,
-            marge_brute, ebe, caf, age, date_entree, prestation,
-            achat_revente, prevoyance, mai_ir"""
-
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             if limit == 0:
-                cur.execute(f"SELECT {_COLS} FROM clients {where} ORDER BY nom_client", params)
+                cur.execute(f"SELECT * FROM clients {where} ORDER BY nom_client", params)
                 rows = [{k: _serialize(v) for k, v in row.items()} for row in cur.fetchall()]
                 return {"data": rows, "total": len(rows), "page": 1, "pages": 1}
 
@@ -278,7 +265,7 @@ def get_clients(
 
             offset = (page - 1) * limit
             cur.execute(
-                f"SELECT {_COLS} FROM clients {where} ORDER BY nom_client LIMIT %s OFFSET %s",
+                f"SELECT * FROM clients {where} ORDER BY nom_client LIMIT %s OFFSET %s",
                 params + [limit, offset],
             )
             rows = [
