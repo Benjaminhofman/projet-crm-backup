@@ -319,6 +319,26 @@ def get_clients_columns():
         conn.close()
 
 
+@app.get("/api/clients/distinct", summary="Valeurs distinctes d'une colonne (whitelist)")
+def get_clients_distinct(field: str):
+    ALLOWED = {"collaborateur", "assistant", "structure", "activite_r"}
+    if field not in ALLOWED:
+        raise HTTPException(status_code=400, detail=f"Champ non autorisé : {field}")
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f'SELECT DISTINCT "{field}" FROM clients '
+                f'WHERE "{field}" IS NOT NULL AND "{field}" <> \'\' '
+                f'ORDER BY "{field}"'
+            )
+            return [row[0] for row in cur.fetchall()]
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 @app.get("/api/clients/template-csv", summary="CSV vide avec les en-têtes de la table clients")
 def get_clients_template():
     conn = _get_db_conn()
