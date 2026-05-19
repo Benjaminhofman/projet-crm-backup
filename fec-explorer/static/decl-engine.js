@@ -3,6 +3,8 @@
 
 let _pageConfig = null;
 let _currentData = [];
+let _currentPage = 1;
+const _LIMIT = 50;
 
 function initDeclaratifPage(config) {
     _pageConfig = config;
@@ -18,15 +20,14 @@ function initDeclaratifPage(config) {
         theadRow.appendChild(th);
     });
 
-    load();
+    bindFilterInputs(".filters-top input");
+    loadPage(1);
 }
 
 function display(data) {
     _currentData = data;
 
     const table = document.getElementById("table");
-    document.getElementById("counter").textContent = "Nombre de dossiers : " + data.length;
-
     if (!data.length) {
         table.innerHTML = `<tr class="loading-row"><td colspan="20">Aucun résultat</td></tr>`;
         return;
@@ -98,29 +99,32 @@ function display(data) {
     table.appendChild(frag);
 }
 
-function applyFilters() {
-    // Support des deux conventions d'IDs de filtres
-    const get = id => (document.getElementById(id) || { value: "" }).value.toLowerCase();
-    const assistant = get("filter-assistant") || get("f-assistant");
-    const collab    = get("filter-collab")    || get("f-collab");
-    const annee     = get("filter-annee")     || get("f-annee");
-    const cloture   = get("filter-cloture")   || get("f-cloture");
-
-    const filtered = dataGlobal.filter(c => {
-        // Filtre principal personnalisé (ex : dividendes > 0)
-        if (_pageConfig.requireFn && !_pageConfig.requireFn(c)) return false;
-        if (assistant && !(c.assistant       || "").toLowerCase().includes(assistant)) return false;
-        if (collab    && !(c.collaborateur   || "").toLowerCase().includes(collab))    return false;
-        if (annee     && !(String(c.annee    || "")).includes(annee))                  return false;
-        if (cloture   && !(c.date_de_cloture || "").toLowerCase().includes(cloture))   return false;
-        return true;
-    });
-
-    display(filtered);
+function renderPagination(page, pages, total) {
+    let pag = document.getElementById('pagination');
+    if (!pag) {
+        pag = document.createElement('div');
+        pag.id = 'pagination';
+        pag.style.cssText = 'display:flex;align-items:center;gap:12px;margin-top:10px;font-size:14px;';
+        document.querySelector('table').after(pag);
+    }
+    document.getElementById("counter").textContent = '';
+    pag.innerHTML = `
+        <button onclick="loadPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}
+            style="padding:5px 12px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:white;">
+            ◀ Précédent
+        </button>
+        <span>Page ${page}/${pages} — ${total} dossier${total > 1 ? 's' : ''}</span>
+        <button onclick="loadPage(${page + 1})" ${page >= pages ? 'disabled' : ''}
+            style="padding:5px 12px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:white;">
+            Suivant ▶
+        </button>
+    `;
 }
 
-async function load() {
-    // Skeleton loader : nombre de colonnes = 6 fixes + colonnes spécifiques à la page
+async function loadPage(page = 1) {
+    _currentPage = page;
+
+    // Skeleton loader
     const colCount = 6 + (_pageConfig.columns ? _pageConfig.columns.length : 0);
     document.getElementById("table").innerHTML = Array.from({ length: 8 }, () => `
         <tr class="skeleton-row">
@@ -128,15 +132,38 @@ async function load() {
         </tr>
     `).join('');
 
-    const json = await fetchClients();
-    const data = json.data ?? json;
+    // Construction des paramètres de requête
+    const get = id => (document.getElementById(id) || { value: "" }).value.trim();
+    const assistant     = get("filter-assistant") || get("f-assistant");
+    const collaborateur = get("filter-collab")    || get("f-collab");
+    const annee         = get("filter-annee")     || get("f-annee");
+    const cloture       = get("filter-cloture")   || get("f-cloture");
 
-    dataGlobal = _pageConfig.filterField
-        ? data.filter(c => { const v = c[_pageConfig.filterField?.toLowerCase()]; return v === true || v === 't' || v === 'true' || v === 1; })
-        : data;
+    const params = new URLSearchParams({ page, limit: _LIMIT });
+    if (_pageConfig.filterField) {
+        params.set("filterField", _pageConfig.filterField);
+        params.set("filterValue", "true");
+    }
+    if (assistant)     params.set("assistant", assistant);
+    if (collaborateur) params.set("collaborateur", collaborateur);
+    if (annee)         params.set("annee", annee);
+    if (cloture)       params.set("cloture", cloture);
 
-    display(dataGlobal);
-    bindFilterInputs(".filters-top input");
+    try {
+        const res = await fetch(`/api/clients?${params}`);
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        const response = await res.json();
+        display(response.data ?? []);
+        renderPagination(response.page, response.pages, response.total);
+    } catch (err) {
+        console.error("Erreur loadPage:", err);
+        document.getElementById("table").innerHTML =
+            `<tr><td colspan="20" style="color:#e74c3c;padding:20px;">Erreur de chargement</td></tr>`;
+    }
+}
+
+function applyFilters() {
+    loadPage(1);
 }
 
 // Export CSV du tableau affiché (données filtrées)
