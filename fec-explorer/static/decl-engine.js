@@ -131,7 +131,7 @@ async function load() {
     const data = await fetchClients();
 
     dataGlobal = _pageConfig.filterField
-        ? data.filter(c => c[_pageConfig.filterField] === true)
+        ? data.filter(c => { const v = c[_pageConfig.filterField?.toLowerCase()]; return v === true || v === 't' || v === 'true' || v === 1; })
         : data;
 
     display(dataGlobal);
