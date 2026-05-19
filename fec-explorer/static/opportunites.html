@@ -279,15 +279,14 @@ function exportCSV(data, filename, columns) {
 </script>
 <script>
 
+let _currentPage = 1;
+const _LIMIT = 50;
 
 // affichage
 function display(data) {
 
     const table = document.getElementById("table");
     table.innerHTML = "";
-
-    document.getElementById("counter").innerText =
-        "Nombre de dossiers : " + data.length;
 
     data.forEach(c => {
 
@@ -401,48 +400,79 @@ function showIndicatorTooltip(event, c, field) {
     tooltip.style.top  = (event.pageY + 15) + 'px';
 }
 
-// filtres
-function applyFilters() {
-
-    const assistant = document.getElementById("f-assistant").value.toLowerCase();
-    const collab = document.getElementById("f-collab").value.toLowerCase();
-    const annee = document.getElementById("f-annee").value.toLowerCase();
-    const cloture = document.getElementById("f-cloture").value.toLowerCase();
-
-    const checkedFields = Array.from(
-        document.querySelectorAll("#filters-opportunites input:checked")
-    ).map(cb => cb.dataset.field);
-
-    const filtered = dataGlobal.filter(c => {
-
-        if (assistant && !(c.assistant || "").toLowerCase().includes(assistant)) return false;
-        if (collab && !(c.collaborateur || "").toLowerCase().includes(collab)) return false;
-        if (annee && !(String(c.annee)).includes(annee)) return false;
-        if (cloture && !(c.date_de_cloture || "").toLowerCase().includes(cloture)) return false;
-
-        return checkedFields.every(f => isActive(c, f));
-    });
-
-    display(filtered);
+function renderPagination(page, pages, total) {
+    let pag = document.getElementById('pagination');
+    if (!pag) {
+        pag = document.createElement('div');
+        pag.id = 'pagination';
+        pag.style.cssText = 'display:flex;align-items:center;gap:12px;margin-top:10px;font-size:14px;';
+        document.querySelector('table').after(pag);
+    }
+    document.getElementById("counter").innerText = '';
+    pag.innerHTML = `
+        <button onclick="loadPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}
+            style="padding:5px 12px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:white;">
+            ◀ Précédent
+        </button>
+        <span>Page ${page}/${pages} — ${total} dossier${total > 1 ? 's' : ''}</span>
+        <button onclick="loadPage(${page + 1})" ${page >= pages ? 'disabled' : ''}
+            style="padding:5px 12px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:white;">
+            Suivant ▶
+        </button>
+    `;
 }
 
-// load
-async function load() {
-    dataGlobal = await fetchClients();
-
-    applyFilters();
+async function loadPage(page = 1) {
+    _currentPage = page;
 
     const siretParam = new URLSearchParams(location.search).get('siret');
+
     if (siretParam) {
-        dataGlobal = dataGlobal.filter(c => c.siret == siretParam);
-        display(dataGlobal);
+        try {
+            const res = await fetch(`/api/client/${siretParam}`);
+            if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+            const data = await res.json();
+            display([data]);
+            document.getElementById("counter").innerText = "1 dossier";
+        } catch (err) {
+            console.error("Erreur loadPage siret:", err);
+        }
+        return;
     }
 
-    bindFilterInputs(".filters input");
-    bindFilterInputs("#filters-opportunites input", "change");
+    const get = id => (document.getElementById(id) || { value: "" }).value.trim();
+    const params = new URLSearchParams({ page, limit: _LIMIT });
+    const assistant     = get("f-assistant");
+    const collaborateur = get("f-collab");
+    const annee         = get("f-annee");
+    const cloture       = get("f-cloture");
+    if (assistant)     params.set("assistant", assistant);
+    if (collaborateur) params.set("collaborateur", collaborateur);
+    if (annee)         params.set("annee", annee);
+    if (cloture)       params.set("cloture", cloture);
+
+    try {
+        const res = await fetch(`/api/clients?${params}`);
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        const response = await res.json();
+        display(response.data ?? []);
+        renderPagination(response.page, response.pages, response.total);
+    } catch (err) {
+        console.error("Erreur loadPage:", err);
+        document.getElementById("table").innerHTML =
+            `<tr><td colspan="13" style="color:#e74c3c;padding:20px;">Erreur de chargement</td></tr>`;
+    }
 }
 
-load();
+function applyFilters() {
+    loadPage(1);
+}
+
+loadPage(1);
+bindFilterInputs(".filters input");
+document.querySelectorAll("#filters-opportunites input").forEach(el => {
+    el.addEventListener("change", applyFilters);
+});
 </script>
 
 <script src="/auth.js"></script>
