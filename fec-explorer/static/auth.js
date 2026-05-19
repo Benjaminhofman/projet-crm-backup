@@ -169,6 +169,22 @@ async function checkAuth() {
         window.location.replace('/login.html');
         return;
     }
+
+    // Vérification locale : décode le payload JWT sans appel réseau
+    try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            if (payload.exp && payload.exp > Date.now() / 1000 + 60) {
+                injectLogoutButton();
+                _startInactivityWatch();
+                return;
+            }
+        }
+    } catch {
+        // Payload illisible ou expiré → on tombe sur le fetch /api/auth/verify
+    }
+
     try {
         const res  = await fetch('/api/auth/verify', {
             headers: { 'Authorization': 'Bearer ' + token }
