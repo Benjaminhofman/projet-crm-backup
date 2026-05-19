@@ -57,7 +57,7 @@ body {
 
 .filters-container {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
     margin-bottom: 20px;
 }
@@ -357,9 +357,6 @@ tr:hover {
 <script>
 const API_URL = "/api";
 
-// Variable globale partagée entre toutes les pages déclaratives
-let dataGlobal = [];
-
 // Échappement HTML pour prévenir les injections XSS
 function esc(val) {
     const div = document.createElement('div');
@@ -380,18 +377,6 @@ function formatDateEU(d) {
     return p[2] + "/" + p[1];
 }
 
-
-// Chargement des clients depuis l'API avec gestion d'erreur
-async function fetchClients() {
-    try {
-        const res = await fetch(API_URL + "/clients");
-        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
-        return await res.json();
-    } catch (err) {
-        console.error("Erreur fetchClients:", err);
-        return [];
-    }
-}
 
 // Attache applyFilters() sur tous les inputs correspondant au sélecteur CSS
 function bindFilterInputs(selector) {
@@ -489,13 +474,13 @@ function exportCSV(data, filename, columns) {
 }
 </script>
 <script>
-let clientsData = [];
-let displayedClients = [];
-
+let _currentPage = 1;
+const _LIMIT = 50;
+let _currentData = []; // données de la page courante (tri, export)
 
 function badgeRendement(val) {
     const n = parseFloat(val);
-    if (isNaN(n) || val === null || val === "") return "<span style='color:#aaa'>—</span>";
+    if (isNaN(n) || val === null || val === "") return "<span style=’color:#aaa’>—</span>";
     let cls, label;
     if      (n >= 80) { cls = "badge-excellent"; label = "Excellent"; }
     else if (n >= 60) { cls = "badge-bon";       label = "Bon"; }
@@ -513,19 +498,16 @@ function getTranche(val) {
     return "faible";
 }
 
-/* 🔥 EXISTANT */
 function checkAnniversaires(data) {
     const today = new Date();
-    const j = String(today.getDate()).padStart(2, '0');
-    const m = String(today.getMonth() + 1).padStart(2, '0');
-
+    const j = String(today.getDate()).padStart(2, ‘0’);
+    const m = String(today.getMonth() + 1).padStart(2, ‘0’);
     const annivs = data.filter(c => {
         if (!c["anniversaire"]) return false;
         const d = new Date(c["anniversaire"]);
-        return String(d.getDate()).padStart(2, '0') === j &&
-               String(d.getMonth() + 1).padStart(2, '0') === m;
+        return String(d.getDate()).padStart(2, ‘0’) === j &&
+               String(d.getMonth() + 1).padStart(2, ‘0’) === m;
     });
-
     if (annivs.length > 0) {
         const div = document.getElementById("alert-anniv");
         div.style.display = "block";
@@ -534,32 +516,27 @@ function checkAnniversaires(data) {
     }
 }
 
-/* 🔥 FILTRES (inchangé) */
 let filtersConfig = [
     { field: "collaborateur",   label: "Collaborateur" },
-    { field: "structure",       label: "Structure" },
-    { field: "activite_r",      label: "Activité" },
     { field: "assistant",       label: "Assistant" },
     { field: "date_de_cloture", label: "Date de clôture", type: "text" }
 ];
 
-function buildFilters() {
+function buildFilters(data) {
     const container = document.getElementById("filters");
     container.innerHTML = "";
-
     filtersConfig.forEach(f => {
         const group = document.createElement("div");
         group.className = "filter-group";
-
         if (f.type === "text") {
             group.innerHTML = `
                 <strong>${f.label}</strong>
-                <input type="text" placeholder='Ex : "03" pour mars...' data-field="${f.field}" id="text-filter-${f.field}" style="margin-top:6px;width:100%;box-sizing:border-box;">
+                <input type="text" placeholder=’Ex : "03" pour mars...’ data-field="${f.field}" id="text-filter-${f.field}" style="margin-top:6px;width:100%;box-sizing:border-box;">
             `;
             container.appendChild(group);
             group.querySelector("input").addEventListener("input", applyFilters);
         } else {
-            const values = [...new Set(clientsData.map(c => c[f.field]).filter(Boolean))].sort();
+            const values = [...new Set(data.map(c => c[f.field]).filter(Boolean))].sort();
             group.innerHTML = `
                 <strong>${f.label}</strong>
                 <input type="text" placeholder="Rechercher..." data-field="${f.field}">
@@ -579,7 +556,6 @@ function buildFilters() {
 function renderCheckboxList(field, values) {
     const container = document.getElementById("list-" + field);
     container.innerHTML = "";
-
     values.forEach(val => {
         container.innerHTML += `
             <label>
@@ -588,159 +564,131 @@ function renderCheckboxList(field, values) {
             </label>
         `;
     });
-
     container.querySelectorAll("input").forEach(cb => {
         cb.addEventListener("change", applyFilters);
     });
 }
 
 function applyFilters() {
-    const checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
-
-    const filters = {};
-    checkboxes.forEach(cb => {
-        if (!filters[cb.dataset.field]) filters[cb.dataset.field] = [];
-        filters[cb.dataset.field].push(cb.value);
-    });
-
-    // Filtres texte libres (ex: date_de_cloture)
-    const textFilters = {};
-    document.querySelectorAll("input[id^='text-filter-']").forEach(input => {
-        const val = input.value.trim();
-        if (val) textFilters[input.dataset.field] = val.toLowerCase();
-    });
-
-    const filtered = clientsData.filter(c => {
-        const checkOk = Object.keys(filters).every(field =>
-            filters[field].includes(c[field])
-        );
-        const textOk = Object.keys(textFilters).every(field =>
-            (c[field] || "").toLowerCase().includes(textFilters[field])
-        );
-        return checkOk && textOk;
-    });
-
-    displayClients(filtered);
+    loadPage(1);
 }
 
-/* 🔥 LOAD */
-async function loadClients() {
+async function loadPage(page = 1) {
+    _currentPage = page;
 
-    // Skeleton loader — tableau
     const tbody = document.getElementById("clients-table");
     tbody.innerHTML = Array.from({ length: 10 }, () => `
         <tr class="skeleton-row">
-            ${Array.from({ length: 13 }, () => `<td><span class="skeleton"></span></td>`).join('')}
+            ${Array.from({ length: 13 }, () => `<td><span class="skeleton"></span></td>`).join(‘’)}
         </tr>
-    `).join('');
+    `).join(‘’);
+    document.getElementById("total-clients").innerHTML = ‘<span class="skeleton-card"></span>’;
+    document.getElementById("avg-honos").innerHTML     = ‘<span class="skeleton-card" style="width:90px;"></span>’;
 
-    // Skeleton loader — cards
-    document.getElementById("total-clients").innerHTML = '<span class="skeleton-card"></span>';
-    document.getElementById("avg-honos").innerHTML     = '<span class="skeleton-card" style="width:90px;"></span>';
+    const get = id => (document.getElementById(id) || {value: ‘’}).value.trim();
+    const search       = get("search");
+    const tranche      = get("filter-tranche");
+    const cloture      = get("text-filter-date_de_cloture");
+    const collaborateur = [...document.querySelectorAll(‘input[type=checkbox][data-field="collaborateur"]:checked’)].map(c => c.value)[0] || ‘’;
+    const assistant     = [...document.querySelectorAll(‘input[type=checkbox][data-field="assistant"]:checked’)].map(c => c.value)[0] || ‘’;
 
-    const res = await fetch(API_URL + "/clients");
-    const response = await res.json();
-    const total = response.total;
-    const pages = response.pages;
-    clientsData = response.data;
+    const params = new URLSearchParams({ page, limit: _LIMIT });
+    if (search)        params.set("search", search);
+    if (collaborateur) params.set("collaborateur", collaborateur);
+    if (assistant)     params.set("assistant", assistant);
+    if (cloture)       params.set("cloture", cloture);
 
-    if (clientsData.length > 0) console.log("[DEBUG] champs client[0] :", clientsData[0]);
+    try {
+        const res = await fetch(`${API_URL}/clients?${params}`);
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        const response = await res.json();
+        let data = response.data ?? [];
+        if (tranche) data = data.filter(c => getTranche(c.rendement) === tranche);
+        displayClients(data);
+        renderPagination(response.page, response.pages, response.total);
+        checkAnniversaires(data);
+        if (page === 1) buildFilters(response.data ?? []);
+    } catch (err) {
+        console.error("Erreur loadPage:", err);
+        tbody.innerHTML = `<tr><td colspan="13" style="color:#e74c3c;padding:20px;">Erreur de chargement</td></tr>`;
+    }
+}
 
-    buildFilters();
-    displayClients(clientsData);
-    checkAnniversaires(clientsData);
+function renderPagination(page, pages, total) {
+    let pag = document.getElementById(‘pagination’);
+    if (!pag) {
+        pag = document.createElement(‘div’);
+        pag.id = ‘pagination’;
+        pag.style.cssText = ‘display:flex;align-items:center;gap:12px;margin-top:10px;font-size:14px;padding:10px 0;’;
+        document.querySelector(‘table’).after(pag);
+    }
+    pag.innerHTML = `
+        <button onclick="loadPage(${page - 1})" ${page <= 1 ? ‘disabled’ : ‘’}
+            style="padding:5px 12px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:white;">
+            ◀ Précédent
+        </button>
+        <span>Page ${page}/${pages} — ${total} dossier${total > 1 ? ‘s’ : ‘’}</span>
+        <button onclick="loadPage(${page + 1})" ${page >= pages ? ‘disabled’ : ‘’}
+            style="padding:5px 12px;border-radius:6px;border:1px solid #ccc;cursor:pointer;background:white;">
+            Suivant ▶
+        </button>
+    `;
 }
 
 function displayClients(data) {
-
-    displayedClients = data;
+    _currentData = data;
     updateDashboard(data);
 
     const table = document.getElementById("clients-table");
     table.innerHTML = "";
 
     if (!data.length) {
-        table.innerHTML = "<tr><td colspan='13'>Aucun résultat</td></tr>";
+        table.innerHTML = "<tr><td colspan=’13’>Aucun résultat</td></tr>";
         return;
     }
 
     data.forEach(c => {
-
         table.innerHTML += `
-        <tr onclick="viewClient('${c.siret}')">
-
+        <tr onclick="viewClient(‘${c.siret}’)">
             <td>${c.code_client || ""}</td>
             <td><strong>${c.nom_client || ""}</strong></td>
             <td>${formatDateEU(c.date_de_cloture)}</td>
             <td>${c.structure || ""}</td>
-
-            <td>${c.anciennete > 0 ? c.anciennete + ' an' + (c.anciennete > 1 ? 's' : '') : '—'}</td>
+            <td>${c.anciennete > 0 ? c.anciennete + ‘ an’ + (c.anciennete > 1 ? ‘s’ : ‘’) : ‘—‘}</td>
             <td>${badgeRendement(c.rendement)}</td>
-
             <td>${c.honoraires_cpta || ""}</td>
             <td>${c.collaborateur || ""}</td>
             <td>${c.assistant || ""}</td>
-
             <td>${c.ca_r || ""}</td>
             <td>${c.resultat_r || ""}</td>
             <td>${c.activite_r || ""}</td>
-
             <td>
-                <button class="btn" onclick="event.stopPropagation(); viewClient('${c.siret}')">
+                <button class="btn" onclick="event.stopPropagation(); viewClient(‘${c.siret}’)">
                     Voir
                 </button>
             </td>
-
         </tr>`;
     });
 }
 
-/* 🔥 FILTRE COMBINÉ */
-function applyAllFilters() {
-    const search  = (document.getElementById("search").value || "").toLowerCase();
-    const tranche = document.getElementById("filter-tranche").value;
-
-    const filtered = clientsData.filter(c => {
-        if (search  && !(c.nom_client || "").toLowerCase().includes(search)) return false;
-        if (tranche && getTranche(c.rendement) !== tranche)                  return false;
-        return true;
-    });
-    displayClients(filtered);
-}
-
-document.getElementById("search").addEventListener("input", applyAllFilters);
-document.getElementById("filter-tranche").addEventListener("change", applyAllFilters);
-
-/* 🔽 TRI RENDEMENT */
 function sortByRendement() {
-    const sorted = [...clientsData].sort((a, b) =>
-        (parseFloat(b.rendement) || 0) - (parseFloat(a.rendement) || 0)
-    );
-    displayClients(sorted);
+    displayClients([..._currentData].sort((a, b) =>
+        (parseFloat(b.rendement) || 0) - (parseFloat(a.rendement) || 0)));
 }
 
 function sortByHonos() {
-    const sorted = [...clientsData].sort((a, b) =>
-        (parseFloat(b.honoraires_cpta) || 0) -
-        (parseFloat(a.honoraires_cpta) || 0)
-    );
-    displayClients(sorted);
+    displayClients([..._currentData].sort((a, b) =>
+        (parseFloat(b.honoraires_cpta) || 0) - (parseFloat(a.honoraires_cpta) || 0)));
 }
 
 function sortByCA() {
-    const sorted = [...clientsData].sort((a, b) =>
-        (parseFloat(b.ca_r) || 0) -
-        (parseFloat(a.ca_r) || 0)
-    );
-    displayClients(sorted);
+    displayClients([..._currentData].sort((a, b) =>
+        (parseFloat(b.ca_r) || 0) - (parseFloat(a.ca_r) || 0)));
 }
 
 function sortByResultat() {
-    const sorted = [...clientsData].sort((a, b) =>
-        (parseFloat(b.resultat_r) || 0) -
-        (parseFloat(a.resultat_r) || 0)
-    );
-    displayClients(sorted);
+    displayClients([..._currentData].sort((a, b) =>
+        (parseFloat(b.resultat_r) || 0) - (parseFloat(a.resultat_r) || 0)));
 }
 
 function viewClient(siret) {
@@ -748,58 +696,49 @@ function viewClient(siret) {
 }
 
 function exportIndexCSV() {
-    exportCSV(displayedClients, 'clients.csv', [
-        { label: "Code",          field: "codeclient" },
-        { label: "Nom",           field: "nomclient" },
-        { label: "Clôture",       field: "datedecloture" },
+    exportCSV(_currentData, ‘clients.csv’, [
+        { label: "Code",          field: "code_client" },
+        { label: "Nom",           field: "nom_client" },
+        { label: "Clôture",       field: "date_de_cloture" },
         { label: "Structure",     field: "structure" },
-        { label: "Ancienneté",    field: "ancienneté" },
-        { label: "Honoraires",    field: "honorairescpta" },
+        { label: "Ancienneté",    field: "anciennete" },
+        { label: "Honoraires",    field: "honoraires_cpta" },
         { label: "Collaborateur", field: "collaborateur" },
         { label: "Assistant",     field: "assistant" },
-        { label: "CA",            field: "car" },
+        { label: "CA",            field: "ca_r" },
         { label: "Résultat",      field: "resultat_r" },
-        { label: "Activité",      field: "activiter" }
+        { label: "Activité",      field: "activite_r" }
     ]);
 }
 
 function updateDashboard(data) {
     const total = data.length;
-
-    const totalHonos = data.reduce((sum, c) => {
-        return sum + (parseFloat(c.honoraires_cpta) || 0);
-    }, 0);
-
+    const totalHonos = data.reduce((sum, c) => sum + (parseFloat(c.honoraires_cpta) || 0), 0);
     const avg = total ? totalHonos / total : 0;
-
     document.getElementById("total-clients").innerText = total;
     document.getElementById("avg-honos").innerText =
-        new Intl.NumberFormat('fr-FR', {
-            style: 'currency',
-            currency: 'EUR'
-        }).format(avg);
+        new Intl.NumberFormat(‘fr-FR’, { style: ‘currency’, currency: ‘EUR’ }).format(avg);
 }
 
-loadClients();
-setInterval(async () => {
-    const res = await fetch(API_URL + "/clients");
-    const response = await res.json();
-    clientsData = response.data;
-}, 5 * 60 * 1000);
+document.getElementById("search").addEventListener("input", applyFilters);
+document.getElementById("filter-tranche").addEventListener("change", applyFilters);
+
+loadPage(1);
+setInterval(() => loadPage(_currentPage), 5 * 60 * 1000);
 
 /* Menu déroulant navigation */
 function toggleNavMenu() {
-    const menu = document.getElementById('nav-menu');
-    const btn  = document.getElementById('nav-btn');
-    menu.classList.toggle('open');
-    btn.classList.toggle('open');
+    const menu = document.getElementById(‘nav-menu’);
+    const btn  = document.getElementById(‘nav-btn’);
+    menu.classList.toggle(‘open’);
+    btn.classList.toggle(‘open’);
 }
 
-document.addEventListener('click', function(e) {
-    const dropdown = document.querySelector('.nav-dropdown');
+document.addEventListener(‘click’, function(e) {
+    const dropdown = document.querySelector(‘.nav-dropdown’);
     if (dropdown && !dropdown.contains(e.target)) {
-        document.getElementById('nav-menu').classList.remove('open');
-        document.getElementById('nav-btn').classList.remove('open');
+        document.getElementById(‘nav-menu’).classList.remove(‘open’);
+        document.getElementById(‘nav-btn’).classList.remove(‘open’);
     }
 });
 </script>
