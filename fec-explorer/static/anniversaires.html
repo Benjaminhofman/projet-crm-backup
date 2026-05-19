@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Calendrier Anniversaires</title>
+<title>Calendrier</title>
 
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 
@@ -18,21 +18,208 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 4px;
 }
 
 .back {
     background: #273c75;
     color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
     text-decoration: none;
+    font-size: .9rem;
 }
 
 #calendar {
-    margin-top: 20px;
+    margin-top: 12px;
     background: white;
     padding: 10px;
-    border-radius: 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(39,60,117,.07);
+}
+
+/* ── Barre de filtres ── */
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-size: .82rem;
+    font-weight: 700;
+    color: #273c75;
+    white-space: nowrap;
+    letter-spacing: .02em;
+}
+
+.filter-group select {
+    background: white;
+    border: 1.5px solid #d0d8ee;
+    border-radius: 8px;
+    padding: 7px 32px 7px 12px;
+    font-size: .88rem;
+    color: #2c3e50;
+    font-family: 'Segoe UI', sans-serif;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23273c75' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    min-width: 170px;
+    transition: border-color .15s, box-shadow .15s;
+    box-shadow: 0 1px 4px rgba(39,60,117,.06);
+}
+.filter-group select:focus {
+    outline: none;
+    border-color: #273c75;
+    box-shadow: 0 0 0 3px rgba(39,60,117,.13);
+}
+
+.filter-badge {
+    font-size: .78rem;
+    color: #7f8c8d;
+    padding: 4px 10px;
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #e0e5f0;
+    white-space: nowrap;
+    transition: opacity .2s;
+}
+.filter-badge.hidden { opacity: 0; pointer-events: none; }
+
+/* ──────────────────────────────────────────
+   Modal événement fiscal
+────────────────────────────────────────── */
+#modal-fiscal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(27, 39, 75, .48);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+#modal-fiscal.open { display: flex; }
+
+.mf-box {
+    background: white;
+    border-radius: 14px;
+    max-width: 480px;
+    width: 94%;
+    max-height: 78vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 16px 48px rgba(0,0,0,.22);
+    overflow: hidden;
+    animation: mfPop .18s cubic-bezier(.34, 1.56, .64, 1);
+}
+@keyframes mfPop {
+    from { transform: scale(.88); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.mf-header {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+}
+
+.mf-color-strip {
+    width: 6px;
+    min-height: 72px;
+    flex-shrink: 0;
+    border-radius: 14px 0 0 0;
+}
+
+.mf-header-inner {
+    flex: 1;
+    padding: 18px 18px 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mf-titles { flex: 1; min-width: 0; }
+
+.mf-type {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #273c75;
+    line-height: 1.3;
+}
+
+.mf-date {
+    font-size: .83rem;
+    color: #7f8c8d;
+    margin-top: 3px;
+    text-transform: capitalize;
+}
+
+.mf-close {
+    background: #f4f6fb;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: .95rem;
+    cursor: pointer;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background .13s, color .13s;
+    margin-top: -2px;
+}
+.mf-close:hover { background: #e3e8f5; color: #273c75; }
+
+.mf-count {
+    padding: 7px 22px 7px 22px;
+    font-size: .76rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #a0a8c0;
+    border-top: 1px solid #f0f2f8;
+    border-bottom: 1px solid #f0f2f8;
+}
+
+.mf-list {
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 6px 0 12px;
+}
+
+.mf-list li {
+    padding: 8px 22px;
+    font-size: .93rem;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background .1s;
+    cursor: default;
+}
+.mf-list li:hover { background: #f7f9fd; }
+
+.mf-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 </style>
 </head>
@@ -41,185 +228,383 @@ body {
 
 <div class="header">
     <a href="index.html" class="back">⬅ Retour</a>
-    <h2>🎂 Calendrier des anniversaires</h2>
+    <h2 style="margin:0;color:#273c75;">📅 Calendrier</h2>
+</div>
+
+<!-- Filtres collaborateur / assistant -->
+<div class="filter-bar">
+    <div class="filter-group">
+        <label for="sel-collab">Collaborateur</label>
+        <select id="sel-collab"><option value="">Tous</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="sel-assist">Assistant</label>
+        <select id="sel-assist"><option value="">Tous</option></select>
+    </div>
+    <span class="filter-badge hidden" id="filter-badge"></span>
 </div>
 
 <div id="calendar"></div>
+
+<!-- Modal événement fiscal -->
+<div id="modal-fiscal">
+    <div class="mf-box">
+        <div class="mf-header">
+            <div class="mf-color-strip" id="mf-strip"></div>
+            <div class="mf-header-inner">
+                <div class="mf-titles">
+                    <div class="mf-type"  id="mf-type"></div>
+                    <div class="mf-date"  id="mf-date"></div>
+                </div>
+                <button class="mf-close" onclick="closeFiscalModal()">✕</button>
+            </div>
+        </div>
+        <div class="mf-count" id="mf-count"></div>
+        <ul  class="mf-list"  id="mf-list"></ul>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
 <script>
 const API_URL = "/api";
 
-// Variable globale partagée entre toutes les pages déclaratives
-let dataGlobal = [];
-
-// Échappement HTML pour prévenir les injections XSS
 function esc(val) {
-    const div = document.createElement('div');
-    div.textContent = val ?? '';
-    return div.innerHTML;
+    const d = document.createElement('div');
+    d.textContent = val ?? '';
+    return d.innerHTML;
 }
 
-// Formatage date ISO → YYYY-MM-DD
-function formatDate(dateStr) {
-    if (!dateStr) return "";
-    return dateStr.substring(0, 10);
-}
-
-// Score de rentabilité (retourne la valeur numérique brute)
-function getRentabiliteScore(val) {
-    return parseFloat(val) || 0;
-}
-
-// Chargement des clients depuis l'API avec gestion d'erreur
 async function fetchClients() {
     try {
         const res = await fetch(API_URL + "/clients");
-        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        if (!res.ok) throw new Error("HTTP " + res.status);
         return await res.json();
     } catch (err) {
-        console.error("Erreur fetchClients:", err);
-        return { data: [], total: 0 };
+        console.error("fetchClients:", err);
+        return [];
     }
 }
 
-// Attache applyFilters() sur tous les inputs correspondant au sélecteur CSS
-function bindFilterInputs(selector) {
-    document.querySelectorAll(selector).forEach(el => {
-        el.addEventListener("input", applyFilters);
+/* ──────────────────────────────────────────
+   Modal
+────────────────────────────────────────── */
+function showFiscalModal(info) {
+    const clients = info.event.extendedProps.clients;
+    if (!clients || !clients.length) return;
+
+    // Titre sans le compteur "(N)"
+    const typeLabel = info.event.title.replace(/\s*\(\d+\)$/, '');
+
+    // Date formatée en français depuis la string stockée dans extendedProps
+    // (évite le décalage UTC de info.event.start)
+    const dateRaw = info.event.extendedProps.dateStr; // "YYYY-MM-DDT00:00:00"
+    const [yyyy, mm, dd] = dateRaw.split('T')[0].split('-').map(Number);
+    const dateObj = new Date(yyyy, mm - 1, dd);
+    const dateLabel = dateObj.toLocaleDateString('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
+
+    const color = info.event.backgroundColor;
+    const n = clients.length;
+
+    document.getElementById('mf-strip').style.background = color;
+    document.getElementById('mf-type').textContent  = typeLabel;
+    document.getElementById('mf-date').textContent  = dateLabel;
+    document.getElementById('mf-count').textContent =
+        n + ' client' + (n > 1 ? 's' : '') + ' concerné' + (n > 1 ? 's' : '');
+
+    const ul = document.getElementById('mf-list');
+    ul.innerHTML = clients.map(nom =>
+        `<li><span class="mf-dot" style="background:${esc(color)}"></span>${esc(nom)}</li>`
+    ).join('');
+
+    document.getElementById('modal-fiscal').classList.add('open');
 }
 
-// Mise à jour d'un champ texte/date/nombre dans PostgreSQL
-async function updateField(siret, field, value, el) {
-    if (el) el.style.background = "#fff3cd";
-    try {
-        const res = await fetch(`${API_URL}/client/${siret}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ [field]: value })
-        });
-        if (!res.ok) throw new Error();
-        if (el) el.style.background = "#d4edda";
-        setTimeout(() => { if (el) el.style.background = ""; }, 2000);
-    } catch {
-        if (el) el.style.background = "#f8d7da";
-    }
+function closeFiscalModal() {
+    document.getElementById('modal-fiscal').classList.remove('open');
 }
 
-// Mise à jour d'une case à cocher dans PostgreSQL
-async function updateCheckbox(siret, field, value, el) {
-    if (el) el.style.outline = "2px solid orange";
-    try {
-        const res = await fetch(`${API_URL}/client/${siret}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ [field]: value })
-        });
-        if (!res.ok) throw new Error();
-        if (el) el.style.outline = "2px solid green";
-        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
-    } catch {
-        if (el) el.style.outline = "2px solid red";
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('modal-fiscal').addEventListener('click', function(e) {
+        if (e.target === this) closeFiscalModal();
+    });
+});
+
+/* ──────────────────────────────────────────
+   État global
+────────────────────────────────────────── */
+let allClients   = [];
+let calendarInst = null;
+const aujourd_hui = new Date();
+aujourd_hui.setHours(0, 0, 0, 0);
+
+function toLocalDateStr(d) {
+    const yyyy = d.getFullYear();
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T00:00:00`;
 }
 
-// Mise à jour d'un select dans PostgreSQL
-async function updateSelect(siret, field, value, el) {
-    if (el) el.style.outline = "2px solid orange";
-    try {
-        const res = await fetch(`${API_URL}/client/${siret}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ [field]: value })
-        });
-        if (!res.ok) throw new Error();
-        if (el) el.style.outline = "2px solid green";
-        setTimeout(() => { if (el) el.style.outline = ""; }, 2000);
-    } catch {
-        if (el) el.style.outline = "2px solid red";
-    }
-}
-
-// Export CSV — séparateur point-virgule, BOM UTF-8 pour compatibilité Excel
-// columns (optionnel) : [{label, field}, ...] — si absent, exporte toutes les clés
-function exportCSV(data, filename, columns) {
-    if (!data || !data.length) {
-        alert("Aucune donnée à exporter.");
-        return;
-    }
-
-    let headers, rows;
-
-    if (columns) {
-        headers = columns.map(c => c.label);
-        rows = data.map(row =>
-            columns.map(c => '"' + String(row[c.field] ?? '').replace(/"/g, '""') + '"').join(';')
-        );
-    } else {
-        const keys = [...new Set(data.flatMap(r => Object.keys(r)))].filter(k => k !== 'id');
-        headers = keys;
-        rows = data.map(row =>
-            keys.map(k => '"' + String(row[k] ?? '').replace(/"/g, '""') + '"').join(';')
-        );
-    }
-
-    const csv = '﻿' + [
-        headers.map(h => '"' + h.replace(/"/g, '""') + '"').join(';'),
-        ...rows
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || 'export.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-}
-</script>
-<script>
-
-async function loadCalendar() {
-
-    const response = await fetchClients();
-    const data = response.data ?? response;
-
-    const currentYear = new Date().getFullYear(); // 🔥 dynamique
-
-    // 🔥 transformation des anniversaires en events
-    const events = data
-        .filter(c => c["anniversaire"])
+/* Construit tous les événements pour un sous-ensemble de clients */
+function buildEvents(clients) {
+    const anniversaires = clients
+        .filter(c => c.anniversaire)
         .map(c => {
-
-            const date = new Date(c["anniversaire"]);
-
-            const month = String(date.getMonth() + 1).padStart(2,'0');
-            const day = String(date.getDate()).padStart(2,'0');
-
-            // 🔥 utilisation du champ AGE Airtable
-            const age = c.age ? ` (${c.age} ans)` : "";
-
+            const [annee, moisRaw, jourRaw] = c.anniversaire.split('-').map(Number);
+            let prochain = new Date(aujourd_hui.getFullYear(), moisRaw - 1, jourRaw);
+            if (prochain < aujourd_hui) prochain = new Date(aujourd_hui.getFullYear() + 1, moisRaw - 1, jourRaw);
+            const ageFutur = prochain.getFullYear() - annee;
+            const labelAge = annee > 1900 ? ` (${ageFutur} ans)` : '';
             return {
-                title: `${c.nom_client} 🎂${age}`,
-                start: `${currentYear}-${month}-${day}`, // 🔥 clé du système
+                title: `${c.nom_client} 🎂${labelAge}`,
+                start: toLocalDateStr(prochain),
                 allDay: true
             };
         });
+    return [...anniversaires, ...computeFiscalEvents(clients)];
+}
 
-    const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+/* Alimente un <select> avec les valeurs uniques d'un champ */
+function populateSelect(id, clients, field) {
+    const sel = document.getElementById(id);
+    const vals = [...new Set(clients.map(c => (c[field] || '').trim()).filter(Boolean))].sort();
+    vals.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        sel.appendChild(opt);
+    });
+}
+
+/* Refiltre et met à jour le calendrier sans rappel API */
+function refreshCalendar() {
+    const collab = document.getElementById('sel-collab').value;
+    const assist = document.getElementById('sel-assist').value;
+
+    let filtered = allClients;
+    if (collab) filtered = filtered.filter(c => c.collaborateur === collab);
+    if (assist) filtered = filtered.filter(c => c.assistant     === assist);
+
+    const badge = document.getElementById('filter-badge');
+    if (collab || assist) {
+        badge.textContent = filtered.length + ' client' + (filtered.length > 1 ? 's' : '');
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+
+    calendarInst.removeAllEvents();
+    buildEvents(filtered).forEach(ev => calendarInst.addEvent(ev));
+}
+
+/* ──────────────────────────────────────────
+   Chargement initial
+────────────────────────────────────────── */
+async function loadCalendar() {
+    const _resp = await fetchClients();
+    allClients = _resp.data ?? _resp;
+
+    populateSelect('sel-collab', allClients, 'collaborateur');
+    populateSelect('sel-assist', allClients, 'assistant');
+
+    calendarInst = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'dayGridMonth',
         locale: 'fr',
-        height: "auto",
-        events: events
+        height: 'auto',
+        events: buildEvents(allClients),
+        eventClick: function(info) {
+            info.jsEvent.preventDefault();
+            info.jsEvent.stopPropagation();
+            const clients = info.event.extendedProps.clients;
+            if (clients && clients.length) showFiscalModal(info);
+        },
+        eventDidMount: function(info) {
+            if (info.event.extendedProps.clients?.length) {
+                info.el.style.cursor = 'pointer';
+            }
+        }
     });
 
-    calendar.render();
+    calendarInst.render();
+
+    document.getElementById('sel-collab').addEventListener('change', refreshCalendar);
+    document.getElementById('sel-assist').addEventListener('change', refreshCalendar);
+}
+
+/* ──────────────────────────────────────────
+   Événements fiscaux groupés par type + date
+────────────────────────────────────────── */
+function computeFiscalEvents(clients) {
+    function prochaineDateFixe(mois, jour) {
+        let d = new Date(aujourd_hui.getFullYear(), mois - 1, jour);
+        if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, mois - 1, jour);
+        return toLocalDateStr(d);
+    }
+
+    function isTruthy(val) {
+        return val === true || val === 'true' || val === 't';
+    }
+
+    // Carte de groupement : clé = "label|dateStr"
+    const grouped = new Map();
+
+    function add(label, dateStr, color, nomClient) {
+        const key = `${label}|${dateStr}`;
+        if (!grouped.has(key)) grouped.set(key, { label, dateStr, color, clients: [] });
+        grouped.get(key).clients.push(nomClient);
+    }
+
+    // 2561 — 16 février
+    const date2561 = prochaineDateFixe(2, 16);
+    clients
+        .filter(c => parseFloat(c.dividendes) > 1)
+        .forEach(c => add('📋 2561', date2561, '#f39c12', c.nom_client));
+
+    // Liasse — deadline variable par clôture
+    clients
+        .filter(c => (isTruthy(c.is) || isTruthy(c.liasse)) && c.date_de_cloture)
+        .forEach(c => {
+            const [, moisClo, jourClo] = c.date_de_cloture.split('-').map(Number);
+            let deadline;
+            if (moisClo === 12 && jourClo === 31) {
+                deadline = new Date(aujourd_hui.getFullYear(), 4, 20);
+                if (deadline < aujourd_hui) deadline = new Date(aujourd_hui.getFullYear() + 1, 4, 20);
+            } else {
+                const base = new Date(aujourd_hui.getFullYear(), moisClo + 3, 0);
+                deadline = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 15);
+                if (deadline < aujourd_hui) {
+                    const b2 = new Date(aujourd_hui.getFullYear() + 1, moisClo + 3, 0);
+                    deadline = new Date(b2.getFullYear(), b2.getMonth(), b2.getDate() + 15);
+                }
+            }
+            add('📊 Liasse', toLocalDateStr(deadline), '#e74c3c', c.nom_client);
+        });
+
+    // IS — solde + acomptes
+    clients
+        .filter(c => isTruthy(c.is) && c.date_de_cloture)
+        .forEach(c => {
+            const [, moisClo] = c.date_de_cloture.split('-').map(Number);
+            const moisSolde = moisClo === 12 ? 5 : ((moisClo - 1 + 4) % 12) + 1;
+            const solde = new Date(aujourd_hui.getFullYear(), moisSolde - 1, 15);
+            if (solde < aujourd_hui) solde.setFullYear(aujourd_hui.getFullYear() + 1);
+            add('💰 Solde IS', toLocalDateStr(solde), '#e67e22', c.nom_client);
+
+            [3, 6, 9, 12].forEach(mois => {
+                const acompte = new Date(aujourd_hui.getFullYear(), mois - 1, 15);
+                if (acompte < aujourd_hui) acompte.setFullYear(aujourd_hui.getFullYear() + 1);
+                add('💰 Acompte IS', toLocalDateStr(acompte), '#e67e22', c.nom_client);
+            });
+        });
+
+    // CVAE — solde 5 mai + acomptes 15 juin/sept si ca_r > 500k ou inconnu
+    clients
+        .filter(c => isTruthy(c.cvae))
+        .forEach(c => {
+            const solde = new Date(aujourd_hui.getFullYear(), 4, 5);
+            if (solde < aujourd_hui) solde.setFullYear(aujourd_hui.getFullYear() + 1);
+            add('📘 CVAE solde', toLocalDateStr(solde), '#9b59b6', c.nom_client);
+
+            const car = parseFloat(c.ca_r);
+            if (isNaN(car) || c.ca_r === null || c.ca_r === '' || car > 500000) {
+                [[6, 15], [9, 15]].forEach(([mois, jour]) => {
+                    const d = new Date(aujourd_hui.getFullYear(), mois - 1, jour);
+                    if (d < aujourd_hui) d.setFullYear(aujourd_hui.getFullYear() + 1);
+                    add('📘 Acompte CVAE', toLocalDateStr(d), '#9b59b6', c.nom_client);
+                });
+            }
+        });
+
+    // TVS — date variable selon ca12 + date_de_cloture
+    clients
+        .filter(c => isTruthy(c.tvs))
+        .forEach(c => {
+            const [, moisClo, jourClo] = (c.date_de_cloture || '').split('-').map(Number);
+            let d;
+            if (isTruthy(c.ca12)) {
+                if (moisClo === 12 && jourClo === 31) {
+                    d = new Date(aujourd_hui.getFullYear(), 4, 5);
+                    if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, 4, 5);
+                } else {
+                    d = new Date(aujourd_hui.getFullYear(), moisClo + 3, 0);
+                    if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, moisClo + 3, 0);
+                }
+            } else {
+                d = new Date(aujourd_hui.getFullYear(), 0, 27);
+                if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, 0, 27);
+            }
+            add('🚗 TVS', toLocalDateStr(d), '#3498db', c.nom_client);
+        });
+
+    // CA12 — date variable selon date_de_cloture
+    clients
+        .filter(c => isTruthy(c.ca12))
+        .forEach(c => {
+            const [, moisClo, jourClo] = (c.date_de_cloture || '').split('-').map(Number);
+            let d;
+            if (moisClo === 12 && jourClo === 31) {
+                d = new Date(aujourd_hui.getFullYear(), 4, 5);
+                if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, 4, 5);
+            } else {
+                d = new Date(aujourd_hui.getFullYear(), moisClo + 3, 0);
+                if (d < aujourd_hui) d = new Date(aujourd_hui.getFullYear() + 1, moisClo + 3, 0);
+            }
+            add('🟢 CA12', toLocalDateStr(d), '#27ae60', c.nom_client);
+        });
+
+    // CFE — acompte 15 juin (si cfe_r > 3000) + solde 15 décembre
+    clients
+        .filter(c => isTruthy(c.cotisation_fonciere_entreprise))
+        .forEach(c => {
+            const cfr = parseFloat(c.cfe_r);
+            if (!isNaN(cfr) && cfr > 3000) {
+                add('🏢 CFE acompte', prochaineDateFixe(6, 15), '#1abc9c', c.nom_client);
+            }
+            add('🏢 CFE solde', prochaineDateFixe(12, 15), '#1abc9c', c.nom_client);
+        });
+
+    // Conversion Map → événements FullCalendar
+    const events = [];
+    grouped.forEach(val => {
+        const n = val.clients.length;
+        events.push({
+            title: `${val.label} (${n})`,
+            start: val.dateStr,
+            allDay: true,
+            backgroundColor: val.color,
+            borderColor:     val.color,
+            extendedProps: {
+                clients: val.clients,
+                dateStr: val.dateStr   // conservé pour l'affichage modal sans décalage UTC
+            }
+        });
+    });
+
+    // DAS2 et DECLOYER — événements génériques sans liste clients
+    events.push({
+        title: '📋 DAS2',
+        start: prochaineDateFixe(5, 5),
+        allDay: true,
+        backgroundColor: '#95a5a6',
+        borderColor:     '#95a5a6'
+    });
+    events.push({
+        title: '📋 DECLOYER',
+        start: prochaineDateFixe(5, 20),
+        allDay: true,
+        backgroundColor: '#95a5a6',
+        borderColor:     '#95a5a6'
+    });
+
+    return events;
 }
 
 loadCalendar();
 </script>
 
+<script src="/auth.js"></script>
+<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>
