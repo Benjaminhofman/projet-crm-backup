@@ -1,29 +1,28 @@
 # CRM Collaborateurs Comptables
 
 ## Présentation du projet
-Application CRM destinée aux collaborateurs comptables pour piloter 
-un portefeuille client. L'objectif prioritaire est une UX/UI 
-excellente : fluide, intuitive et moderne.
+Application CRM destinée aux collaborateurs comptables pour piloter
+un portefeuille client. L'objectif prioritaire est une UX/UI excellente :
+fluide, intuitive et moderne.
 
-Intégrations actuelles et à venir :
+Intégrations :
 - **Make (Integromat)** : automatisation de workflows (en cours)
+
+---
 
 ## Règles de comportement
 - Toujours répondre et commenter en **français**
-- Ne jamais demander de confirmation avant de modifier, créer 
-  ou supprimer un fichier
+- Ne jamais demander de confirmation avant de modifier, créer ou supprimer un fichier
 - Ne jamais demander de permission avant d'exécuter une commande
 - Travailler de manière autonome et aller jusqu'au bout des tâches
-- Après chaque tâche terminée, proposer automatiquement 2 ou 3 
-  améliorations ou nouvelles fonctionnalités pertinentes en lien 
-  avec le code modifié
+- Après chaque tâche terminée, proposer 2 ou 3 améliorations ou nouvelles
+  fonctionnalités pertinentes en lien avec le code modifié
 
 ## Priorités de développement
-- **UX/UI en premier** : chaque fonctionnalité doit être fluide, 
-  responsive et agréable à utiliser
+- **UX/UI en premier** : chaque fonctionnalité doit être fluide, responsive
+  et agréable à utiliser
 - Privilégier les animations subtiles et les transitions douces
-- Penser à l'ergonomie pour un usage quotidien intensif 
-  (collaborateurs comptables)
+- Penser à l'ergonomie pour un usage quotidien intensif (collaborateurs comptables)
 - Optimiser les performances (chargements rapides, pas de blocage UI)
 
 ## Standards de code
@@ -32,869 +31,633 @@ Intégrations actuelles et à venir :
 - Toujours gérer les états de chargement et les erreurs
 - Penser à l'expérience mobile si pertinent
 
-
-## Ce qu'il ne faut pas toucher
-- Les fichiers de configuration d'environnement (.env)
-- Les clés API et tokens d'authentification
-
-le lien de mon projet sur github est https://github.com/Benjaminhofman/projet-crm
-- Après chaque modification de code, faire automatiquement :
-  1. git add .
-  2. git commit -m "message descriptif en français"
-  3. git push origin main
-- Ne jamais demander de confirmation avant de push
-- Les messages de commit doivent décrire clairement ce qui a été modifié
-
-## Mise à jour automatique
-A la fin de chaque session de travail, mets à jour la section 
-"État du projet" et "Prochaines étapes" de ce fichier CLAUDE.md 
-avec ce qui a été accompli et ce qui reste à faire.
-
-Dans CLAUDE.md, remplace la section "## Intégration Airtable" et ajoute les sections manquantes :
-
-## Stack technique actuelle
-- Frontend : HTML/JS vanilla (static/ servi par FastAPI)
-- Backend : FastAPI Python (fec-explorer/app/main.py)
-- Base de données : PostgreSQL (Render, Frankfurt)
-- Hébergement : Render (Web Service + PostgreSQL)
-- Versioning : GitHub https://github.com/Benjaminhofman/projet-crm
-- URL production : https://projet-crm-m0o3.onrender.com
-
-## Architecture des fichiers
-- fec-explorer/app/main.py : API FastAPI (tous les endpoints)
-- fec-explorer/static/ : tous les fichiers HTML/JS servis
-- fec-explorer/app/core/fec_parser.py : parsing des fichiers FEC
-- fec-explorer/app/core/indicators.py : calcul des 61+ indicateurs
-- fec-explorer/app/core/postgres_sync.py : sync FEC → PostgreSQL
-- fec-explorer/import_csv.py : import CSV → PostgreSQL
-- fec-explorer/sync_html.py : synchronise HTML racine → static/
-
-## Base de données PostgreSQL
-- Table principale : clients (135 colonnes)
-- Colonnes _r : alimentées par le FEC Explorer
-- Colonnes sans _r : saisies manuellement via le CRM
-- UPSERT sur siret (clé primaire)
-- DATABASE_URL depuis variable d'environnement
-
-## Endpoints API principaux
-- GET /api/clients → liste tous les clients
-- GET /api/client/{siret} → détail d'un client
-- POST /api/client/create → créer un client
-- POST /api/client/update → modifier un client
-- DELETE /api/client/{siret} → supprimer un client
-- POST /api/clients/import → import CSV en masse (UPSERT)
-- GET /api/clients/columns → types des colonnes PostgreSQL
-- GET /api/clients/template-csv → CSV vide avec en-têtes
-- POST /update-airtable → met à jour un champ (siret, field, value)
-- POST /api/fec/upload → parse FEC + sync PostgreSQL
-
-## Règles importantes
-- NE JAMAIS utiliser Airtable — migration terminée, PostgreSQL uniquement
-- Toujours utiliser c.siret et NON c.id dans les fichiers HTML
-- Les noms de champs sont en snake_case PostgreSQL (pas d'espaces)
-- Après modification d'un fichier HTML racine, exécuter sync_html.py
-  pour synchroniser vers static/
-- Les booléens s'envoient en true/false (pas "oui"/"non") vers l'API
-- Les dates s'envoient en format ISO YYYY-MM-DD vers l'API
-
-## ~~Intégration Airtable~~ (SUPPRIMÉE)
-Airtable a été complètement remplacé par PostgreSQL.
-Ne plus jamais utiliser AIRTABLE_TOKEN, BASE_ID ou TABLE_NAME.
-
-## Pièges connus à éviter
-
-1. sync_html.py écrase static/index.html — ce fichier est exclu
-   de la synchronisation. Modifier UNIQUEMENT static/index.html
-   pour les changements spécifiques à la prod.
-
-2. Render cache les fichiers statiques — la route /index.html
-   dans main.py a Cache-Control: no-cache. Ne pas supprimer cette route.
-
-3. Les dates s'affichent en DD/MM/YYYY dans l'interface mais
-   sont stockées en YYYY-MM-DD dans PostgreSQL. Toujours convertir
-   avant INSERT/UPDATE.
-
-4. La colonne anciennete est calculée via :
-   UPDATE clients SET anciennete = EXTRACT(YEAR FROM AGE(NOW(), date_entree))
-   Appeler GET /api/migrate/anciennete après chaque import CSV massif.
-
-5. Ne jamais modifier index.html (racine) directement pour la prod —
-   seul static/index.html est servi par Render.
-
-## Colonnes calculées PostgreSQL
-- anciennete : EXTRACT(YEAR FROM AGE(NOW(), date_entree))
-  → recalculer via GET /api/migrate/anciennete après import
-- rentabilite : calculé côté JS frontend (honoraires_cpta / temps_passe)
-- anciennete badge "Nouveau" : anciennete < 1 ou date_entree récente
-
-Dans CLAUDE.md, ajoute cette section après ## Pièges connus :
-
-## Table NAF
-- Table naf (code TEXT, libelle TEXT) dans PostgreSQL
-- Importée via GET /api/migrate/naf (données hardcodées dans main.py)
-- Trigger update_activite_r : remplit activite_r automatiquement
-  quand code_naf_r change (prend les chiffres avant le point)
-- Après import CSV massif : appeler /api/migrate/activite
-
-## Colonnes de type TEXT à ne pas confondre avec NUMERIC
-Ces colonnes stockent du texte (ex: "détecté", "en cours") mais
-étaient créées en NUMERIC dans le schéma initial :
-suivi_mission_retraite, suivi_mission_patrimoniale,
-suivi_mission_placement, suivi_mission_prevoyance
-Si erreur "invalid input syntax for type numeric" :
-ALTER TABLE clients ALTER COLUMN suivi_mission_retraite TYPE TEXT;
-(idem pour les 3 autres)
-
-## Formats d'affichage
-- Dates affichées en JJ/MM (sans année) dans toutes les pages
-- SIRET : exactement 9 chiffres (validation frontend)
-- filterField dans decl-engine.js : toujours en snake_case minuscules
-  ex: "ca12", "tvs", "is", "impot_sur_le_revenu"
-
-## Endpoints de migration
-Appeler une seule fois après déploiement ou import massif :
-- GET /api/migrate/naf → importe les 88 codes NAF
-- GET /api/migrate/activite → remplit activite_r depuis code_naf_r
-- GET /api/migrate/anciennete → recalcule anciennete depuis date_entree
-- GET /api/migrate/trigger-activite → recrée le trigger PostgreSQL
-
-### ÉTAPE 8 — Champ rendement calculé ✅ TERMINÉ
-- Colonne rendement (numeric) ajoutée dans table clients
-- Fonction calc_rendement(siret) : score 0-100 pondéré
-  (taux horaire 50% + ancienneté 20% + ca_r 15% + resultat_r 15%)
-- Trigger trg_rendement BEFORE INSERT/UPDATE auto-recalcule
-- Endpoints : /api/migrate/rendement_setup, install_trigger_rendement
-- Endpoint debug : /api/debug/rendement, /api/debug/triggers
-- Page rendement.html : tri DESC + filtre par tranche + badges couleur
-
-## Architecture du projet (mise à jour 07/05/2026)
-
-### Stack
-- Backend : FastAPI Python (`fec-explorer/app/main.py`)
-- Frontend : HTML/JS statique dans `static/` (servi par Render)
-- BDD : PostgreSQL Render (Basic-256mb, Frankfurt EU)
-- DATABASE_URL dans variable d'environnement
-- GitHub : Benjaminhofman/projet-crm
-
-### Workflow de modification standard
-1. Modifications côté Python → commit → push → Render redéploie en 1-2 min
-2. Modifications de schéma BDD → toujours via un endpoint `/api/migrate/...` 
-   appelé une fois dans le navigateur (pas de migrations locales)
-3. Modifications côté static/ → sync_html.py si édité hors static/, 
-   sinon commit direct
-4. Hard refresh (Ctrl+Shift+R) après push pour bypasser le cache Render
-
-### Triggers PostgreSQL actifs
-- `trigger_activite_r` (BEFORE INSERT/UPDATE) → remplit activite_r 
-  depuis code_naf_r (chiffres avant le point)
-- `trg_rendement` (BEFORE INSERT OR UPDATE OF honoraires_cpta, 
-  temps_passe, ca_r, resultat_r, anciennete) → recalcule rendement
-- Diagnostic : `GET /api/debug/triggers`
-
-### Fonctions PostgreSQL
-- `calc_rendement(siret)` → calcul depuis la BDD (utilisé par rendement_setup)
-- `update_rendement_trigger()` → calcul depuis NEW.* (utilisé par le trigger)
-- Les 2 doivent rester synchronisées sur la logique : seuils, plafond, 
-  règles de NULL
-
-### Conventions de nommage
-- Colonnes BDD : snake_case minuscule strict
-- Champs alimentés par FEC : suffixe `_r` (ca_r, resultat_r, activite_r...)
-- Champs métier saisis manuellement : sans suffixe
-- Champs booléens (missions) : `boolean` PostgreSQL → vérifier le type 
-  avant de saisir du texte (cf. bug juridique_exceptionnel étape 10)
-
-### Endpoints utilitaires (debug et migration)
-- `/api/migrate/rendement_setup` → recalcule rendement de tous les clients
-- `/api/migrate/install_trigger_rendement` → réinstalle le trigger rendement
-- `/api/migrate/anciennete` → recalcule colonne anciennete
-- `/api/migrate/naf` → crée table naf et importe les codes
-- `/api/migrate/activite` → remplit activite_r depuis code_naf_r
-- `/api/debug/rendement` → liste clients + ingrédients du calcul
-- `/api/debug/triggers` → liste triggers actifs sur table clients
-- `/api/rendement_detail/{siret}` → détail JSON pour la modal frontend
-
-### Logique du score rendement (Stratégie C)
-- 4 facteurs pondérés : taux horaire 50% / ancienneté 20% / CA 15% / résultat 15%
-- Si nb_facteurs_renseignés < 2 → score = NULL
-- Score relatif = (pts obtenus / poids cumulé des facteurs renseignés) × 100
-- Plafonnement : 2 fact → max 70, 3 fact → max 85, 4 fact → pas de plafond
-- Toute modif de la formule doit être reportée DANS LES DEUX fonctions 
-  (calc_rendement ET update_rendement_trigger), sinon désynchro
-
-### Pièges connus
-- `localStorage`/`sessionStorage` interdits dans Render (à éviter de 
-  toute façon)
-- Index sur `index.html` doit avoir Cache-Control no-cache (déjà configuré)
-- Triggers doivent être recréés via endpoint après chaque modif de leur 
-  logique (DROP + CREATE), pas juste CREATE OR REPLACE
-- Date de clôture : format JJ/MM partout (déclaratif, commercial, 
-  missions, opportunités, rendement, index)
-
-### Style des prompts pour Claude Code (rappel)
+## Style des prompts pour Claude Code
 - Toujours en français
 - Maximum 5-6 lignes par prompt
 - Découper en mini-blocs si plus long
 - Pas de demande de confirmation avant de coder
-- Toujours commit + push à la fin
 
-## Mises à jour 07/05/2026 (session étapes 11-12)
+## Workflow git
+Après chaque modification de code, faire automatiquement :
+1. `git add .`
+2. `git commit -m "message descriptif en français"`
+3. `git push origin main`
 
-### Nouveau champ calculé : franchise_tva_prest
-- Colonne TEXT auto-calculée par trigger `trg_franchise_tva`
-- Logique : ca_r < 40000 ET achat_revente = 'non' → 'OUI', 
-  NULL si ca_r ou achat_revente manquant → 'Données manquantes', 
-  sinon → 'NON'
-- Endpoints : /api/migrate/franchise_tva_setup, /api/migrate/install_trigger_franchise_tva
-- Affichage : visible dans gestion-clients (à styliser dans declaratif.html ultérieurement)
+Les messages de commit doivent décrire clairement ce qui a été modifié.
+Ne jamais demander de confirmation avant de push.
 
-### Triggers actifs (mis à jour)
-1. trigger_activite_r → activite_r depuis SPLIT_PART(code_naf_r, '.', 1)
-2. trg_rendement → score 0-100 calculé sur 4 facteurs
-3. trg_franchise_tva → franchise_tva_prest depuis ca_r + achat_revente
-- Vérification : GET /api/debug/triggers
-- Inspection du code source d'une fonction : 
-  SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname='nom_fonction'
+## Ce qu'il ne faut pas toucher
+- Les fichiers de configuration d'environnement (`.env`)
+- Les clés API et tokens d'authentification
 
-### Pièges à connaître absolument
+## Mise à jour de ce fichier
+À la fin de chaque session de travail, mettre à jour la section
+« État du projet » et « Prochaines étapes » avec ce qui a été
+accompli et ce qui reste à faire.
 
-#### Piège 1 : UPDATE qui ne déclenche pas le trigger
-- Beaucoup de fonctions trigger contiennent `IF NEW.X IS DISTINCT FROM OLD.X`
-- Du coup `UPDATE clients SET x = x` ne déclenche RIEN (la valeur n'a pas changé)
-- Pour forcer un recalcul global après un fix de fonction, créer un endpoint 
-  qui fait un UPDATE direct contournant le trigger :
-  UPDATE clients SET activite_r = (SELECT libelle FROM naf 
-    WHERE code = SPLIT_PART(code_naf_r::text, '.', 1)) 
-    WHERE code_naf_r IS NOT NULL;
-- Modèle réutilisable : /api/migrate/force_recalc_<champ>
+---
 
-#### Piège 2 : LEFT vs SPLIT_PART pour code_naf_r
-- ❌ LEFT(code_naf_r::text, 1) → ne prend que le 1er caractère ("5" pour "56.30Z")
-- ✅ SPLIT_PART(code_naf_r::text, '.', 1) → tout avant le point ("56" pour "56.30Z")
-- Le `1` dans SPLIT_PART = numéro de partie, pas nombre de caractères
+## Stack technique
+- Frontend : HTML/JS vanilla (`static/` servi par FastAPI)
+- Backend : FastAPI Python (`fec-explorer/app/main.py`)
+- Base de données : PostgreSQL (Render, Basic-256mb, Frankfurt EU)
+- Hébergement : Render (Web Service + PostgreSQL)
+- Versioning : GitHub — https://github.com/Benjaminhofman/projet-crm
+- URL production : https://projet-crm-m0o3.onrender.com
+- `DATABASE_URL` depuis variable d'environnement
 
-#### Piège 3 : Une fonction PostgreSQL peut être créée 2 fois différemment
-- CREATE OR REPLACE écrase silencieusement l'ancienne version
-- Toujours vérifier le code source avec pg_get_functiondef après un fix
-- Endpoint type : /api/debug/<nom_fonction>_function
+## Architecture des fichiers
+- `fec-explorer/app/main.py` : API FastAPI (tous les endpoints)
+- `fec-explorer/static/` : tous les fichiers HTML/JS servis
+- `fec-explorer/app/core/fec_parser.py` : parsing des fichiers FEC
+- `fec-explorer/app/core/indicators.py` : calcul des 61+ indicateurs
+- `fec-explorer/app/core/postgres_sync.py` : sync FEC → PostgreSQL
+- `fec-explorer/import_csv.py` : import CSV → PostgreSQL
+- `fec-explorer/sync_html.py` : synchronise HTML racine → `static/`
 
-### Méthodologie de débug d'un trigger qui semble cassé
+## Workflow de modification standard
+1. Modifications côté Python → commit → push → Render redéploie en 1-2 min
+2. Modifications de schéma BDD → toujours via un endpoint `/api/migrate/...`
+   appelé une fois dans le navigateur (pas de migrations locales)
+3. Modifications côté `static/` → `sync_html.py` si édité hors `static/`,
+   sinon commit direct
+4. Hard refresh (Ctrl+Shift+R) après push pour bypasser le cache Render
 
-Procédure standard quand un champ calculé donne un résultat bizarre :
+---
 
-1. **Vérifier que le trigger existe** : GET /api/debug/triggers
-2. **Inspecter le code de la fonction** : créer endpoint debug avec pg_get_functiondef
-3. **Vérifier les données sources** : table de référence (naf), colonnes utilisées
-4. **Tester en modifiant réellement la colonne source** dans l'UI 
-   (ne pas se contenter d'un UPDATE x = x qui ne déclenche rien)
-5. **Forcer un recalcul global** via endpoint /api/migrate/force_recalc_<champ> 
-   si plusieurs lignes ont des valeurs figées historiques
+## Base de données PostgreSQL
 
-### Endpoints debug créés ce soir
+### Table principale `clients` (135 colonnes)
+- Clé primaire : `siret` (exactement 9 chiffres)
+- Colonnes `_r` : alimentées par le FEC Explorer
+- Colonnes sans `_r` : saisies manuellement via le CRM
+- UPSERT sur `siret`
 
-- /api/debug/activite_function : code source de update_activite_r()
-- /api/debug/naf_sample : échantillon table naf (utile pour vérifier codes)
-- /api/debug/type_achat_revente : types des colonnes franchise_tva
-- /api/debug/triggers : liste tous les triggers de la table clients
+### Conventions de nommage
+- Colonnes BDD : snake_case minuscule strict, jamais d'espaces
+- Champs alimentés par FEC : suffixe `_r` (`ca_r`, `resultat_r`, `activite_r`…)
+- Champs métier saisis manuellement : sans suffixe
+- Exception : `mai_ir` n'a pas le suffixe `_r` mais reste une saisie manuelle
+  (échéance fiscale IR de mai, type NUMERIC)
 
-Les endpoints debug peuvent rester en place, ils sont utiles pour 
-les futures sessions de débug et ne consomment rien tant qu'on ne 
-les appelle pas.
+### Table NAF
+- Table `naf` (`code` TEXT, `libelle` TEXT)
+- Importée via `GET /api/migrate/naf` (88 codes hardcodés dans `main.py`)
+- Trigger `trigger_activite_r` : remplit `activite_r` automatiquement
+  quand `code_naf_r` change
 
-### Convention pour les nouveaux champs calculés
+### Colonnes TEXT à ne pas confondre avec NUMERIC
+Ces colonnes stockent du texte (ex : « détecté », « en cours ») mais
+ont été créées en NUMERIC dans le schéma initial :
+`suivi_mission_retraite`, `suivi_mission_patrimoniale`,
+`suivi_mission_placement`, `suivi_mission_prevoyance`.
 
-Pour tout futur champ calculé par trigger, suivre cette structure :
-1. Endpoint /api/migrate/<champ>_setup → ALTER TABLE + UPDATE initial 
-   (utilise calc_<champ>(siret) ou logique CASE inline)
-2. Endpoint /api/migrate/install_trigger_<champ> → DROP+CREATE function 
-   et trigger (BEFORE INSERT OR UPDATE OF colonnes_sources)
-3. Endpoint /api/migrate/force_recalc_<champ> → UPDATE direct contournant 
-   trigger (à créer en cas de besoin de recalcul forcé)
-4. Endpoint /api/debug/<champ>_function → inspection code sourCE
-## ⚠️ TRIGGERS POSTGRESQL ACTIFS — NE PAS MODIFIER SANS CONFIRMATION
+Si erreur `invalid input syntax for type numeric` :
+```sql
+ALTER TABLE clients ALTER COLUMN suivi_mission_retraite TYPE TEXT;
+```
+(idem pour les 3 autres)
 
-5 triggers vivants en base PostgreSQL :
-1. trigger_activite_r → activite_r depuis SPLIT_PART(code_naf_r, '.', 1)
-2. trg_rendement → score 0-100 (4 facteurs pondérés)
-3. trg_franchise_tva → franchise_tva_prest (seuil 37500€)
-4. trg_franchise_achrevente → franchise_tva_achrevente (seuil 85000€)
-5. trg_arbitrage_remuneration → arbitrage_remuneration_dirigeant (seuil 42500€)
+### Règle absolue — Stockage des données
+Toutes les données métier sont stockées en PostgreSQL.
+JAMAIS de `localStorage`, `sessionStorage` ou variables JS globales
+pour persister des données entre sessions. `localStorage`/`sessionStorage`
+sont de toute façon interdits dans Render.
+Tout nouveau champ = `ALTER TABLE ADD COLUMN` en base.
 
-Avant de toucher une fonction trigger, ALWAYS :
-- Inspecter le code actuel via /api/debug/<function>_function
-- Vérifier que la modif ne casse pas un trigger existant
-- Tester avec /api/debug/triggers après modif
-- Forcer un recalcul global avec /api/migrate/force_recalc_<champ> si besoin
+---
 
-Endpoints d'installation (à relancer si trigger disparu) :
-- /api/migrate/install_trigger_rendement
-- /api/migrate/install_trigger_franchise_tva
-- /api/migrate/install_trigger_franchise_achrevente
-- /api/migrate/install_trigger_arbitrage_remuneration
-- /api/migrate/fix_activite_trigger
+## Endpoints API principaux (publics)
+- `GET /api/clients` → liste tous les clients
+- `GET /api/client/{siret}` → détail d'un client
+- `POST /api/client/create` → créer un client
+- `POST /api/client/update` → modifier un client
+- `PATCH /api/client/{siret}` → mettre à jour un ou plusieurs champs
+- `DELETE /api/client/{siret}` → supprimer un client
+- `POST /api/clients/import` → import CSV en masse (UPSERT)
+- `GET /api/clients/columns` → types des colonnes PostgreSQL
+- `GET /api/clients/template-csv` → CSV vide avec en-têtes
+- `POST /api/fec/upload` → parse FEC + sync PostgreSQL
+- `GET /api/calendrier/fiscal` → données pour le calendrier intelligent
+- `GET /api/rendement_detail/{siret}` → détail JSON pour la modal rendement
 
-## Mises à jour 07/05/2026 (session étapes 13)
+### Migration Airtable → PostgreSQL (terminée)
+Airtable est totalement abandonné. AUCUN appel à `/api/update-airtable`
+ne doit subsister. Pattern correct pour toute sauvegarde :
+```
+PATCH /api/client/{siret}
+Body : {champ: valeur}
+```
+Si `/api/update-airtable` est trouvé dans un fichier → remplacer
+immédiatement sans toucher au reste du code.
+Ne plus jamais utiliser `AIRTABLE_TOKEN`, `BASE_ID` ou `TABLE_NAME`.
 
-### Triggers actifs (liste complète à jour — 7 triggers)
-1. trigger_activite_r → activite_r depuis SPLIT_PART(code_naf_r, '.', 1)
-2. trg_rendement → score 0-100 (4 facteurs pondérés + plafond progressif)
-3. trg_franchise_tva → franchise_tva_prest (seuil 37 500€, achat_revente=non)
-4. trg_franchise_achrevente → franchise_tva_achrevente (seuil 85 000€, achat_revente=oui)
-5. trg_arbitrage_remuneration → arbitrage_remuneration_dirigeant (seuil 42 500€)
-6. trg_op_prevoyance → op_prevoyance (EI/SARL + prevoyance=non)
-7. trg_mission_placement → mission_placement (ratio tréso/CA, seuil CA 50k)
+---
 
-### Nouveaux champs calculés
+## Sécurité et authentification
 
-#### arbitrage_remuneration_dirigeant (TEXT)
-- OUI si resultat_r > 42 500
-- 'Donnée manquante' si resultat_r IS NULL
-- NULL sinon
-- Sources : resultat_r
-- Endpoints : /api/migrate/arbitrage_remuneration_setup
-             /api/migrate/install_trigger_arbitrage_remuneration
+### Variables d'environnement Render (3 au total)
+- `ADMIN_TOKEN` → protège `/api/migrate/*` et `/api/debug/*`
+- `CRM_PASSWORD` → mot de passe unique CRM pour tous les collaborateurs
+- `JWT_SECRET` → clé de signature JWT
 
-#### op_prevoyance (TEXT)
-- OUI si prevoyance='non' ET structure IN ('EI','SARL')
-- 'Donnée manquante' si prevoyance ou structure IS NULL
-- NULL sinon
-- Sources : prevoyance, structure
-- Endpoints : /api/migrate/op_prevoyance_setup
-             /api/migrate/install_trigger_op_prevoyance
+⚠️ Ces 3 variables sont définies dans `.env` local et dans les variables
+d'environnement Render. Ne JAMAIS committer leurs valeurs, ni dans `.env`,
+ni dans ce fichier, ni dans aucun fichier versionné.
 
-#### franchise_tva_achrevente (TEXT)
-- OUI si achat_revente='oui' ET ca_r BETWEEN 0 AND 85000
-- 'Données manquantes' si ca_r ou achat_revente IS NULL
-- NULL sinon
-- Sources : ca_r, achat_revente
-- Endpoints : /api/migrate/franchise_tva_achrevente_setup
-             /api/migrate/install_trigger_franchise_achrevente
+> NOTE DE COHÉRENCE À TRANCHER : deux affirmations contradictoires existaient
+> dans l'ancien fichier. Soit `/api/migrate/*` est protégé par le middleware
+> `ADMIN_TOKEN`, soit il est exempté via `_MIGRATE_PUBLIC`. Vérifier le code
+> réel de `main.py` et corriger cette section en conséquence. Tant que ce
+> n'est pas tranché, considérer que `/api/migrate/*` peut être public.
 
-#### mission_placement (TEXT — champ existant réutilisé)
-- 'OPPORTUNITÉ FORTE' si ca_r>50k ET tresorerie_r>50k ET ratio>25%
-- 'OPPORTUNITÉ MOYENNE' si ca_r>50k ET tresorerie_r>20k ET ratio>15%
-- 'Données manquantes' si ca_r ou tresorerie_r IS NULL
-- NULL sinon
-- Ratio = tresorerie_r * 100.0 / ca_r
-- Sources : ca_r, tresorerie_r
-- Endpoints : /api/migrate/mission_placement_setup
-             /api/migrate/install_trigger_mission_placement
-- ⚠️ Champ ancien mission_placement écrasé (ancienne valeur = texte libre)
+### Endpoints protégés par Bearer token
+`/api/migrate/*` et `/api/debug/*` — middleware global.
+Header requis : `Authorization: Bearer <ADMIN_TOKEN>`.
+Pour Claude Code : lire `ADMIN_TOKEN` depuis `.env` avant d'appeler
+un endpoint migrate ou debug.
 
-### Convention globale champs calculés (à respecter pour tous les futurs triggers)
-- OUI → condition remplie
-- 'Données manquantes' → au moins un champ source IS NULL
-- NULL (vide) → condition non remplie (JAMAIS 'NON')
-- Pas de valeur booléenne stockée, toujours TEXT
+PowerShell :
+```powershell
+$h = @{Authorization="Bearer $env:ADMIN_TOKEN"}
+Invoke-RestMethod -Uri "https://projet-crm-m0o3.onrender.com/api/migrate/XXX" -Headers $h
+```
 
-### Seuils officiels TVA 2025 (à ne pas modifier sans confirmation)
-- Prestataires de services : 37 500 €
-- Achat-revente : 85 000 €
+### Authentification utilisateurs
+- `POST /api/auth/login` → `{password}` → `{token JWT 1h, expiry}`
+- `GET /api/auth/verify` → header `Authorization: Bearer` → `{valid, expires_in}`
+- Protection brute force : 5 tentatives max par IP → blocage 15 min → HTTP 429,
+  compteur « X tentatives restantes » affiché, reset si login réussi
+- Token JWT : durée 1h, stocké en `sessionStorage` sous clé `crm_token`,
+  signé avec `JWT_SECRET`
+- Timeout inactivité (`auth.js`) : déconnexion auto après 60 min sans action.
+  Événements écoutés en mode passive : `mousemove`, `keydown`, `click`, `scroll`.
+  Bannière de warning à 55 min (slide depuis le bas) : orange `#e67e22` de
+  5:00 à 1:01, rouge `#e74c3c` de 1:00 à 0:00. Bouton « Rester connecté »
+  reset les timers et ferme la bannière. À 60 min : `logout()` automatique.
+
+### Fichiers auth
+- `static/login.html` : page de connexion (design CRM)
+- `static/auth.js` : `checkAuth()`, `logout()`, gestion inactivité + bannière
+- `auth.js` et le bouton Déconnexion injectés dans tous les HTML sauf `login.html`
+
+### Règle importante
+Ne jamais protéger `/api/auth/*` avec le middleware `ADMIN_TOKEN` :
+le login doit rester accessible pour obtenir un token.
+
+---
+
+## Triggers PostgreSQL actifs (11 — état mai 2026)
+
+| # | Trigger | Champ calculé | Colonnes sources |
+|---|---------|---------------|------------------|
+| 1 | `trigger_activite_r` | `activite_r` | `code_naf_r` |
+| 2 | `trg_rendement` | `rendement` | `honoraires_cpta`, `temps_passe`, `ca_r`, `resultat_r`, `anciennete` |
+| 3 | `trg_franchise_tva` | `franchise_tva_prest` | `ca_r`, `achat_revente` |
+| 4 | `trg_franchise_achrevente` | `franchise_tva_achrevente` | `ca_r`, `achat_revente` |
+| 5 | `trg_arbitrage_remuneration` | `arbitrage_remuneration_dirigeant` | `resultat_r` |
+| 6 | `trg_op_prevoyance` | `op_prevoyance` | `prevoyance`, `structure` |
+| 7 | `trg_mission_placement` | `mission_placement` | `ca_r`, `tresorerie_r` |
+| 8 | `trg_age` | `age` | `anniversaire` |
+| 9 | `trg_mission_retraite` | `mission_retraite` | `age`, `anniversaire` |
+| 10 | `trg_mission_patrimoniale` | `mission_patrimoniale` | `mai_ir` |
+| 11 | `trg_anciennete` | `anciennete` | `date_entree` |
+
+Diagnostic : `GET /api/debug/triggers` (doit retourner ces 11 triggers).
+Si un trigger manque → relancer `/api/migrate/install_trigger_<nom>`.
+
+### Logique des champs calculés
+
+| Champ | Condition `OUI` / valeur | Notes |
+|-------|--------------------------|-------|
+| `activite_r` | libellé NAF de `SPLIT_PART(code_naf_r, '.', 1)` | chiffres avant le point |
+| `rendement` | score 0-100 pondéré | voir détail ci-dessous |
+| `franchise_tva_prest` | `ca_r < 37500` ET `achat_revente='non'` | seuil officiel 2025 |
+| `franchise_tva_achrevente` | `ca_r < 85000` ET `achat_revente='oui'` | seuil officiel 2025 |
+| `arbitrage_remuneration_dirigeant` | `resultat_r > 42500` | |
+| `op_prevoyance` | `prevoyance='non'` ET `structure IN ('EI','SARL')` | |
+| `mission_placement` | `'OPPORTUNITÉ FORTE'` ou `'OPPORTUNITÉ MOYENNE'` | voir seuils ci-dessous |
+| `age` | `EXTRACT(YEAR FROM AGE(NOW(), anniversaire))` | INTEGER |
+| `mission_retraite` | `age > 50` ET `age < 65` (bornes exclusives) | |
+| `mission_patrimoniale` | `mai_ir > 8000` | |
+| `anciennete` | `EXTRACT(YEAR FROM AGE(NOW(), date_entree))` | INTEGER |
+
+`mission_placement` : `'OPPORTUNITÉ FORTE'` si `ca_r > 50000` ET
+`tresorerie_r > 50000` ET ratio tréso/CA > 25 % ; `'OPPORTUNITÉ MOYENNE'`
+si `ca_r > 50000` ET `tresorerie_r > 20000` ET ratio > 15 %.
+
+### Convention globale des champs calculés
+- `OUI` → condition remplie
+- `Données manquantes` → au moins un champ source est NULL
+- `NULL` (vide) → condition non remplie — **jamais `NON`**
+- Toujours stocké en TEXT, jamais en booléen
+
+### Seuils officiels (à ne pas modifier sans confirmation)
+- Franchise TVA prestataires de services : 37 500 €
+- Franchise TVA achat-revente : 85 000 €
 - Arbitrage rémunération dirigeant : 42 500 €
 - Mission placement TPE — seuil CA minimum : 50 000 €
 
-### Endpoint de vérification rapide
-- GET /api/debug/triggers → liste tous les triggers actifs
-- Doit toujours retourner 7 triggers minimum
-- Si un trigger manque → relancer /api/migrate/install_trigger_<nom>
-- Vérifier le code source d'une fonction :
-  SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname='nom_fonction'
+### Score `rendement` (Stratégie C)
+4 facteurs pondérés : taux horaire 50 % / ancienneté 20 % / CA 15 % / résultat 15 %.
+- Si `nb_facteurs_renseignés < 2` → score = NULL
+- Sinon : `score = (pts obtenus / poids cumulé des facteurs renseignés) × 100`
+- Plafond progressif : 2 facteurs → max 70, 3 facteurs → max 85, 4 facteurs → pas de plafond
+- Deux fonctions PostgreSQL portent cette logique : `calc_rendement(siret)`
+  (calcul depuis la BDD) et `update_rendement_trigger()` (calcul depuis `NEW.*`).
+  **Toute modification de la formule doit être reportée dans LES DEUX**, sinon désynchro.
 
-### ⚠️ À FAIRE (prochaine session)
-- Créer endpoint /api/migrate/install_all_triggers (réinstalle les 7 en 1 clic)
-- Créer endpoint /api/debug/health (vérifie présence des 7 triggers)
-- Affichage badges colorés franchise_tva sur declaratif.html
-- Mettre à jour CLAUDE.md après chaque nouveau trigger
+---
 
-## Convention triggers PostgreSQL en cascade
+## Conventions pour les nouveaux champs calculés
 
-Quand un trigger calcule un champ (B) à partir d'un autre champ
-calculé par un trigger (A), il faut lister TOUTES les colonnes
-sources dans `UPDATE OF`, pas seulement le champ intermédiaire.
+### Pattern standard
+1. `/api/migrate/{champ}_setup` → `ALTER TABLE` + premier `UPDATE` initial
+2. `/api/migrate/install_trigger_{champ}` → `DROP IF EXISTS` + `CREATE` fonction et trigger
+3. `/api/migrate/force_recalc_{champ}` (optionnel) → `UPDATE` direct contournant le trigger
+4. `/api/debug/{champ}_function` (optionnel) → inspection du code source
+5. Lancer dans le navigateur dans l'ordre : `setup` → `install_trigger`
+6. Vérifier via `/api/debug/triggers`
 
-❌ Ne marche pas :
-  CREATE TRIGGER trg_B BEFORE UPDATE OF champ_a ON clients ...
+### Triggers en cascade
+Quand un trigger calcule un champ B à partir d'un champ A lui-même calculé
+par un trigger, lister TOUTES les colonnes sources dans `UPDATE OF`, pas
+seulement le champ intermédiaire :
 
-✅ Correct :
-  CREATE TRIGGER trg_B BEFORE UPDATE OF champ_a, source_reelle ON clients ...
+```sql
+-- ❌ Ne marche pas
+CREATE TRIGGER trg_B BEFORE UPDATE OF champ_a ON clients ...
+-- ✅ Correct
+CREATE TRIGGER trg_B BEFORE UPDATE OF champ_a, source_reelle ON clients ...
+```
 
-Raison : PostgreSQL évalue `UPDATE OF` sur les colonnes du SET
-original, pas sur celles modifiées par d'autres triggers BEFORE.
+Raison : PostgreSQL évalue `UPDATE OF` sur les colonnes du `SET` original,
+pas sur celles modifiées par d'autres triggers `BEFORE`.
+Exemple : `trg_mission_retraite` dépend de `age` (calculé par `trg_age`
+depuis `anniversaire`) → il doit écouter `age` ET `anniversaire`.
 
-Exemple concret : trg_mission_retraite dépend de age, calculé par
-trg_age depuis anniversaire. Le trigger doit écouter age ET anniversaire.
+### Limite connue — recalcul annuel
+`age` et `anciennete` ne se mettent pas à jour automatiquement au passage
+d'une nouvelle année. Workaround : appeler `/api/migrate/refresh_age` et
+`/api/migrate/anciennete` périodiquement (cron Render quotidien recommandé).
 
-## Champs calculés en cascade actuels (chaîne anniversaire)
-- anniversaire (saisie) → trg_age → age (INTEGER)
-- age + anniversaire → trg_mission_retraite → mission_retraite (TEXT)
+---
 
-## Pattern standard nouveau champ calculé
-1. Endpoint /api/migrate/{champ}_setup → ALTER TABLE + premier UPDATE
-2. Endpoint /api/migrate/install_trigger_{champ} → DROP IF EXISTS + CREATE
-3. Endpoint /api/migrate/refresh_{champ} (optionnel) → recalcul forcé
-4. Lancer dans le navigateur dans cet ordre : setup → install_trigger
-5. Vérifier via /api/debug/triggers
+## Méthodologie de débug d'un trigger
 
-## Formulaires gestion-clients.html — Architecture
+Quand un champ calculé donne un résultat bizarre :
+1. **Vérifier que le trigger existe** : `GET /api/debug/triggers`
+2. **Inspecter le code de la fonction** :
+   `SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname='nom_fonction'`
+3. **Vérifier les données sources** (table `naf`, colonnes utilisées)
+4. **Tester en modifiant réellement la colonne source** dans l'UI
+   (un `UPDATE x = x` ne déclenche rien — voir piège 1)
+5. **Forcer un recalcul global** via `/api/migrate/force_recalc_<champ>`
 
-### Structure des champs
-Les champs du formulaire sont répartis en 3 listes dans le JS :
-- `TEXT_FIELDS` : inputs texte, selects, textareas → collectForm() lit .value
-- `TOGGLE_FIELDS` : checkboxes booléennes → collectForm() lit .checked (true/false)
-- `DATE_FIELDS` : inputs date → collectForm() lit .value (format ISO)
+### Pièges connus
+1. **`UPDATE x = x` ne déclenche pas le trigger** : beaucoup de fonctions
+   contiennent `IF NEW.X IS DISTINCT FROM OLD.X`. Pour forcer un recalcul
+   après un fix, créer un endpoint avec un `UPDATE` direct contournant le trigger.
+2. **`LEFT` vs `SPLIT_PART`** : `LEFT(code_naf_r, 1)` ne prend que le 1er
+   caractère (« 5 » pour « 56.30Z »). Utiliser
+   `SPLIT_PART(code_naf_r::text, '.', 1)` (« 56 »). Le `1` = numéro de partie,
+   pas nombre de caractères.
+3. **Double création silencieuse** : `CREATE OR REPLACE` écrase l'ancienne
+   version sans avertir. Toujours vérifier le code source via `pg_get_functiondef`
+   après un fix.
+4. **Recréer un trigger** après modif de sa logique : faire `DROP` + `CREATE`,
+   pas seulement `CREATE OR REPLACE`.
+
+---
+
+## Frontend — règles transverses
+
+### Filtres booléens PostgreSQL — règle critique
+PostgreSQL retourne les booléens sous plusieurs formes : `true`, `'t'`,
+`'true'`, `1` — jamais uniquement `true`. Toujours utiliser :
+```javascript
+const isTruthy = v => v === true || v === 't' || v === 'true' || v === 1 || v === '1'
+```
+Jamais `c.is === true` seul. Pages concernées : `is.html`, `cfe.html`,
+`tvs.html`, `cvae.html`, `ca12.html`, `ir.html`, et toute future page
+avec un filtre booléen.
+
+### Filtre des champs TEXT d'opportunité
+Ne jamais utiliser `Boolean(c[champ])` sur un champ TEXT. Utiliser :
+```javascript
+const isActive = v => v === 'OUI'
+  || v === 'OPPORTUNITÉ FORTE' || v === 'OPPORTUNITÉ MOYENNE'
+```
+
+### Règles dates JavaScript — CRITIQUES
+`new Date("yyyy-mm-dd")` parse en UTC minuit → affiché la veille en UTC+2.
+- ❌ `new Date("1970-05-15")` → INTERDIT
+- ✅ `const [a,m,j] = "1970-05-15".split('-').map(Number); new Date(a, m-1, j)`
+- ❌ FullCalendar `{ start: "1970-05-15" }` → INTERDIT
+- ✅ FullCalendar `{ start: "1970-05-15T00:00:00" }` → interprétation locale
+
+### Format date de clôture JJ/MM
+`date_de_cloture` est stockée en `YYYY-MM-DD` mais affichée en `JJ/MM`
+(sans année) dans tous les tableaux :
+```javascript
+${ (v => { if (!v) return ''; const p = v.split('-'); return p[2] + '/' + p[1]; })(c.date_de_cloture) }
+```
+Pages concernées : `declaratif.html`, `missions.html`, `ir.html`,
+`rendement.html`, `is.html`, `opportunites.html`, `commercial.html`.
+
+### `rentabilite` vs `rendement` — ne jamais confondre
+- `rentabilite` : taux horaire calculé côté JS (`honoraires_cpta / temps_passe`)
+- `rendement` : score 0-100 pondéré calculé par le trigger `trg_rendement` ;
+  c'est CE champ qui s'affiche dans la colonne Rendement
+
+---
+
+## Formulaires `gestion-clients.html`
+
+### Structure des champs (3 listes JS)
+- `TEXT_FIELDS` : inputs texte, selects, textareas → `collectForm()` lit `.value`
+- `TOGGLE_FIELDS` : checkboxes booléennes → `collectForm()` lit `.checked`
+- `DATE_FIELDS` : inputs date → `collectForm()` lit `.value` (format ISO)
 
 ### Règle critique — Noms des champs
-Le nom/id HTML doit correspondre EXACTEMENT au nom de la colonne PostgreSQL.
+L'id HTML doit correspondre EXACTEMENT au nom de la colonne PostgreSQL.
 Préfixe `c-` pour le formulaire Créer, `m-` pour Modifier.
-Exemple : colonne `cotisation_fonciere_entreprise` → id `c-cotisation_fonciere_entreprise`
-
-❌ Erreur classique : `cotisation_fonciere_des_entreprises` ≠ `cotisation_fonciere_entreprise`
-→ La valeur est envoyée dans le payload mais PostgreSQL ignore la colonne inconnue
-→ Aucune erreur visible, la donnée est silencieusement perdue
+Un mismatch ne lève aucune erreur : le payload est envoyé, PostgreSQL ignore
+la colonne inconnue, **la donnée est silencieusement perdue**.
+Pièges déjà rencontrés :
+- `cotisation_fonciere_des_entreprises` ≠ `cotisation_fonciere_entreprise`
+- `juridique` (BOOLEAN, toggle ici) ≠ `juridique_exceptionnel` (TEXT, `missions.html`)
+- `resultat` ≠ `resultat_r`
 
 ### Ajouter un nouveau champ dans les 2 formulaires
-1. ALTER TABLE clients ADD COLUMN IF NOT EXISTS {champ} TYPE → /api/migrate/champs_setup
-2. Ajouter le champ HTML dans le formulaire Créer (id: c-{champ})
-3. Ajouter le champ HTML dans le formulaire Modifier (id: m-{champ})
-4. Ajouter le nom dans TEXT_FIELDS (ou TOGGLE_FIELDS si booléen)
-5. Vérifier que fillModifyForm pré-remplit bien le champ au chargement
-6. Hard refresh navigateur après déploiement (Ctrl+Shift+R)
-
-### Champs calculés — ne pas les mettre dans les formulaires
-Les champs suivants sont calculés automatiquement par trigger PostgreSQL,
-ne jamais les exposer en saisie manuelle :
-age, anciennete, rendement, activite_r, mission_retraite,
-franchise_tva_prest, franchise_tva_achrevente,
-arbitrage_remuneration_dirigeant, op_prevoyance, mission_placement
-
-### Erreur addEventListener null (ligne ~1952)
-Si erreur "Cannot read properties of null (reading 'addEventListener')" :
-→ Un élément est référencé en JS avant d'exister dans le DOM
-→ Fix : ajouter `if (el)` avant chaque addEventListener sur des éléments dynamiques
-→ Hard refresh souvent suffisant si lié au cache
-
-## Règles formulaires gestion-clients.html — pièges courants
-
-### Mismatch nom de champ (erreur silencieuse la plus fréquente)
-Le payload est envoyé mais PostgreSQL ignore la colonne inconnue
-sans retourner d'erreur. Toujours vérifier :
-- TOGGLE_FIELDS : id doit être le nom exact de la colonne PostgreSQL
-- TEXT_FIELDS : idem
-- Exemple piège : "juridique_exceptionnel" ≠ "juridique"
-- Exemple piège : "cotisation_fonciere_des_entreprises" ≠ "cotisation_fonciere_entreprise"
-- Exemple piège : "resultat" ≠ "resultat_r"
-
-### Champs FEC (_r) vs saisie manuelle
-- Suffixe _r = alimenté par FEC parser → NE PAS mettre dans les formulaires
-- Exception : mai_ir (suffixe _r mais = échéance fiscale, saisie manuelle)
-- Toujours vérifier la nature du champ avant de l'ajouter au formulaire
-
-### Deux champs "juridique" distincts
-- `juridique` (BOOLEAN) → toggle dans gestion-clients.html
-- `juridique_exceptionnel` (TEXT) → saisie dans missions.html uniquement
-- Ne jamais les confondre dans TOGGLE_FIELDS
-
-## Page opportunites.html — architecture indicateurs
-
-### Cases à cocher lecture seule
-Toutes les cases indicateurs sont disabled + pointer-events:none.
-Ne jamais les rendre cliquables — elles reflètent des triggers PostgreSQL.
-
-### Conditions exactes par indicateur
-- mission_retraite = 'OUI' → age > 50 AND age < 65
-- mission_patrimoniale = 'OUI' → mai_ir > 8000
-- mission_placement = 'OPPORTUNITÉ FORTE' ou 'OPPORTUNITÉ MOYENNE'
-- franchise_tva_prest = 'OUI' → ca_r < 37500 AND achat_revente = 'non'
-- franchise_tva_achrevente = 'OUI' → ca_r < 85000 AND achat_revente = 'oui'
-- op_prevoyance = 'OUI' → prevoyance = 'non' AND structure IN ('EI','SARL')
-- arbitrage_remuneration_dirigeant = 'OUI' → resultat_r > 42500
-
-## Modal détail client (index.html) — conventions affichage
-- Masquer les champs NULL, vides ou à 0
-- Booléens : true/t → "Oui", false/f → "Non"
-- Dates ISO → format JJ/MM/YYYY
-- Commentaires : pleine largeur en bas de modal
-- Champs renseignés uniquement → modal épurée
-
-## Triggers actifs (10 au total) — mai 2026
-1. trigger_activite_r (sur code_naf_r)
-2. trg_rendement (sur honoraires_cpta, temps_passe, ca_r, resultat_r, anciennete)
-3. trg_franchise_tva (sur ca_r, achat_revente)
-4. trg_franchise_achrevente (sur ca_r, achat_revente)
-5. trg_arbitrage_remuneration (sur resultat_r)
-6. trg_op_prevoyance (sur prevoyance, structure)
-7. trg_mission_placement (sur ca_r, tresorerie_r)
-8. trg_age (sur anniversaire)
-9. trg_mission_retraite (sur age, anniversaire)
-10. trg_mission_patrimoniale (sur mai_ir)
-
-## Trigger anciennete — historique
-
-anciennete était le seul champ calculé sans trigger PostgreSQL
-(recalcul au démarrage app uniquement via thread daemon).
-Désormais aligné sur le pattern standard via trg_anciennete.
-
-Si anciennete ne se met pas à jour → vérifier /api/debug/triggers
-que trg_anciennete est bien présent.
-
-## Règles dates JavaScript — CRITIQUES
-
-### Parsing de dates ISO PostgreSQL (yyyy-mm-dd)
-❌ INTERDIT : new Date("1970-05-15") → parse en UTC → décalage en heure locale
-✅ CORRECT :
-  const [a, m, j] = "1970-05-15".split('-').map(Number)
-  const d = new Date(a, m-1, j) // heure locale, pas de décalage
-
-### FullCalendar — propriété start/date
-❌ INTERDIT : { start: "1970-05-15" } → FullCalendar interprète en UTC
-✅ CORRECT  : { start: "1970-05-15T00:00:00" } → interprétation locale
-
-### Règle générale
-Toute string "YYYY-MM-DD" passée à new Date() ou à FullCalendar
-sera interprétée en UTC minuit → affichée la veille en UTC+2.
-Toujours ajouter T00:00:00 ou parser manuellement.
-
-## Triggers actifs (11 au total) — mai 2026
-1. trigger_activite_r (sur code_naf_r)
-2. trg_rendement (sur honoraires_cpta, temps_passe, ca_r, resultat_r, anciennete)
-3. trg_franchise_tva (sur ca_r, achat_revente)
-4. trg_franchise_achrevente (sur ca_r, achat_revente)
-5. trg_arbitrage_remuneration (sur resultat_r)
-6. trg_op_prevoyance (sur prevoyance, structure)
-7. trg_mission_placement (sur ca_r, tresorerie_r)
-8. trg_age (sur anniversaire)
-9. trg_mission_retraite (sur age, anniversaire)
-10. trg_mission_patrimoniale (sur mai_ir)
-11. trg_anciennete (sur date_entree)
-
-## Calendrier intelligent (anniversaires.html)
-
-### Endpoint backend
-GET /api/calendrier/fiscal retourne pour chaque client :
-siret, nom_client, date_de_cloture, is, cvae, tvs, ca12,
-liasse, dividendes, ca_r
-
-### Parsing date_de_cloture
-Format PostgreSQL = YYYY-MM-DD → parser avec split('-') :
-  const parts = c.date_de_cloture.split('-')
-  const moisClo = parseInt(parts[1])  // 1-12
-  const jourClo = parseInt(parts[2])
-
-### Règles fiscales par type
-
-Liasse fiscale (is=true ou liasse=true) :
-  clôture 31/12 → 20 mai (EDI +15j)
-  autre → dernier jour du (moisClo+3)e mois + 15j
-  couleur #e74c3c
-
-IS acomptes (is=true) :
-  TOUJOURS 4 dates fixes : 16 mars, 15 juin, 15 sept, 15 déc
-  Indépendant de la clôture. Note : 16 mars en 2026 (15=dimanche)
-  couleur #e67e22
-
-Solde IS (is=true) :
-  clôture 31/12 → 15 mai
-  règle générale → 15 du 4e mois après clôture
-  couleur #e67e22
-
-CVAE (cvae=true) :
-  Solde 5 mai → tous
-  Acomptes 15 juin + 15 sept → si ca_r > 500000 ou ca_r null
-  couleur #9b59b6
-
-CA12 (ca12=true) :
-  clôture 31/12 → 5 mai (PAS de +15j contrairement à liasse)
-  autre → dernier jour du 3e mois après clôture (CA12E)
-  couleur #27ae60
-
-TVS (tvs=true) :
-  ca12=true → même date que CA12 du client
-  ca12=false → 27 janvier N+1
-  couleur #3498db
-
-2561 / IFU (dividendes > 1) :
-  16 février, 1 événement par client
-  couleur #f39c12
-
-DAS2 : 5 mai (sans nom client)
-DECLOYER : 20 mai (sans nom client)
-
-### Différence clé CA12 vs Liasse
-- Liasse : +15 jours pour télédéclaration → 20 mai (31/12)
-- CA12 : PAS de +15 jours → 5 mai (31/12)
-- Pour exercices décalés :
-  Liasse : 3 mois + 15j après clôture
-  CA12 : 3 mois exactement après clôture (pas de bonus)
-
-### Dates FullCalendar — règle anti-décalage UTC
-Toujours passer "YYYY-MM-DDT00:00:00" (jamais "YYYY-MM-DD")
-Toujours parser avec split('-').map(Number) (jamais new Date(string))
-
-## Navigation inter-pages — passage de paramètres URL
-
-### Pattern standard lien vers fiche client
-Toutes les pages qui affichent un client cliquable pointent vers :
-  client.html?siret=SIRET_CLIENT
-
-### Pattern standard lien vers modification client
-Depuis n'importe quelle page, pour ouvrir le formulaire
-de modification pré-rempli d'un client :
-  gestion-clients.html?siret=SIRET_CLIENT&action=modifier
-
-### Lecture des paramètres URL (pattern standard)
-  const params = new URLSearchParams(location.search)
-  const siret = params.get('siret')
-  const action = params.get('action')
-
-### Comportement gestion-clients.html au chargement
-Si action=modifier ET siret présent dans l'URL :
-  1. Activer l'onglet Modifier automatiquement
-  2. Remplir le champ siret avec la valeur
-  3. Appeler la fonction de chargement client directement
-  4. Formulaire pré-rempli sans action manuelle de l'utilisateur
-
-### Pages qui utilisent ce pattern
-- client.html → bouton "Modifier" → gestion-clients.html?siret=X&action=modifier
-- client.html → bouton "Créer client" → gestion-clients.html (sans paramètre)
-- Toute future page peut utiliser ce même pattern pour
-  rediriger vers la modification d'un client spécifique
-
-### Règle générale
-Ne jamais hardcoder un siret dans un lien.
-Toujours le récupérer dynamiquement depuis :
-- L'URL courante (URLSearchParams)
-- Les données chargées depuis l'API (c.siret ou data.siret)
-
-Ajoute à la fin de CLAUDE.md ce bloc exact sans rien modifier 
-d'autre, puis commit push :
-
-## Sécurité API — Endpoints protégés (ajouté 11/05/2026)
-
-Les endpoints /api/migrate/* et /api/debug/* sont protégés
-par un middleware Bearer token. Sans token → 401 automatique.
-
-### Pour appeler un endpoint migrate ou debug
-
-PowerShell :
-$h = @{Authorization="Bearer $env:ADMIN_TOKEN"}
-Invoke-RestMethod -Uri "https://projet-crm-m0o3.onrender.com/api/migrate/XXX" -Headers $h
-
-Curl :
-curl -H "Authorization: Bearer $env:ADMIN_TOKEN" https://projet-crm-m0o3.onrender.com/api/migrate/XXX
-
-### Token
-Stocké dans variable d'environnement locale ADMIN_TOKEN.
-Fichier .env local (jamais committer) :
-ADMIN_TOKEN=CRM-Hofman-2026-Lorient!
-
-### Pour Claude Code
-Lire ADMIN_TOKEN depuis .env avant d'appeler un endpoint migrate.
-Exemple prompt : "Appelle /api/migrate/XXX avec le token du .env"
-
-### Endpoints publics (pas de token)
-/api/clients, /api/client/*, /api/fec/upload,
-/api/calendrier/*, /api/rendement_detail/*
-→ jamais de token requis, le CRM fonctionne normalement.
-
-### Nouveaux endpoints migrate → automatiquement protégés
-Le middleware est global, aucune modification nécessaire.
-
-Ajoute à la fin de CLAUDE.md ce bloc exact, commit push :
-
-## Authentification CRM (ajouté 11/05/2026)
-
-### Endpoints auth (publics, hors middleware ADMIN_TOKEN)
-- POST /api/auth/login → {password} → {token JWT 1h, expiry}
-- GET /api/auth/verify → header Authorization: Bearer → {valid, expires_in}
-
-### Sécurité login
-- 5 tentatives max par IP → blocage 15 min → HTTP 429
-- Compteur affiché : "X tentatives restantes"
-- Reset automatique si login réussi
-
-### Token JWT
-- Durée : 1h
-- Stocké en sessionStorage sous clé "crm_token"
-- Signé avec JWT_SECRET (variable d'env Render)
-
-### Timeout inactivité (auth.js)
-- Déconnexion auto après 60 min sans action
-- Événements écoutés : mousemove, keydown, click, scroll (passive)
-- Warning à 55 min : bannière orange slide depuis le bas
-- Décompte 5:00 → 1:01 : bannière orange #e67e22
-- Décompte 1:00 → 0:00 : bannière rouge #e74c3c
-- Bouton "Rester connecté" : reset timers + ferme bannière
-- À 60 min : logout() automatique
-
-### Variables d'environnement Render (3 au total)
-- ADMIN_TOKEN → protège /api/migrate/* et /api/debug/*
-- CRM_PASSWORD → mot de passe unique CRM collaborateurs
-- JWT_SECRET → clé signature JWT
-⚠️ Toutes dans .env local (jamais committer)
-
-### Fichiers auth
-- static/login.html : page de connexion
-- static/auth.js : checkAuth(), logout(), inactivité, bannière
-- Injectés dans tous les HTML sauf login.html
-
-### Règle importante
-Ne jamais protéger /api/auth/* avec le middleware ADMIN_TOKEN
-→ le login doit rester accessible pour obtenir un token
-
-## Calendrier intelligent — architecture événements groupés
-
-### Principe de groupement
-Au lieu de N événements identiques (un par client),
-computeFiscalEvents() alimente une Map dont la clé est "label|dateStr".
-Tous les clients qui tombent le même jour pour le même type sont agrégés.
-Titre affiché : "📋 Liasse (3)", "💰 Solde IS (7)", etc.
-
-Exceptions NON groupées : anniversaires, DAS2, DECLOYER
-
-### Structure extendedProps
-Chaque événement groupé porte :
-  extendedProps.clients = [{nom, siret}, ...] // liste des clients
-
-### Modal au clic (eventClick)
-Si event.extendedProps.clients est non vide → showClientsModal()
-Affiche la liste des clients avec fond alterné
-Fermeture via ✕ ou clic overlay
-
-### Filtres collaborateur / assistant
-- allClients chargé une seule fois au démarrage
-- refreshCalendar() filtre allClients en mémoire (pas de fetch)
-- Filtres combinables (collab ET assistant simultanément)
-- Badge "N clients" visible si filtre actif
-- Anniversaires filtrés aussi selon le portefeuille
-
-### Règle importante
-Ne JAMAIS recréer l'instance FullCalendar pour rafraîchir.
-Toujours utiliser :
-  calendarInst.removeAllEvents()
-  calendarInst.addEvent(event)
-pour mettre à jour sans recréer l'instance.
-
-### Champs utilisés pour les filtres
-- collaborateur (TEXT) → filtre portefeuille collaborateur
-- assistant (TEXT) → filtre portefeuille assistant
-Les valeurs sont extraites dynamiquement depuis allClients
-(valeurs uniques non-vides, triées alphabétiquement)
-
-## Règle absolue — Stockage des données
-Toutes les données métier sont stockées en PostgreSQL.
-JAMAIS de localStorage, sessionStorage, ou variables JS globales
-pour persister des données entre sessions.
-Tout nouveau champ = ALTER TABLE ADD COLUMN en base.
-
-## Pattern tableau large avec scroll (tvs.html, ca12.html)
-Structure HTML :
-  <div style="height: calc(100vh - 280px); overflow-y: auto; overflow-x: scroll;">
-    <div class="table-scroll">
-      <table>
-        <thead> <!-- sticky top:0 z-index:10 bg:#1e3a5f -->
-        <tbody>
-      </table>
-    </div>
-  </div>
-
-Règles :
-- Un seul wrapper gère les deux scrolls (vertical + horizontal)
-- thead sticky top:0 → header figé pendant scroll vertical
-- Barre horizontale native toujours visible en bas du wrapper
-- Pas de barre miroir JS (trop fragile)
-- Ajuster la hauteur calc(100vh - Npx) selon hauteur des filtres
-
-## Logique grisage colonnes mensuelles (TVS + CA12 solde)
-Pour chaque client, calculer mois_actif :
-  const parts = date_de_cloture.split('-')  // format YYYY-MM-DD
-  const moisClo = parseInt(parts[1])  // 1-12
-
-  Si ca12=false → mois_actif = 1 (janvier) pour TVS
-  Si ca12=true :
-    Si moisClo === 12 → mois_actif = 5 (mai, exception)
-    Sinon → mois_actif = moisClo + 3
-            si mois_actif > 12 → mois_actif -= 12
-
-Input actif (blanc) uniquement pour mois_actif
-11 autres inputs : disabled + background: #f0f0f0
-
-Tableau correspondance clôture → mois actif :
-  31/01 → avril | 28/02 → mai | 31/03 → juin
-  30/04 → juillet | 31/05 → août | 30/06 → septembre
-  31/07 → octobre | 31/08 → novembre | 30/09 → décembre
-  31/10 → janvier | 30/11 → février | 31/12 → mai (exception)
-
-## Endpoints migrate — token admin
-Tous les /api/migrate/* sont exemptés du token admin via _MIGRATE_PUBLIC.
-Pattern dans main.py :
-  if request.url.path.startswith("/api/migrate/"):
-      pass  # bypass token
-Ne jamais protéger un endpoint de migration par token.
-## Colonnes TVS en base (12 champs NUMERIC)
-janvier_tvs, fevrier_tvs, mars_tvs, avril_tvs, mai_tvs, juin_tvs,
-juillet_tvs, aout_tvs, septembre_tvs, octobre_tvs, novembre_tvs, decembre_tvs
-
-## Colonnes CA12 en base
-Soldes (12 champs NUMERIC) : janvier_ca12_solde → decembre_ca12_solde
-Acomptes (2 champs) : juillet_ca12, decembre_ca12
-mai_ca12 : SUPPRIMÉ
-
-## Import CSV — Architecture et règles définitives
-
-### Endpoint POST /api/clients/import
-Réécrit entièrement en mai 2026. Ne jamais revenir à l'ancienne version.
+1. `ALTER TABLE clients ADD COLUMN IF NOT EXISTS {champ} TYPE` via `/api/migrate/champs_setup`
+2. Ajouter le champ HTML dans le formulaire Créer (`id: c-{champ}`)
+3. Ajouter le champ HTML dans le formulaire Modifier (`id: m-{champ}`)
+4. Ajouter le nom dans `TEXT_FIELDS` (ou `TOGGLE_FIELDS` si booléen)
+5. Vérifier que `fillModifyForm` pré-remplit bien le champ au chargement
+6. Hard refresh navigateur après déploiement
+
+### Champs calculés — ne pas les exposer en saisie
+Ne jamais mettre dans les formulaires : `age`, `anciennete`, `rendement`,
+`activite_r`, `mission_retraite`, `mission_patrimoniale`, `mission_placement`,
+`franchise_tva_prest`, `franchise_tva_achrevente`,
+`arbitrage_remuneration_dirigeant`, `op_prevoyance`.
+
+### Erreur `addEventListener null`
+`Cannot read properties of null (reading 'addEventListener')` → un élément
+est référencé avant d'exister dans le DOM. Fix : `if (el)` avant chaque
+`addEventListener` sur des éléments dynamiques.
+
+---
+
+## Import CSV — `POST /api/clients/import`
 
 ### Principe fondamental
-col_types est rechargé depuis PostgreSQL à CHAQUE appel :
-  SELECT column_name, data_type FROM information_schema.columns
-  WHERE table_name = 'clients'
-JAMAIS en cache global au boot — sinon les nouvelles colonnes
-créées via /api/migrate/* ne sont pas reconnues.
+`col_types` est rechargé depuis PostgreSQL à CHAQUE appel :
+```sql
+SELECT column_name, data_type FROM information_schema.columns
+WHERE table_name = 'clients'
+```
+JAMAIS en cache global au boot — sinon les nouvelles colonnes créées via
+`/api/migrate/*` ne sont pas reconnues.
 
 ### Conversions obligatoires avant upsert
-
-**Valeur vide :**
-  if val == "" → val = None → NULL en base
-
-**Booléens (type 'boolean') :**
-  oui/true/1/yes → True
-  non/false/0/no → False
-  autre → None
-
-**Dates (type 'date') format DD/MM/YYYY :**
-  if '/' in val:
+```python
+# Valeur vide
+if val == "": val = None
+# Booléens (type 'boolean')
+if col_types[col] == 'boolean':
+    if val.lower() in ('oui', 'true', '1', 'yes'):  val = True
+    elif val.lower() in ('non', 'false', '0', 'no'): val = False
+    else: val = None
+# Dates (type 'date') format DD/MM/YYYY
+if 'date' in col_types[col] and '/' in val:
     parts = val.split('/')
-    val = f"{parts[2]}-{parts[1]}-{parts[0]}"
-  Format YYYY-MM-DD déjà correct → inchangé
-
-**Valeur "0" numérique :**
-  float("0") = 0.0 → inclus dans l'upsert (pas ignoré)
+    if len(parts) == 3: val = f"{parts[2]}-{parts[1]}-{parts[0]}"
+# "0" numérique : float("0") = 0.0 → inclus dans l'upsert
+```
 
 ### Structure upsert
-  INSERT INTO clients ("siret", "col1", "col2"...)
-  VALUES (%s, %s, %s...)
-  ON CONFLICT (siret) DO UPDATE SET
-  "col1"=EXCLUDED."col1", "col2"=EXCLUDED."col2"...
-  conn.commit() après chaque ligne
+```sql
+INSERT INTO clients ("siret", "col1", "col2"...)
+VALUES (%s, %s, %s...)
+ON CONFLICT (siret) DO UPDATE SET
+"col1"=EXCLUDED."col1", "col2"=EXCLUDED."col2"...
+```
+`conn.commit()` après chaque ligne. La colonne `siret` n'est pas dans le `SET`.
+Les colonnes du CSV absentes de `col_types` sont ignorées silencieusement.
 
-### Ce qui est ignoré silencieusement
-- Colonnes du CSV absentes de col_types (ex: colonnes inconnues)
-- Colonne "siret" (clé, pas dans SET)
+### Après un import CSV massif
+Appeler `/api/migrate/activite` et `/api/migrate/anciennete` pour recalculer
+les champs dérivés sur l'ensemble des clients.
 
-### Historique du bug (pour mémoire)
-Le bug persistait à cause de 4 problèmes cumulés :
-1. col_types chargé au boot → nouvelles colonnes ignorées
-2. Sentinelle _SKIP mal gérée → valeurs vides non écrites
-3. "oui"/"non" non convertis → erreur PostgreSQL boolean
-4. "31/12/2026" non converti → erreur PostgreSQL date
-Solution : réécriture complète sans cache ni sentinelle.
-lonnes déclaratives (mai 2026)
-TVS : janvier_tvs → decembre_tvs (12 NUMERIC)
-CA12 soldes : janvier_ca12_solde → decembre_ca12_solde (12 NUMERIC)
-CA12 acomptes : juillet_ca12, decembre_ca12
-CVAE : mai_cvae, acompte_cvae_juin, acompte_cvae_septembre
-mai_ca12 : SUPPRIMÉ
-## Règle seuil CVAE
-ca_r > 500000 (strictement) → colonnes actives
-ca_r <= 500000 → disabled + grisé
-ca_r null → actif (par sécurité)
+---
+
+## Import FEC — `POST /api/fec/upload`
+- Accepte plusieurs fichiers simultanément
+- SIRET extrait automatiquement du nom : `SIREN + FEC + DATE.txt`
+- Chaîne : `fec_parser.py` → `indicators.py` → `postgres_sync.py` → UPSERT sur `siret`
+- Réponse : `{results: [{siret, status, indicators_updated, message}]}`
+  (`status` = `"ok"` ou `"error"`)
+- Interface : onglet « Import FEC » dans `gestion-clients.html`, drag & drop
+  multi-fichiers, actualisation auto de la liste clients après import réussi
+
+### Calcul CAF — distinction 781x / 791x
+- `781x` (reprises sur amortissements/provisions) → produit non décaissé → **neutraliser**
+- `791x` (transferts de charges = remboursements assurance) → encaissement réel → **garder**
+
+```python
+c781 = vals["compte_781"]   # reprises amortissements → neutraliser
+c791 = vals["compte_791"]   # transferts charges → garder
+resultat = produits(7x hors 781,791) - charges(6x) + c781 + c791
+caf = resultat + dotations_amortissements - c781
+```
+Ne jamais faire `caf = res + dotations - c791` (faux : neutralise les
+remboursements d'assurance).
+
+---
+
+## Calendrier intelligent (`anciennement anniversaires.html`)
+
+`GET /api/calendrier/fiscal` retourne pour chaque client : `siret`,
+`nom_client`, `date_de_cloture`, `is`, `cvae`, `tvs`, `ca12`, `liasse`,
+`dividendes`, `ca_r`.
+
+### Règles fiscales par type d'événement
+
+| Type | Condition | Date | Couleur |
+|------|-----------|------|---------|
+| Liasse fiscale | `is` ou `liasse` | clôture 31/12 → 20 mai ; sinon dernier jour du 3e mois + 15j | `#e74c3c` |
+| IS acomptes | `is` | 4 dates fixes : 16 mars, 15 juin, 15 sept, 15 déc | `#e67e22` |
+| Solde IS | `is` | clôture 31/12 → 15 mai ; sinon 15 du 4e mois après clôture | `#e67e22` |
+| CVAE | `cvae` | solde 5 mai (tous) ; acomptes 15 juin + 15 sept si `ca_r > 500000` ou null | `#9b59b6` |
+| CA12 | `ca12` | clôture 31/12 → 5 mai ; sinon dernier jour du 3e mois après clôture | `#27ae60` |
+| TVS | `tvs` | `ca12=true` → même date que le CA12 du client ; `ca12=false` → 27 janvier N+1 | `#3498db` |
+| 2561 / IFU | `dividendes > 1` | 16 février | `#f39c12` |
+| DAS2 | — | 5 mai (sans nom client) | — |
+| DECLOYER | — | 20 mai (sans nom client) | — |
+
+Note : le 1er acompte IS 2026 est le 16 mars (15 mars = dimanche).
+
+### Différence clé CA12 vs Liasse
+- Liasse : +15 jours pour télédéclaration EDI → 20 mai (clôture 31/12)
+- CA12 : pas de +15 jours → 5 mai (clôture 31/12)
+- Exercices décalés : Liasse = 3 mois + 15j ; CA12 = 3 mois exactement
+
+### Architecture événements groupés
+Au lieu de N événements identiques, `computeFiscalEvents()` alimente une `Map`
+de clé `"label|dateStr"`. Tous les clients d'un même type tombant le même jour
+sont agrégés. Titre : « 📋 Liasse (3) », « 💰 Solde IS (7) »…
+Exceptions non groupées : anniversaires, DAS2, DECLOYER.
+Chaque événement groupé porte `extendedProps.clients = [{nom, siret}, ...]`.
+
+### Modal au clic
+`eventClick` : si `extendedProps.clients` non vide → `showClientsModal()`
+(liste à fond alterné, fermeture par ✕ ou clic overlay).
+
+### Filtres collaborateur / assistant
+`allClients` chargé une seule fois au démarrage. `refreshCalendar()` filtre
+en mémoire (pas de fetch). Filtres combinables, badge « N clients » si actif.
+Ne JAMAIS recréer l'instance FullCalendar pour rafraîchir : utiliser
+`calendarInst.removeAllEvents()` puis `calendarInst.addEvent(event)`.
+
+---
+
+## Tableaux larges avec scroll (`tvs.html`, `ca12.html`)
+
+```html
+<div style="height: calc(100vh - 280px); overflow-y: auto; overflow-x: scroll;">
+  <div class="table-scroll">
+    <table>
+      <thead> <!-- sticky top:0 z-index:10 bg:#1e3a5f -->
+      <tbody>
+    </table>
+  </div>
+</div>
+```
+- Un seul wrapper gère les deux scrolls (vertical + horizontal)
+- `thead` sticky → header figé pendant le scroll vertical
+- Pas de barre miroir JS (trop fragile)
+- Colonnes fixes (Code, Nom, Assistant, Collab, Année, Clôture) : `sticky left`
+
+### Colonnes mensuelles déclaratives
+- TVS (12 NUMERIC) : `janvier_tvs` → `decembre_tvs`
+- CA12 soldes (12 NUMERIC) : `janvier_ca12_solde` → `decembre_ca12_solde`
+- CA12 acomptes : `juillet_ca12`, `decembre_ca12`
+- CVAE : `mai_cvae`, `acompte_cvae_juin`, `acompte_cvae_septembre`
+- `mai_ca12` : SUPPRIMÉ
+
+### Logique de grisage des colonnes mensuelles (TVS + CA12 solde)
+```javascript
+const moisClo = parseInt(date_de_cloture.split('-')[1])  // 1-12
+// ca12=false → mois_actif = 1 (janvier) pour TVS
+// ca12=true  → moisClo === 12 ? mois_actif = 5 (exception)
+//                              : mois_actif = moisClo + 3 (−12 si > 12)
+```
+Input actif (blanc) uniquement pour `mois_actif` ; les 11 autres `disabled`
++ `background:#f0f0f0`.
+
+Correspondance clôture → mois actif : 31/01 → avril, 28/02 → mai,
+31/03 → juin, 30/04 → juillet, 31/05 → août, 30/06 → septembre,
+31/07 → octobre, 31/08 → novembre, 30/09 → décembre, 31/10 → janvier,
+30/11 → février, 31/12 → mai (exception).
+
+### Règle seuil CVAE
+- `ca_r > 500000` (strictement) → colonnes actives
+- `ca_r <= 500000` → `disabled` + grisé
+- `ca_r` null → actif (par sécurité)
+
+---
+
+## Page `opportunites.html`
+
+### Cases à cocher en lecture seule
+Toutes les cases indicateurs sont `disabled` + `pointer-events:none`
++ `stopPropagation`. Elles reflètent les triggers PostgreSQL, ne jamais
+les rendre cliquables. Conditions d'activation : voir le tableau de la
+section « Triggers PostgreSQL actifs ».
+
+### Tooltips par colonne (données constitutives)
+- Retraite : `age`, `anniversaire`
+- Patrimoniale : `mai_ir`
+- Placement : `ca_r`, `tresorerie_r`, ratio tréso/CA
+- Franchise TVA prest / achat-revente : `ca_r`, `achat_revente`
+- Prévoyance : `prevoyance`, `structure`
+- Arbitrage rémunération : `resultat_r`
+- « Données manquantes » si la valeur est NULL
+
+---
+
+## Modal détail client (`index.html`)
+- Masquer les champs NULL, vides ou à 0 → modal épurée
+- Booléens : `true`/`t` → « Oui », `false`/`f` → « Non »
+- Dates ISO → format `JJ/MM/YYYY`
+- Champ `commentaires` : pleine largeur en bas de modal
+
+---
+
+## Pièges connus à éviter
+
+1. **`sync_html.py` écrase `static/index.html`** → ce fichier est exclu de
+   la synchronisation. Modifier UNIQUEMENT `static/index.html` pour les
+   changements spécifiques à la prod ; ne jamais modifier `index.html`
+   (racine) directement pour la prod.
+2. **Cache Render des fichiers statiques** → la route `/index.html` dans
+   `main.py` a `Cache-Control: no-cache`. Ne pas supprimer cette route.
+3. **Dates** : affichées en `DD/MM/YYYY` (ou `JJ/MM`) dans l'interface,
+   stockées en `YYYY-MM-DD` dans PostgreSQL. Toujours convertir avant INSERT/UPDATE.
+4. **`anciennete`** : recalculer via `/api/migrate/anciennete` après chaque
+   import CSV massif.
+5. **`filterField` snake_case strict** : dans `initDeclaratifPage()` (et tout
+   moteur de filtre similaire), la valeur passée doit correspondre EXACTEMENT
+   au nom de colonne PostgreSQL en snake_case minuscules (ex : `"cvae"`, pas
+   `"CVAE"`). PostgreSQL est sensible à la casse. Le moteur peut appliquer
+   `.toLowerCase()` mais la valeur de référence doit déjà être correcte.
+
+---
+
+## RÈGLE ABSOLUE — Modifications ciblées
+
+Avant toute modification d'un fichier HTML/JS :
+1. Lire le fichier AVANT de modifier (`git show <commit> -- <fichier>` si besoin)
+2. Modifier UNIQUEMENT ce qui est demandé
+3. Ne jamais toucher aux fonctions de sauvegarde, filtres, autres colonnes
+   ou logique métier non concernées
+4. `git diff` avant de committer pour vérifier
+5. Si le diff montre plus de 3 lignes modifiées pour un simple changement
+   d'affichage → STOP, quelque chose cloche
+6. Pour une modification globale (ex : migration d'endpoint) → vérifier
+   CHAQUE occurrence individuellement
+
+Régressions fréquentes : après une modif de `missions.html`, vérifier que
+`juridique_exceptionnel` est toujours lu et sauvegardé via
+`PATCH /api/client/{siret}`.
+
+---
+
+## État du projet
+<!-- Mettre à jour à la fin de chaque session -->
+- 35 étapes réalisées (migration PostgreSQL, frontend complet, 11 triggers,
+  calendrier intelligent, sécurité RGPD, import FEC multi-fichiers,
+  pagination serveur, modal rendement, index PostgreSQL).
+- CRM en production : https://projet-crm-m0o3.onrender.com
+
+### Session 19/05/2026 — étapes 28 à 35
+- **Étape 28** : `auth.js` — vérification locale JWT (payload.exp) avant fetch réseau
+- **Étape 29** : Restauration `anniversaires.html` (calendrier fiscal détruit par commit `77f8d39`) + fix `response.data`
+- **Étape 30** : `GET /api/clients/distinct?field=X` — whitelist collaborateur/assistant/structure/activite_r
+- **Étape 31** : `GET /api/clients?limit=0` — tous les clients sans pagination
+- **Étape 32** : `gestion-clients.html` — filtres et datalists alimentés par l'API ; `loadAllClients?limit=0`
+- **Étape 33** : `GET /api/migrate/add_indexes` — 4 index PostgreSQL (nom, collab, assistant, annee), appelé en prod
+- **Étape 34** : `rendement.html` — modal détail score avec 4 barres de progression + plafond progressif
+- **Étape 35** : Pagination serveur sur `declaratif.html`, `missions.html`, `commercial.html`
+
+## Prochaines étapes
+<!-- Mettre à jour à la fin de chaque session -->
+- Pagination serveur sur `opportunites.html` (même pattern que les 3 pages refactorisées)
+- Export CSV filtré sur `commercial.html` et `declaratif.html` (bouton « Exporter » → `limit=0`)
+- Trancher la cohérence sécurité `/api/migrate/*` (protégé vs `_MIGRATE_PUBLIC`)
+- Endpoint `/api/migrate/install_all_triggers` (réinstalle les 11 en 1 clic)
+- Endpoint `/api/debug/health` (vérifie la présence des 11 triggers)
+- Affichage badges colorés `franchise_tva` sur `declaratif.html`
+- Cron Render quotidien pour `refresh_age` et `anciennete`
