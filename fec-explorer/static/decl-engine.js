@@ -140,7 +140,7 @@ async function loadPage(page = 1) {
     const cloture       = get("filter-cloture")   || get("f-cloture");
 
     const params = new URLSearchParams({ page, limit: _LIMIT });
-    if (_pageConfig.filterField) {
+    if (_pageConfig?.filterField) {
         params.set("filterField", _pageConfig.filterField);
         params.set("filterValue", "true");
     }
