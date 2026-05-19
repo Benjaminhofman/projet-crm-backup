@@ -89,6 +89,98 @@ input {
     0%   { background-position:  200% 0; }
     100% { background-position: -200% 0; }
 }
+
+/* ── Modal rendement ── */
+#modal-rendement-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(27,39,75,.52);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+#modal-rendement-overlay.open { display: flex; }
+
+.mr-box {
+    background: white;
+    border-radius: 14px;
+    max-width: 460px;
+    width: 94%;
+    box-shadow: 0 16px 48px rgba(0,0,0,.24);
+    overflow: hidden;
+    animation: mrPop .18s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes mrPop {
+    from { transform: scale(.88); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.mr-header {
+    background: #273c75;
+    color: white;
+    padding: 16px 20px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.mr-title  { font-size: 1rem; font-weight: 700; }
+.mr-score  { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+.mr-close  {
+    background: rgba(255,255,255,.18);
+    border: none;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    color: white;
+    font-size: .9rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .13s;
+}
+.mr-close:hover { background: rgba(255,255,255,.32); }
+
+.mr-body { padding: 16px 20px 20px; }
+
+.mr-facteur {
+    margin-bottom: 14px;
+}
+.mr-facteur-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: .84rem;
+    margin-bottom: 5px;
+}
+.mr-facteur-label { font-weight: 600; color: #2c3e50; }
+.mr-facteur-val   { color: #7f8c8d; }
+.mr-facteur-pts   { font-weight: 700; }
+
+.mr-bar-track {
+    background: #edf0f7;
+    border-radius: 99px;
+    height: 8px;
+    overflow: hidden;
+}
+.mr-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .4s ease;
+}
+
+.mr-seuil {
+    font-size: .76rem;
+    color: #95a5a6;
+    margin-top: 3px;
+}
+
+.mr-plafond {
+    margin-top: 12px;
+    background: #fff8e1;
+    border-left: 3px solid #f39c12;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    font-size: .82rem;
+    color: #856404;
+}
 </style>
 </head>
 
@@ -295,7 +387,9 @@ function display(data) {
         <td><input class="temps" value="${c.temps_passe ?? ""}"></td>
         <td><input class="honos" value="${c.honoraires_cpta ?? ""}"></td>
         <td class="result">-</td>
-        <td style="font-weight:bold; color:${getColor(rendement)};">
+        <td onclick="event.stopPropagation(); showRendementModal('${c.siret}')"
+            title="Voir le détail du score"
+            style="font-weight:bold; color:${getColor(rendement)}; cursor:pointer; text-decoration:underline dotted;">
             ${rendement ? Math.round(rendement) : "—"}
         </td>
         `;
@@ -393,5 +487,104 @@ document.querySelectorAll(".filters-top input").forEach(el => {
 loadPage(1);
 </script>
 
+<!-- Modal détail rendement -->
+<div id="modal-rendement-overlay">
+    <div class="mr-box">
+        <div class="mr-header">
+            <div>
+                <div class="mr-title" id="mr-title"></div>
+                <div class="mr-score" id="mr-score"></div>
+            </div>
+            <button class="mr-close" onclick="closeRendementModal()">✕</button>
+        </div>
+        <div class="mr-body" id="mr-body"></div>
+    </div>
+</div>
+
+<script>
+function closeRendementModal() {
+    document.getElementById('modal-rendement-overlay').classList.remove('open');
+}
+document.getElementById('modal-rendement-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeRendementModal();
+});
+
+async function showRendementModal(siret) {
+    const overlay = document.getElementById('modal-rendement-overlay');
+    document.getElementById('mr-title').textContent = 'Chargement…';
+    document.getElementById('mr-score').textContent = '';
+    document.getElementById('mr-body').innerHTML = '';
+    overlay.classList.add('open');
+
+    let d;
+    try {
+        const r = await fetch(`/api/rendement_detail/${siret}`);
+        if (!r.ok) throw new Error();
+        d = await r.json();
+    } catch {
+        document.getElementById('mr-body').innerHTML =
+            '<p style="color:#e74c3c;text-align:center;padding:20px;">Erreur de chargement</p>';
+        return;
+    }
+
+    const scoreGlobal = d.score_global;
+    const scoreColor  = scoreGlobal === null ? '#95a5a6'
+                      : scoreGlobal < 40     ? '#e74c3c'
+                      : scoreGlobal < 60     ? '#f39c12'
+                      :                        '#27ae60';
+
+    document.getElementById('mr-title').textContent = 'Score rendement';
+    document.getElementById('mr-score').innerHTML =
+        scoreGlobal !== null
+            ? `<span style="color:${scoreColor}">${scoreGlobal}</span><span style="font-size:.9rem;font-weight:400;opacity:.8"> / 100</span>`
+            : '<span style="font-size:1rem;font-weight:400;opacity:.8">Données insuffisantes</span>';
+
+    const LABELS = {
+        taux_horaire: { label: 'Taux horaire', poids: '50 %', color: '#3498db' },
+        anciennete:   { label: 'Ancienneté',   poids: '20 %', color: '#9b59b6' },
+        ca:           { label: 'CA',            poids: '15 %', color: '#27ae60' },
+        resultat:     { label: 'Résultat',  poids: '15 %', color: '#e67e22' },
+    };
+
+    let html = '';
+    for (const [key, meta] of Object.entries(LABELS)) {
+        const f   = d.facteurs[key];
+        const pct = f.points_max > 0 ? Math.round(f.points_obtenus * 100 / f.points_max) : 0;
+        const dim = !f.renseigne;
+        html += `
+        <div class="mr-facteur">
+            <div class="mr-facteur-header">
+                <span class="mr-facteur-label">${esc(meta.label)}
+                    <span style="font-weight:400;color:#aaa;font-size:.78rem">(${meta.poids})</span>
+                </span>
+                <span>
+                    <span class="mr-facteur-val">${esc(f.valeur_affichee)}</span>
+                    &nbsp;
+                    <span class="mr-facteur-pts" style="color:${dim ? '#bbb' : meta.color}">
+                        ${f.points_obtenus}&thinsp;/&thinsp;${f.points_max} pts
+                    </span>
+                </span>
+            </div>
+            <div class="mr-bar-track">
+                <div class="mr-bar-fill" style="width:${dim ? 0 : pct}%;background:${meta.color};"></div>
+            </div>
+            <div class="mr-seuil">${esc(f.libelle_seuil)}</div>
+        </div>`;
+    }
+
+    if (d.plafond_applique !== null) {
+        html += `<div class="mr-plafond">
+            ⚠️ Plafond appliqué : score brut&nbsp;${d.score_brut}
+            → plafonné à&nbsp;${d.plafond_applique}
+            (${d.nb_facteurs_renseignes}&nbsp;facteurs renseignés sur&nbsp;4)
+        </div>`;
+    }
+
+    document.getElementById('mr-body').innerHTML = html;
+}
+</script>
+
+<script src="/auth.js"></script>
+<script>document.addEventListener('DOMContentLoaded', checkAuth);</script>
 </body>
 </html>
