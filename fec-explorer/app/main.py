@@ -255,6 +255,11 @@ def get_clients(
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            if limit == 0:
+                cur.execute(f"SELECT * FROM clients {where} ORDER BY nom_client", params)
+                rows = [{k: _serialize(v) for k, v in row.items()} for row in cur.fetchall()]
+                return {"data": rows, "total": len(rows), "page": 1, "pages": 1}
+
             cur.execute(f"SELECT COUNT(*) FROM clients {where}", params)
             total = cur.fetchone()["count"]
 
