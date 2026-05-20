@@ -275,7 +275,7 @@ function display(data) {
             <td>${c.nom_client || ""}</td>
             <td>${c.assistant || ""}</td>
             <td>${c.collaborateur || ""}</td>
-            <td>${c.date_de_cloture || ""}</td>
+            <td>${(v => { if(!v) return ''; const p=v.split('-'); return p[2].substring(0,2)+'/'+p[1]; })(c.date_de_cloture)}</td>
             ${buildSelect(c, "suivi_mission_retraite")}
             ${buildSelect(c, "suivi_mission_patrimoniale")}
             ${buildSelect(c, "suivi_mission_placement")}
