@@ -197,6 +197,19 @@ def auth_login(body: LoginRequest, request: Request):
     return {"token": token, "expiry": "1h"}
 
 
+@app.post("/api/auth/token-make", summary="Génère un JWT sans expiration pour Make (protégé par ADMIN_TOKEN)")
+def auth_token_make(authorization: str = Header(default="")):
+    admin_token = os.environ.get("ADMIN_TOKEN", "")
+    jwt_secret  = os.environ.get("JWT_SECRET", "")
+    if not admin_token or not authorization == f"Bearer {admin_token}":
+        raise HTTPException(status_code=401, detail="Token admin invalide ou manquant.")
+    if not jwt_secret:
+        raise HTTPException(status_code=500, detail="JWT_SECRET non défini.")
+    payload = {"sub": "make-automation", "role": "readonly"}
+    token = jwt.encode(payload, jwt_secret, algorithm=_JWT_ALGO)
+    return {"token": token}
+
+
 @app.get("/api/auth/verify", summary="Vérifie la validité d'un token JWT (Authorization: Bearer <token>)")
 def auth_verify(authorization: str = Header(default="")):
     jwt_secret = os.environ.get("JWT_SECRET", "")
