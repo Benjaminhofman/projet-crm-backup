@@ -604,20 +604,27 @@ async function loadPage(page = 1) {
     const search       = get("search");
     const tranche      = get("filter-tranche");
     const cloture      = get("text-filter-date_de_cloture");
-    const collaborateur = [...document.querySelectorAll('input[type=checkbox][data-field="collaborateur"]:checked')].map(c => c.value)[0] || '';
-    const assistant     = [...document.querySelectorAll('input[type=checkbox][data-field="assistant"]:checked')].map(c => c.value)[0] || '';
+    const cb = field => [...document.querySelectorAll(`input[type=checkbox][data-field="${field}"]:checked`)].map(c => c.value)[0] || '';
+    const collaborateur = cb("collaborateur");
+    const assistant     = cb("assistant");
+    const structure     = cb("structure");
+    const activite_r    = cb("activite_r");
 
     const params = new URLSearchParams({ page, limit: _LIMIT });
     if (search)        params.set("search", search);
-    if (collaborateur) params.set("collaborateur", collaborateur);
-    if (assistant)     params.set("assistant", assistant);
+    if (collaborateur) params.set("collaborateur_exact", collaborateur);
+    if (assistant)     params.set("assistant_exact", assistant);
+    if (structure)     params.set("structure_exact", structure);
+    if (activite_r)    params.set("activite_r_exact", activite_r);
     if (cloture)       params.set("cloture", cloture);
 
     // Mêmes filtres pour les stats (sans page/limit)
     const statsParams = new URLSearchParams();
     if (search)        statsParams.set("search", search);
-    if (collaborateur) statsParams.set("collaborateur", collaborateur);
-    if (assistant)     statsParams.set("assistant", assistant);
+    if (collaborateur) statsParams.set("collaborateur_exact", collaborateur);
+    if (assistant)     statsParams.set("assistant_exact", assistant);
+    if (structure)     statsParams.set("structure_exact", structure);
+    if (activite_r)    statsParams.set("activite_r_exact", activite_r);
     if (cloture)       statsParams.set("cloture", cloture);
 
     try {
