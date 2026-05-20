@@ -227,6 +227,13 @@ def get_clients(
     cloture: str = "",
     filterField: str = "",
     filterValue: str = "",
+    mission_retraite: str = "",
+    mission_patrimoniale: str = "",
+    mission_placement: str = "",
+    franchise_tva_prest: str = "",
+    franchise_tva_achrevente: str = "",
+    op_prevoyance: str = "",
+    arbitrage_remuneration_dirigeant: str = "",
 ):
     conn = _get_db_conn()
     try:
@@ -251,6 +258,29 @@ def get_clients(
         ALLOWED = {"cvae","is","tvs","ca12","liasse","impot_sur_le_revenu","cotisation_fonciere_entreprise","dividendes","situation","tbb","juridique"}
         if filterField and filterField in ALLOWED and filterValue == "true":
             conditions.append(f'"{filterField}" = TRUE')
+
+        # Filtres TEXT opportunités — mission_placement accepte plusieurs valeurs séparées par virgule
+        for field, val in [
+            ("mission_retraite",               mission_retraite),
+            ("mission_patrimoniale",           mission_patrimoniale),
+            ("franchise_tva_prest",            franchise_tva_prest),
+            ("franchise_tva_achrevente",       franchise_tva_achrevente),
+            ("op_prevoyance",                  op_prevoyance),
+            ("arbitrage_remuneration_dirigeant", arbitrage_remuneration_dirigeant),
+        ]:
+            if val:
+                conditions.append(f'"{field}" = %s')
+                params.append(val)
+
+        if mission_placement:
+            valeurs = [v.strip() for v in mission_placement.split(",") if v.strip()]
+            if len(valeurs) == 1:
+                conditions.append('"mission_placement" = %s')
+                params.append(valeurs[0])
+            elif valeurs:
+                placeholders = ", ".join(["%s"] * len(valeurs))
+                conditions.append(f'"mission_placement" IN ({placeholders})')
+                params.extend(valeurs)
 
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
