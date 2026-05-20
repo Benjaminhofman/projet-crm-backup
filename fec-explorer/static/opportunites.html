@@ -455,7 +455,13 @@ async function loadPage(page = 1) {
         const res = await fetch(`/api/clients?${params}`);
         if (!res.ok) throw new Error("Erreur HTTP " + res.status);
         const response = await res.json();
-        display(response.data ?? []);
+        const checkedFields = Array.from(
+            document.querySelectorAll("#filters-opportunites input:checked")
+        ).map(cb => cb.dataset.field);
+        const filtered = (response.data ?? []).filter(c =>
+            checkedFields.every(f => isActive(c, f))
+        );
+        display(filtered);
         renderPagination(response.page, response.pages, response.total);
     } catch (err) {
         console.error("Erreur loadPage:", err);
