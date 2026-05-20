@@ -300,6 +300,7 @@ tr:hover {
             <option value="faible">🔴 Faible (&lt;40)</option>
         </select>
         <button onclick="exportIndexCSV()" style="background:#27ae60;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">⬇ Export CSV</button>
+        <button onclick="resetFilters()" style="background:#95a5a6;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">🔄 Réinitialiser</button>
     </div>
 </div>
 
@@ -573,6 +574,18 @@ function renderCheckboxList(field, values) {
 
 function applyFilters() {
     loadPage(1);
+}
+
+function resetFilters() {
+    document.querySelectorAll(".filters-container input").forEach(el => {
+        if (el.type === "checkbox") el.checked = false;
+        else el.value = "";
+    });
+    const tranche = document.getElementById("filter-tranche");
+    if (tranche) tranche.value = "";
+    const search = document.getElementById("search");
+    if (search) search.value = "";
+    applyFilters();
 }
 
 async function loadPage(page = 1) {
