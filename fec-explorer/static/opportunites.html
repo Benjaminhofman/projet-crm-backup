@@ -451,17 +451,21 @@ async function loadPage(page = 1) {
     if (annee)         params.set("annee", annee);
     if (cloture)       params.set("cloture", cloture);
 
+    // Cases cochées → params URL vers l'API (filtre SQL côté serveur)
+    document.querySelectorAll("#filters-opportunites input:checked").forEach(cb => {
+        const field = cb.dataset.field;
+        if (field === "mission_placement") {
+            params.set("mission_placement", "OPPORTUNITÉ FORTE,OPPORTUNITÉ MOYENNE");
+        } else {
+            params.set(field, "OUI");
+        }
+    });
+
     try {
         const res = await fetch(`/api/clients?${params}`);
         if (!res.ok) throw new Error("Erreur HTTP " + res.status);
         const response = await res.json();
-        const checkedFields = Array.from(
-            document.querySelectorAll("#filters-opportunites input:checked")
-        ).map(cb => cb.dataset.field);
-        const filtered = (response.data ?? []).filter(c =>
-            checkedFields.every(f => isActive(c, f))
-        );
-        display(filtered);
+        display(response.data ?? []);
         renderPagination(response.page, response.pages, response.total);
     } catch (err) {
         console.error("Erreur loadPage:", err);
