@@ -198,7 +198,9 @@ def auth_login(body: LoginRequest, request: Request):
 
 
 @app.post("/api/auth/token-make", summary="Génère un JWT sans expiration pour Make (protégé par ADMIN_TOKEN)")
-def auth_token_make(authorization: str = Header(default="")):
+def auth_token_make(request: Request, authorization: str = Header(default="")):
+    logging.warning(f"AUTH HEADER: {request.headers.get('authorization', 'ABSENT')}")
+    logging.warning(f"ADMIN_TOKEN ENV: '{os.environ.get('ADMIN_TOKEN', 'NON DEFINI')}'")
     admin_token = os.environ.get("ADMIN_TOKEN", "")
     jwt_secret  = os.environ.get("JWT_SECRET", "")
     if not admin_token or not authorization == f"Bearer {admin_token}":
