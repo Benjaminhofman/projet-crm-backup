@@ -324,6 +324,58 @@ def get_clients_columns():
         conn.close()
 
 
+@app.get("/api/clients/stats", summary="Total et honoraires moyen sur tous les clients (avec filtres)")
+def get_clients_stats(
+    search: str = "",
+    collaborateur: str = "",
+    assistant: str = "",
+    annee: str = "",
+    cloture: str = "",
+    filterField: str = "",
+    filterValue: str = "",
+):
+    conn = _get_db_conn()
+    try:
+        conditions = []
+        params = []
+
+        if search:
+            conditions.append("(nom_client ILIKE %s OR code_client ILIKE %s OR siret ILIKE %s)")
+            params += [f"%{search}%", f"%{search}%", f"%{search}%"]
+        if collaborateur:
+            conditions.append("collaborateur ILIKE %s")
+            params.append(f"%{collaborateur}%")
+        if assistant:
+            conditions.append("assistant ILIKE %s")
+            params.append(f"%{assistant}%")
+        if annee:
+            conditions.append("annee::text ILIKE %s")
+            params.append(f"%{annee}%")
+        if cloture:
+            conditions.append("date_de_cloture::text ILIKE %s")
+            params.append(f"%{cloture}%")
+        ALLOWED = {"cvae","is","tvs","ca12","liasse","impot_sur_le_revenu","cotisation_fonciere_entreprise","dividendes","situation","tbb","juridique"}
+        if filterField and filterField in ALLOWED and filterValue == "true":
+            conditions.append(f'"{filterField}" = TRUE')
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                f"SELECT COUNT(*) AS total, AVG(honoraires_cpta) AS honoraires_moyen FROM clients {where}",
+                params,
+            )
+            row = cur.fetchone()
+        return {
+            "total": int(row["total"]),
+            "honoraires_moyen": float(row["honoraires_moyen"]) if row["honoraires_moyen"] else 0.0,
+        }
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 @app.get("/api/clients/distinct", summary="Valeurs distinctes d'une colonne (whitelist)")
 def get_clients_distinct(field: str):
     ALLOWED = {"collaborateur", "assistant", "structure", "activite_r"}

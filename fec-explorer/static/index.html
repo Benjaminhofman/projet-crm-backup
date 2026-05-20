@@ -598,14 +598,26 @@ async function loadPage(page = 1) {
     if (assistant)     params.set("assistant", assistant);
     if (cloture)       params.set("cloture", cloture);
 
+    // Mêmes filtres pour les stats (sans page/limit)
+    const statsParams = new URLSearchParams();
+    if (search)        statsParams.set("search", search);
+    if (collaborateur) statsParams.set("collaborateur", collaborateur);
+    if (assistant)     statsParams.set("assistant", assistant);
+    if (cloture)       statsParams.set("cloture", cloture);
+
     try {
-        const res = await fetch(`${API_URL}/clients?${params}`);
+        const [res, statsRes] = await Promise.all([
+            fetch(`${API_URL}/clients?${params}`),
+            fetch(`${API_URL}/clients/stats?${statsParams}`)
+        ]);
         if (!res.ok) throw new Error("Erreur HTTP " + res.status);
         const response = await res.json();
+        const stats    = statsRes.ok ? await statsRes.json() : null;
         let data = response.data ?? [];
         if (tranche) data = data.filter(c => getTranche(c.rendement) === tranche);
         displayClients(data);
         renderPagination(response.page, response.pages, response.total);
+        if (stats) updateDashboard(stats);
         checkAnniversaires(data);
         if (page === 1) buildFilters(response.data ?? []);
     } catch (err) {
@@ -637,7 +649,6 @@ function renderPagination(page, pages, total) {
 
 function displayClients(data) {
     _currentData = data;
-    updateDashboard(data);
 
     const table = document.getElementById("clients-table");
     table.innerHTML = "";
@@ -711,13 +722,10 @@ function exportIndexCSV() {
     ]);
 }
 
-function updateDashboard(data) {
-    const total = data.length;
-    const totalHonos = data.reduce((sum, c) => sum + (parseFloat(c.honoraires_cpta) || 0), 0);
-    const avg = total ? totalHonos / total : 0;
+function updateDashboard({ total, honoraires_moyen }) {
     document.getElementById("total-clients").innerText = total;
     document.getElementById("avg-honos").innerText =
-        new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(avg);
+        new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(honoraires_moyen ?? 0);
 }
 
 document.getElementById("search").addEventListener("input", applyFilters);
