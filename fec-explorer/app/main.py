@@ -454,6 +454,34 @@ def get_clients_stats(
         conn.close()
 
 
+@app.get("/api/clients/filters", summary="Toutes les valeurs de filtres en une seule requête")
+def get_clients_filters():
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    array_agg(DISTINCT assistant     ORDER BY assistant)     FILTER (WHERE assistant     IS NOT NULL AND assistant     <> '') AS assistants,
+                    array_agg(DISTINCT collaborateur ORDER BY collaborateur) FILTER (WHERE collaborateur IS NOT NULL AND collaborateur <> '') AS collaborateurs,
+                    array_agg(DISTINCT annee::text   ORDER BY annee::text)   FILTER (WHERE annee         IS NOT NULL)                        AS annees,
+                    array_agg(DISTINCT SUBSTRING(date_de_cloture::text, 6, 2) ORDER BY 1) FILTER (WHERE date_de_cloture IS NOT NULL)          AS mois_cloture,
+                    array_agg(DISTINCT nom_client    ORDER BY nom_client)    FILTER (WHERE nom_client    IS NOT NULL AND nom_client    <> '') AS noms
+                FROM clients
+            """)
+            row = cur.fetchone()
+            return {
+                "assistants":    row[0] or [],
+                "collaborateurs": row[1] or [],
+                "annees":        row[2] or [],
+                "mois_cloture":  row[3] or [],
+                "noms":          row[4] or [],
+            }
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 @app.get("/api/clients/distinct", summary="Valeurs distinctes d'une colonne (whitelist)")
 def get_clients_distinct(field: str):
     ALLOWED = {"collaborateur", "assistant", "structure", "activite_r", "annee", "mois_cloture", "nom_client"}
