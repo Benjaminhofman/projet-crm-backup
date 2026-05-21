@@ -254,7 +254,6 @@ async function saveTvsMois(siret, field, value, el) {
 display = function(data) {
     _currentData = data;
     const table = document.getElementById('table');
-    document.getElementById('counter').textContent = 'Nombre de dossiers : ' + data.length;
 
     if (!data.length) {
         table.innerHTML = `<tr class="loading-row"><td colspan="18">Aucun résultat</td></tr>`;
