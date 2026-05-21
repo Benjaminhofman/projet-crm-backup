@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -165,7 +165,7 @@ function exportCSV(data, filename, columns) {
 initDeclaratifPage({
     titre: "Suivi CFE",
     emoji: "📊",
-    requireFn: c => c.cotisation_fonciere_entreprise === true || c.cotisation_fonciere_entreprise === 't' || c.cotisation_fonciere_entreprise === 'true' || c.cotisation_fonciere_entreprise === 1,
+    filterField: "cotisation_fonciere_entreprise",
     columns: [
         {
             header: "Prélèvement CFE",
