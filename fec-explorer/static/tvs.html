@@ -58,10 +58,10 @@
 <div class="counter" id="counter"></div>
 
 <div class="filters-top">
-    <input id="filter-assistant" placeholder="Assistant...">
-    <input id="filter-collab" placeholder="Collaborateur...">
-    <input id="filter-annee" placeholder="Année...">
-    <input id="filter-cloture" placeholder="Clôture...">
+    <select id="filter-assistant"><option value="">Tous</option></select>
+    <select id="filter-collab"><option value="">Tous</option></select>
+    <select id="filter-annee"><option value="">Toutes</option></select>
+    <select id="filter-cloture"><option value="">Toutes</option></select>
 </div>
 
 <div style="height:calc(100vh - 280px);overflow-y:auto;overflow-x:scroll;">
@@ -303,6 +303,41 @@ display = function(data) {
 };
 
 
+
+const MOIS_LABELS = {
+    '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
+    '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
+    '09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'
+};
+
+async function populateSelects() {
+    const fill = async (id, field, labelFn) => {
+        const sel = document.getElementById(id);
+        try {
+            const res = await fetch(`/api/clients/distinct?field=${field}`);
+            const vals = await res.json();
+            vals.forEach(v => {
+                if (!v) return;
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = labelFn ? labelFn(v) : v;
+                sel.appendChild(opt);
+            });
+        } catch {}
+    };
+    await Promise.all([
+        fill('filter-assistant', 'assistant'),
+        fill('filter-collab',    'collaborateur'),
+        fill('filter-annee',     'annee'),
+        fill('filter-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
+    ]);
+}
+
+populateSelects().then(() => {
+    document.querySelectorAll('.filters-top select').forEach(sel => {
+        sel.addEventListener('change', applyFilters);
+    });
+});
 
 initDeclaratifPage({
     titre: "Suivi TVS",
