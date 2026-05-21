@@ -30,6 +30,19 @@ function initDeclaratifPage(config) {
 
     const filterTop = document.querySelector('.filters-top');
     if (filterTop) {
+        // Champ recherche nom client (inséré en premier)
+        const srchDl  = document.createElement('datalist');
+        srchDl.id = 'dl-search';
+        const srchInp = document.createElement('input');
+        srchInp.type = 'text';
+        srchInp.id   = 'search';
+        srchInp.setAttribute('list', 'dl-search');
+        srchInp.placeholder = '🔍 Nom client…';
+        srchInp.setAttribute('autocomplete', 'off');
+        filterTop.insertBefore(srchDl,  filterTop.firstChild);
+        filterTop.insertBefore(srchInp, srchDl);
+
+        // Bouton Réinitialiser
         const btn = document.createElement('button');
         btn.textContent = '🔄 Réinitialiser';
         btn.style.cssText = 'background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;';
@@ -60,6 +73,7 @@ async function populateSelects() {
         } catch {}
     };
     await Promise.all([
+        fill('dl-search',    'nom_client'),
         fill('dl-assistant', 'assistant'),
         fill('dl-collab',    'collaborateur'),
         fill('dl-annee',     'annee'),
@@ -187,6 +201,8 @@ async function loadPage(page = 1) {
     const ff = String(_pageConfig?.filterField || '');
     if (ff) params.append('filterField', ff);
     if (ff) params.append('filterValue', 'true');
+    const search = get("search");
+    if (search) params.set("search", search);
     if (assistant)     params.set("assistant_exact",     assistant);
     if (collaborateur) params.set("collaborateur_exact", collaborateur);
     if (annee)         params.set("annee",               annee);

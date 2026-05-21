@@ -195,7 +195,8 @@ input {
 
 <!-- FILTRES -->
 <div class="filters-top">
-    <input id="search" placeholder="🔍 Nom client...">
+    <input id="search" list="dl-search" placeholder="🔍 Nom client…" autocomplete="off">
+    <datalist id="dl-search"></datalist>
     <input type="text" id="filter-assistant" list="dl-assistant" placeholder="— Assistant —" autocomplete="off">
     <datalist id="dl-assistant"></datalist>
     <input type="text" id="filter-collab" list="dl-collab" placeholder="— Collaborateur —" autocomplete="off">
@@ -512,6 +513,7 @@ async function populateSelects() {
         } catch {}
     };
     await Promise.all([
+        fill('dl-search',    'nom_client'),
         fill('dl-assistant', 'assistant'),
         fill('dl-collab',    'collaborateur'),
         fill('dl-annee',     'annee'),

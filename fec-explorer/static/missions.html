@@ -84,6 +84,8 @@ textarea {
 </div>
 
 <div class="filters">
+    <input type="text" id="search" list="dl-search" placeholder="🔍 Nom client…" autocomplete="off">
+    <datalist id="dl-search"></datalist>
     <input type="text" id="f-assistant" list="dl-assistant" placeholder="— Assistant —" autocomplete="off">
     <datalist id="dl-assistant"></datalist>
     <input type="text" id="f-collab" list="dl-collab" placeholder="— Collaborateur —" autocomplete="off">
@@ -318,6 +320,8 @@ async function loadPage(page = 1) {
         const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
         params.set('cloture', '-' + mm + '-');
     }
+    const search = get('search');
+    if (search) params.set('search', search);
 
     let response;
     try {
@@ -358,6 +362,7 @@ async function populateSelects() {
         } catch {}
     };
     await Promise.all([
+        fill('dl-search',    'nom_client'),
         fill('dl-assistant', 'assistant'),
         fill('dl-collab',    'collaborateur'),
         fill('dl-annee',     'annee'),
