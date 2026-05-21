@@ -308,7 +308,7 @@ async function loadPage(page = 1) {
     if (assistant)     params.set('assistant_exact',     assistant);
     if (collaborateur) params.set('collaborateur_exact', collaborateur);
     if (annee)         params.set('annee',               annee);
-    if (cloture)       params.set('cloture',              cloture);
+    if (cloture)       params.set('cloture', '-' + cloture + '-');
 
     let response;
     try {
@@ -328,8 +328,14 @@ async function loadPage(page = 1) {
 
 function applyFilters() { loadPage(1); }
 
+const MOIS_LABELS = {
+    '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
+    '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
+    '09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'
+};
+
 async function populateSelects() {
-    const fill = async (id, field) => {
+    const fill = async (id, field, labelFn) => {
         const sel = document.getElementById(id);
         try {
             const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
@@ -338,15 +344,16 @@ async function populateSelects() {
                 if (!v) return;
                 const opt = document.createElement('option');
                 opt.value = v;
-                opt.textContent = v;
+                opt.textContent = labelFn ? labelFn(v) : v;
                 sel.appendChild(opt);
             });
         } catch {}
     };
     await Promise.all([
-        fill('f-assistant',  'assistant'),
-        fill('f-collab',     'collaborateur'),
-        fill('f-annee',      'annee'),
+        fill('f-assistant', 'assistant'),
+        fill('f-collab',    'collaborateur'),
+        fill('f-annee',     'annee'),
+        fill('f-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
     ]);
 }
 

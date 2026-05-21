@@ -90,7 +90,7 @@ select {
     <input id="f-assistant" placeholder="Assistant">
     <input id="f-collab" placeholder="Collaborateur">
     <input id="f-annee" placeholder="Année">
-    <input id="f-cloture" placeholder="Clôture">
+    <select id="f-cloture"><option value="">Toutes</option></select>
 
     <select id="f-retraite"><option value="">Retraite</option></select>
     <select id="f-patrimoine"><option value="">Patrimoniale</option></select>
@@ -347,7 +347,7 @@ async function loadPage(page = 1) {
     if (assistant)     params.set('assistant',     assistant);
     if (collaborateur) params.set('collaborateur', collaborateur);
     if (annee)         params.set('annee',         annee);
-    if (cloture)       params.set('cloture',       cloture);
+    if (cloture)       params.set('cloture', '-' + cloture + '-');
 
     let response;
     try {
@@ -383,8 +383,30 @@ async function loadPage(page = 1) {
 
 function applyFilters() { loadPage(1); }
 
+const MOIS_LABELS = {
+    '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
+    '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
+    '09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'
+};
+
+async function populateCloture() {
+    const sel = document.getElementById('f-cloture');
+    try {
+        const res = await fetch(`${API_URL}/clients/distinct?field=mois_cloture`);
+        const vals = await res.json();
+        vals.forEach(v => {
+            if (!v) return;
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = `${MOIS_LABELS[v] || v} (${v})`;
+            sel.appendChild(opt);
+        });
+    } catch {}
+}
+
 async function load() {
     initSelectFilters();
+    await populateCloture();
     bindFilterInputs(".filters input, .filters select");
     await loadPage(1);
 }
