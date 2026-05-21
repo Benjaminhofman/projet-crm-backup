@@ -299,6 +299,10 @@ tr:hover {
             <option value="moyen">⚠️ Moyen (40-59)</option>
             <option value="faible">🔴 Faible (&lt;40)</option>
         </select>
+        <select id="sel-collab"    onchange="applyFilters()" style="background:white;border:1px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;"><option value="">Tous</option></select>
+        <select id="sel-assistant" onchange="applyFilters()" style="background:white;border:1px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;"><option value="">Tous</option></select>
+        <select id="sel-structure" onchange="applyFilters()" style="background:white;border:1px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;"><option value="">Toutes</option></select>
+        <select id="sel-activite"  onchange="applyFilters()" style="background:white;border:1px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;"><option value="">Toutes</option></select>
         <button onclick="exportIndexCSV()" style="background:#27ae60;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">⬇ Export CSV</button>
         <button onclick="resetFilters()" style="background:#95a5a6;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">🔄 Réinitialiser</button>
     </div>
@@ -324,7 +328,6 @@ tr:hover {
     </div>
 </div>
 
-<div class="filters-container" id="filters"></div>
 
 <table>
 <thead>
@@ -517,59 +520,24 @@ function checkAnniversaires(data) {
     }
 }
 
-let filtersConfig = [
-    { field: "collaborateur",   label: "Collaborateur" },
-    { field: "assistant",       label: "Assistant" },
-    { field: "date_de_cloture", label: "Date de clôture", type: "text" },
-    { field: "structure",       label: "Structure" },
-    { field: "activite_r",      label: "Activité" }
-];
-
-function buildFilters(data) {
-    const container = document.getElementById("filters");
-    container.innerHTML = "";
-    filtersConfig.forEach(f => {
-        const group = document.createElement("div");
-        group.className = "filter-group";
-        if (f.type === "text") {
-            group.innerHTML = `
-                <strong>${f.label}</strong>
-                <input type="text" placeholder='Ex : "03" pour mars...' data-field="${f.field}" id="text-filter-${f.field}" style="margin-top:6px;width:100%;box-sizing:border-box;">
-            `;
-            container.appendChild(group);
-            group.querySelector("input").addEventListener("input", applyFilters);
-        } else {
-            const values = [...new Set(data.map(c => c[f.field]).filter(Boolean))].sort();
-            group.innerHTML = `
-                <strong>${f.label}</strong>
-                <input type="text" placeholder="Rechercher..." data-field="${f.field}">
-                <div class="checkbox-list" id="list-${f.field}"></div>
-            `;
-            container.appendChild(group);
-            renderCheckboxList(f.field, values);
-            group.querySelector("input").addEventListener("input", (e) => {
-                const val = e.target.value.toLowerCase();
-                const filtered = values.filter(v => v.toLowerCase().includes(val));
-                renderCheckboxList(f.field, filtered);
-            });
-        }
-    });
-}
-
-function renderCheckboxList(field, values) {
-    const container = document.getElementById("list-" + field);
-    container.innerHTML = "";
-    values.forEach(val => {
-        container.innerHTML += `
-            <label>
-                <input type="checkbox" value="${val}" data-field="${field}">
-                ${val}
-            </label>
-        `;
-    });
-    container.querySelectorAll("input").forEach(cb => {
-        cb.addEventListener("change", applyFilters);
-    });
+async function populateSelects() {
+    const configs = [
+        { id: "sel-collab",    field: "collaborateur", def: "Tous" },
+        { id: "sel-assistant", field: "assistant",     def: "Tous" },
+        { id: "sel-structure", field: "structure",     def: "Toutes" },
+        { id: "sel-activite",  field: "activite_r",    def: "Toutes" },
+    ];
+    await Promise.all(configs.map(async ({ id, field, def }) => {
+        try {
+            const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
+            if (!res.ok) return;
+            const values = await res.json();
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            sel.innerHTML = `<option value="">${def}</option>` +
+                values.map(v => `<option value="${v}">${v}</option>`).join('');
+        } catch {}
+    }));
 }
 
 function applyFilters() {
@@ -577,12 +545,10 @@ function applyFilters() {
 }
 
 function resetFilters() {
-    document.querySelectorAll(".filters-container input").forEach(el => {
-        if (el.type === "checkbox") el.checked = false;
-        else el.value = "";
+    ["sel-collab", "sel-assistant", "sel-structure", "sel-activite", "filter-tranche"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
     });
-    const tranche = document.getElementById("filter-tranche");
-    if (tranche) tranche.value = "";
     const search = document.getElementById("search");
     if (search) search.value = "";
     applyFilters();
@@ -604,11 +570,10 @@ async function loadPage(page = 1) {
     const search       = get("search");
     const tranche      = get("filter-tranche");
     const cloture      = get("text-filter-date_de_cloture");
-    const cb = field => [...document.querySelectorAll(`input[type=checkbox][data-field="${field}"]:checked`)].map(c => c.value)[0] || '';
-    const collaborateur = cb("collaborateur");
-    const assistant     = cb("assistant");
-    const structure     = cb("structure");
-    const activite_r    = cb("activite_r");
+    const collaborateur = get("sel-collab");
+    const assistant     = get("sel-assistant");
+    const structure     = get("sel-structure");
+    const activite_r    = get("sel-activite");
 
     const params = new URLSearchParams({ page, limit: _LIMIT });
     if (search)        params.set("search", search);
@@ -641,7 +606,6 @@ async function loadPage(page = 1) {
         renderPagination(response.page, response.pages, response.total);
         if (stats) updateDashboard(stats);
         checkAnniversaires(data);
-        if (page === 1) buildFilters(response.data ?? []);
     } catch (err) {
         console.error("Erreur loadPage:", err);
         tbody.innerHTML = `<tr><td colspan="13" style="color:#e74c3c;padding:20px;">Erreur de chargement</td></tr>`;
@@ -753,7 +717,7 @@ function updateDashboard({ total, honoraires_moyen }) {
 document.getElementById("search").addEventListener("input", applyFilters);
 document.getElementById("filter-tranche").addEventListener("change", applyFilters);
 
-loadPage(1);
+populateSelects().then(() => loadPage(1));
 setInterval(() => loadPage(_currentPage), 5 * 60 * 1000);
 
 /* Menu déroulant navigation */
