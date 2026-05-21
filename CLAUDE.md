@@ -823,3 +823,229 @@ Utiles à partir de ~1000 clients.
 - Pagination `opportunites.html` complète avec filtres serveur
 - Export CSV filtré sur `commercial.html` et `declaratif.html`
 - Endpoint `/api/clients/light` (colonnes réduites) pour performance
+## Session 21/05/2026 (après-midi) — Filtres dynamiques, performance, UX
+
+### Endpoint /api/clients/filters (endpoint groupé)
+Remplace les 5 appels `/api/clients/distinct` séparés par 1 seul :
+`GET /api/clients/filters`
+Retourne :
+```json
+{
+  "assistants": [...],
+  "collaborateurs": [...],
+  "annees": [...],
+  "mois_cloture": ["01","02",...,"12"],
+  "noms": [...]
+}
+```
+Toutes les pages appellent cet endpoint au chargement
+pour alimenter leurs datalists/selects.
+Gain : 5 requêtes → 1 par page au chargement.
+
+---
+
+### Filtres dynamiques — pattern standard (toutes les pages)
+Chaque page a maintenant :
+- Input texte + datalist pour : Nom client, Assistant,
+  Collaborateur, Année, Clôture (mois)
+- Option par défaut labelisée : "— Assistant —" etc.
+- Correspondance exacte via `_exact` params pour
+  assistant et collaborateur (évite collab1 → collab10)
+- Clôture : filtre par mois via `-MM-` (ILIKE)
+- Debounce 300ms sur le champ recherche nom client
+- Bouton "🔄 Réinitialiser" sur toutes les pages
+
+Pages migrées : `decl-engine.js` (couvre ca12, tvs, cvae,
+is, ir, liasse, cfe, dividendes, juridique, situation, tbb),
+`missions.html`, `opportunites.html`, `commercial.html`,
+`rendement.html`, `declaratif.html`
+
+### Paramètres exact dans GET /api/clients
+```
+collaborateur_exact, assistant_exact,
+structure_exact, activite_r_exact
+```
+→ condition `= %s` (pas ILIKE)
+→ aussi dans `get_clients_stats()` pour cohérence compteurs
+
+### Filtre clôture par mois
+`/api/clients/distinct?field=mois_cloture` retourne
+`["01","02",...,"12"]` (SUBSTRING de date_de_cloture).
+Frontend passe `cloture=-MM-` (ex: `-06-`) → ILIKE matche
+toutes les dates du mois 06 quelle que soit l'année.
+
+---
+
+### SELECT colonnes réduites dans get_clients()
+`SELECT *` remplacé par ~45 colonnes essentielles dans
+`get_clients()` pour réduire le payload des listes.
+`SELECT *` conservé uniquement dans `get_client(siret)`
+(fiche détail complète).
+
+Colonnes exclues des listes (non nécessaires pour les tableaux) :
+colonnes mensuelles TVS (`janvier_tvs`...`decembre_tvs`),
+colonnes mensuelles CA12 soldes, colonnes CVAE mensuelles,
+colonnes bilan détaillées, ratios financiers.
+
+⚠️ Si une page liste a besoin d'une colonne absente →
+l'ajouter à la liste dans `get_clients()`, pas revenir à SELECT *.
+
+---
+
+### requireFn → filterField — règle définitive
+`requireFn` est INTERDIT sur toute page paginée.
+Toujours utiliser `filterField` (filtre serveur).
+Les seuls cas où du filtrage JS post-réponse est acceptable :
+- Cases à cocher colonnes dans `declaratif.html`
+  (filtrage sur la page courante seulement, pagination affectée)
+- Indicateurs TEXT dans `opportunites.html`
+  (mission_retraite="OUI", mission_placement="OPPORTUNITÉ...")
+
+---
+
+### Export CSV filtré
+Bouton "⬇ Exporter tout" sur `commercial.html` et
+`declaratif.html` : appelle `GET /api/clients?limit=0`
+avec tous les filtres actifs → exporte l'intégralité
+de la sélection, pas seulement la page courante.
+
+---
+
+### Pagination opportunites.html côté serveur
+Filtres indicateurs booléens passés comme params URL :
+`mission_retraite=OUI`, `op_prevoyance=OUI`, etc.
+`mission_placement=OPPORTUNITÉ FORTE,OPPORTUNITÉ MOYENNE`
+Backend : condition `IN` pour mission_placement,
+`= 'OUI'` pour les autres champs TEXT d'opportunités.
+Whitelist ALLOWED étendue avec ces champs TEXT.
+
+---
+
+### Debounce recherche
+Pattern debounce 300ms sur tous les champs recherche :
+```javascript
+let _debounceTimer = null;
+function applyFilters() {
+    clearTimeout(_debounceTimer);
+    _debounceTimer = setTimeout(() => loadPage(1), 300);
+}
+```
+Évite un appel API à chaque frappe de touche.
+
+---
+
+### mois_cloture dans whitelist distinct
+`/api/clients/distinct?field=mois_cloture` ajouté à la
+whitelist de l'endpoint distinct.
+Retourne les mois distincts (`SUBSTRING(date_de_cloture, 6, 2)`)
+triés, pour alimenter les filtres clôture.
+
+---
+
+### Affichage mois clôture
+Options du select clôture affichées comme :
+"Janvier (01)", "Février (02)", ..., "Décembre (12)"
+Map côté JS : `{"01":"Janvier","02":"Février",...}`
+
+---
+
+### État du projet (21/05/2026 après-midi)
+Toutes les interfaces principales ont :
+✅ Pagination serveur (50 par page)
+✅ Filtres dynamiques avec datalist
+✅ Correspondance exacte assistant/collaborateur
+✅ Filtre clôture par mois
+✅ Bouton Réinitialiser
+✅ Champ recherche nom client avec debounce
+
+### Prochaines étapes
+- Supprimer endpoint debug `/api/debug/bool_counts`
+  et logs temporaires dans `token-make`
+- Cron Render quotidien pour `refresh_age` et `anciennete`
+- Filtre rendement minimum sur `rendement.html`
+- Vérifier cohérence SELECT colonnes réduites vs besoins
+  de chaque page (ajouter colonnes manquantes si nécessaire)
+
+---
+
+## Session 21/05/2026 (soir) — Performance SELECT, exports CSV, filtres serveur
+
+### SELECT explicite dans get_clients() — 59 colonnes
+`get_clients()` utilise désormais une liste explicite de 59 colonnes
+au lieu de `SELECT *`. Exclut les 24 colonnes mensuelles :
+- `janvier_tvs` → `decembre_tvs` (12 colonnes)
+- `janvier_ca12_solde` → `decembre_ca12_solde` (12 colonnes)
+
+`get_client(siret)` conserve `SELECT *` (fiche détail complète).
+
+⚠️ **Conséquence connue** : `tvs.html` et `ca12.html` ne reçoivent plus
+les valeurs mensuelles via `get_clients()`. Un endpoint dédié
+`/api/clients/monthly` sera nécessaire pour pré-remplir ces inputs.
+
+---
+
+### Endpoint /api/clients/filters (groupé)
+`GET /api/clients/filters` retourne en une seule requête SQL :
+```json
+{"assistants":[...],"collaborateurs":[...],"annees":[...],"mois_cloture":[...],"noms":[...]}
+```
+Utilise `array_agg(DISTINCT col ORDER BY col) FILTER (WHERE ...)`.
+Remplace les 4–5 appels séparés à `/api/clients/distinct` dans `populateSelects()`.
+
+Pages migrées : `missions.html`, `decl-engine.js` (11 pages déclaratives),
+`opportunites.html`, `commercial.html`, `rendement.html`, `declaratif.html`.
+
+---
+
+### Filtres TEXT opportunités côté serveur
+Dans `get_clients()`, whitelist `ALLOWED` étendue avec les champs TEXT
+d'opportunité. Condition SQL selon le type :
+- Champs TEXT_OPP (`mission_retraite`, `mission_patrimoniale`, `op_prevoyance`,
+  `franchise_tva_prest`, `franchise_tva_achrevente`, `arbitrage_remuneration_dirigeant`) :
+  `"champ" IS NOT NULL AND "champ" != '' AND "champ" != 'Données manquantes'`
+- `mission_placement` :
+  `"mission_placement" IN ('OPPORTUNITÉ FORTE','OPPORTUNITÉ MOYENNE')`
+
+---
+
+### Bouton "⬇ Exporter tout"
+Ajouté sur `declaratif.html` et `commercial.html`.
+Pattern : `GET /api/clients?limit=0` + filtres actifs → post-filtrage JS
+→ `exportCSV()`. Génère le CSV complet de la sélection courante.
+
+Colonnes exportées `declaratif.html` (17) :
+`code_client, nom_client, assistant, collaborateur, annee, date_de_cloture,
+ca12, tvs, cvae, impot_sur_le_revenu, is, liasse,
+cotisation_fonciere_entreprise, dividendes, juridique, situation, tbb`
+
+Colonnes exportées `commercial.html` (10) :
+`code_client, annee, nom_client, assistant, collaborateur, date_de_cloture,
+suivi_mission_retraite, suivi_mission_patrimoniale, suivi_mission_placement, suivi_mission_prevoyance`
+
+---
+
+### Debounce `:not(#search)` — piège double-bind
+Quand un input a `list="dl-xxx"`, il est ciblé par `input[list]` ET
+peut avoir un listener dédié avec debounce. Toujours exclure `#search` :
+```javascript
+document.querySelectorAll('.filters-top input[list]:not(#search)').forEach(...)
+```
+Sinon `applyFilters` est bindé deux fois sur `#search` (direct + debounced).
+
+---
+
+### État du projet (21/05/2026 soir)
+- 43 étapes réalisées
+- Exports CSV opérationnels sur `declaratif.html` et `commercial.html`
+- `populateSelects()` unifié sur toutes les pages via `/api/clients/filters`
+- `get_clients()` optimisé : 59 colonnes explicites, payload réduit
+
+### Prochaines étapes
+- Endpoint `/api/clients/monthly` pour `tvs.html` et `ca12.html` (colonnes mensuelles)
+- Bouton "⬇ Exporter tout" sur `rendement.html` et `opportunites.html`
+- Supprimer code mort (`dataGlobal`, `fetchClients()`) dans `opportunites.html`
+- Supprimer logs debug temporaires (`/api/debug/bool_counts`, logs AUTH dans `token-make`)
+- Cron Render quotidien pour `refresh_age` et `anciennete`
+- Endpoint `/api/migrate/install_all_triggers` (réinstalle les 11 en 1 clic)
+- Endpoint `/api/debug/health` (vérifie présence des 11 triggers)
+
