@@ -491,7 +491,8 @@ function applyFilters() {
     loadPage(1);
 }
 
-document.getElementById("search").addEventListener("input", applyFilters);
+let _st;
+document.getElementById("search").addEventListener("input", () => { clearTimeout(_st); _st = setTimeout(applyFilters, 300); });
 
 const MOIS_LABELS = {
     '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
@@ -521,7 +522,7 @@ async function populateSelects() {
     ]);
 }
 populateSelects().then(() => {
-    document.querySelectorAll('.filters-top input[list]').forEach(inp => {
+    document.querySelectorAll('.filters-top input[list]:not(#search)').forEach(inp => {
         inp.addEventListener('input', applyFilters);
     });
 });
