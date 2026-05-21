@@ -393,6 +393,10 @@ def get_clients_stats(
     cloture: str = "",
     filterField: str = "",
     filterValue: str = "",
+    collaborateur_exact: str = "",
+    assistant_exact: str = "",
+    structure_exact: str = "",
+    activite_r_exact: str = "",
 ):
     conn = _get_db_conn()
     try:
@@ -417,6 +421,16 @@ def get_clients_stats(
         ALLOWED = {"cvae","is","tvs","ca12","liasse","impot_sur_le_revenu","cotisation_fonciere_entreprise","dividendes","situation","tbb","juridique"}
         if filterField and filterField in ALLOWED and filterValue == "true":
             conditions.append(f'"{filterField}" = TRUE')
+
+        for field, val in [
+            ("collaborateur", collaborateur_exact),
+            ("assistant",     assistant_exact),
+            ("structure",     structure_exact),
+            ("activite_r",    activite_r_exact),
+        ]:
+            if val:
+                conditions.append(f'"{field}" = %s')
+                params.append(val)
 
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
