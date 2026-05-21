@@ -151,9 +151,6 @@ tr:hover {
 <script>
 const API_URL = "/api";
 
-// Variable globale partagée entre toutes les pages déclaratives
-let dataGlobal = [];
-
 // Échappement HTML pour prévenir les injections XSS
 function esc(val) {
     const div = document.createElement('div');
@@ -177,18 +174,6 @@ function fmtDate(d) {
 // Score de rentabilité (retourne la valeur numérique brute)
 function getRentabiliteScore(val) {
     return parseFloat(val) || 0;
-}
-
-// Chargement des clients depuis l'API avec gestion d'erreur
-async function fetchClients() {
-    try {
-        const res = await fetch(API_URL + "/clients");
-        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
-        return await res.json();
-    } catch (err) {
-        console.error("Erreur fetchClients:", err);
-        return [];
-    }
 }
 
 // Attache applyFilters() sur tous les inputs correspondant au sélecteur CSS
