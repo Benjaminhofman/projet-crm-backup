@@ -38,10 +38,11 @@ body {
     margin-bottom: 15px;
 }
 
-.filters input {
+.filters select {
     padding: 6px;
     border-radius: 6px;
     border: 1px solid #ccc;
+    background: white;
 }
 
 table {
@@ -81,10 +82,10 @@ tr:hover {
 <div class="counter" id="counter"></div>
 
 <div class="filters">
-    <input id="f-assistant" placeholder="Assistant">
-    <input id="f-collab" placeholder="Collaborateur">
-    <input id="f-annee" placeholder="Année">
-    <input id="f-cloture" placeholder="Clôture">
+    <select id="f-assistant"><option value="">Tous</option></select>
+    <select id="f-collab"><option value="">Tous</option></select>
+    <select id="f-annee"><option value="">Toutes</option></select>
+    <select id="f-cloture"><option value="">Toutes</option></select>
 </div>
 
 <table>
@@ -446,10 +447,10 @@ async function loadPage(page = 1) {
     const collaborateur = get("f-collab");
     const annee         = get("f-annee");
     const cloture       = get("f-cloture");
-    if (assistant)     params.set("assistant", assistant);
-    if (collaborateur) params.set("collaborateur", collaborateur);
-    if (annee)         params.set("annee", annee);
-    if (cloture)       params.set("cloture", cloture);
+    if (assistant)     params.set("assistant_exact",     assistant);
+    if (collaborateur) params.set("collaborateur_exact", collaborateur);
+    if (annee)         params.set("annee",               annee);
+    if (cloture)       params.set("cloture", "-" + cloture + "-");
 
     // Cases cochées → params URL vers l'API (filtre SQL côté serveur)
     document.querySelectorAll("#filters-opportunites input:checked").forEach(cb => {
@@ -478,11 +479,47 @@ function applyFilters() {
     loadPage(1);
 }
 
-loadPage(1);
-bindFilterInputs(".filters input");
-document.querySelectorAll("#filters-opportunites input").forEach(el => {
-    el.addEventListener("change", applyFilters);
-});
+const MOIS_LABELS = {
+    '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
+    '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
+    '09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'
+};
+
+async function populateSelects() {
+    const fill = async (id, field, labelFn) => {
+        const sel = document.getElementById(id);
+        try {
+            const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
+            const vals = await res.json();
+            vals.forEach(v => {
+                if (!v) return;
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = labelFn ? labelFn(v) : v;
+                sel.appendChild(opt);
+            });
+        } catch {}
+    };
+    await Promise.all([
+        fill('f-assistant', 'assistant'),
+        fill('f-collab',    'collaborateur'),
+        fill('f-annee',     'annee'),
+        fill('f-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
+    ]);
+}
+
+async function load() {
+    await populateSelects();
+    document.querySelectorAll('.filters select').forEach(sel => {
+        sel.addEventListener('change', applyFilters);
+    });
+    document.querySelectorAll("#filters-opportunites input").forEach(el => {
+        el.addEventListener("change", applyFilters);
+    });
+    loadPage(1);
+}
+
+load();
 </script>
 
 <script src="/auth.js"></script>
