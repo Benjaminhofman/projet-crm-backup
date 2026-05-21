@@ -102,6 +102,7 @@ select {
     <select id="f-patrimoine"><option value="">Patrimoniale</option></select>
     <select id="f-placement"><option value="">Placement</option></select>
     <select id="f-prevoyance"><option value="">Prévoyance</option></select>
+    <button onclick="document.querySelectorAll('.filters input[list],.filters select').forEach(el=>el.value='');applyFilters();" style="background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">🔄 Réinitialiser</button>
 </div>
 
 <table>

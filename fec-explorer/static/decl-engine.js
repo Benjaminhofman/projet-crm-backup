@@ -27,6 +27,19 @@ function initDeclaratifPage(config) {
     });
 
     bindFilterInputs(".filters-top input");
+
+    const filterTop = document.querySelector('.filters-top');
+    if (filterTop) {
+        const btn = document.createElement('button');
+        btn.textContent = '🔄 Réinitialiser';
+        btn.style.cssText = 'background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;';
+        btn.onclick = function () {
+            filterTop.querySelectorAll('input, select').forEach(el => { el.value = ''; });
+            applyFilters();
+        };
+        filterTop.appendChild(btn);
+    }
+
     populateSelects();
     loadPage(1);
 }

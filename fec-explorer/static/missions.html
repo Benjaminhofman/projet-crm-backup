@@ -92,6 +92,7 @@ textarea {
     <datalist id="dl-annee"></datalist>
     <input type="text" id="f-cloture" list="dl-cloture" placeholder="— Clôture —" autocomplete="off">
     <datalist id="dl-cloture"></datalist>
+    <button onclick="document.querySelectorAll('.filters input[list],.filters select').forEach(el=>el.value='');applyFilters();" style="background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">🔄 Réinitialiser</button>
 </div>
 
 <table>

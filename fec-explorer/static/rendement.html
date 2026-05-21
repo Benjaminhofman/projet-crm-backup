@@ -204,6 +204,7 @@ input {
     <datalist id="dl-annee"></datalist>
     <input type="text" id="filter-cloture" list="dl-cloture" placeholder="— Clôture —" autocomplete="off">
     <datalist id="dl-cloture"></datalist>
+    <button onclick="document.querySelectorAll('.filters-top input,.filters-top select').forEach(el=>el.value='');applyFilters();" style="background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">🔄 Réinitialiser</button>
 </div>
 
 <table>
