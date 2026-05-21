@@ -172,6 +172,7 @@ tr:hover {
         <input type="text" id="filter-cloture" list="dl-cloture" placeholder="— Clôture —" autocomplete="off">
         <datalist id="dl-cloture"></datalist>
     </div>
+    <button onclick="['filter-assistant','filter-collab','filter-annee','filter-cloture'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.querySelectorAll('#filter-row input[type=checkbox]').forEach(cb=>cb.checked=false);applyFilters();" style="background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">🔄 Réinitialiser</button>
 </div>
 
 <table>
