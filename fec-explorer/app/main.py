@@ -3,6 +3,7 @@ import io
 import logging
 import os
 import re
+import traceback
 import shutil
 import tempfile
 import threading
@@ -496,7 +497,8 @@ def get_clients_filters():
                 "mois_cloture":  row[3] or [],
                 "noms":          row[4] or [],
             }
-    except psycopg2.Error as e:
+    except Exception as e:
+        logging.error("ERREUR /api/clients/filters : %s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
