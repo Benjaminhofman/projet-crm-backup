@@ -56,7 +56,8 @@ function display(data) {
             if (col.type === 'checkbox') {
                 const cb = document.createElement('input');
                 cb.type = 'checkbox';
-                cb.checked = !!c[col.field];
+                const isTruthy = v => v===true||v==='t'||v==='true'||v===1||v==='1';
+                cb.checked = isTruthy(c[col.field]);
                 cb.onchange = function () { updateCheckbox(c.siret, col.field, this.checked, this); };
                 td.appendChild(cb);
 
