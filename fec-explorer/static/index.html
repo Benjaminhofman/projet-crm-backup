@@ -265,6 +265,61 @@ tr:hover {
     0%   { background-position:  200% 0; }
     100% { background-position: -200% 0; }
 }
+
+/* ── Panneau filtres latéral ───────────────────────────────── */
+#filter-panel {
+    position: fixed;
+    top: 0; left: -280px;
+    width: 260px;
+    height: 100vh;
+    background: white;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    z-index: 300;
+    transition: left 0.25s ease;
+    overflow-y: auto;
+    padding: 16px 14px 80px;
+    box-sizing: border-box;
+}
+#filter-panel.open { left: 0; }
+#filter-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 299;
+}
+#filter-overlay.open { display: block; }
+@media (min-width: 769px) {
+    #main-content.shifted { margin-left: 260px; }
+}
+.fp-section { border-bottom: 1px solid #eef0f5; padding: 4px 0; }
+.fp-head {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; padding: 8px 2px;
+    font-weight: 600; font-size: 13px; color: #273c75;
+    user-select: none;
+}
+.fp-head .fa { font-size: 11px; transition: transform 0.2s; }
+.fp-head.open .fa { transform: rotate(180deg); }
+.fp-body { display: none; padding-bottom: 8px; }
+.fp-body.open { display: block; }
+.fp-search {
+    width: 100%; padding: 5px 8px; margin-bottom: 6px;
+    border: 1px solid #dde; border-radius: 5px;
+    font-size: 12px; box-sizing: border-box;
+}
+.fp-list { max-height: 150px; overflow-y: auto; }
+.fp-list label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 3px 4px; cursor: pointer; border-radius: 4px;
+}
+.fp-list label:hover { background: #f4f6fb; }
+#btn-reset-panel {
+    position: sticky; bottom: 0;
+    width: 100%; margin-top: 12px;
+    background: #95a5a6; color: white;
+    border: none; padding: 10px; border-radius: 6px;
+    cursor: pointer; font-weight: 600; font-size: 13px;
+}
 </style>
 </head>
 
@@ -291,6 +346,7 @@ tr:hover {
             </div>
         </div>
 
+        <button onclick="toggleFilterPanel()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;">🔽 Filtres</button>
         <input type="text" id="search" placeholder="🔍 Rechercher un client...">
         <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
             <option value="">Toutes tranches</option>
@@ -299,16 +355,57 @@ tr:hover {
             <option value="moyen">⚠️ Moyen (40-59)</option>
             <option value="faible">🔴 Faible (&lt;40)</option>
         </select>
-        <select id="sel-collab"    onchange="applyFilters()" style="background:white;border:1px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;"><option value="">Tous</option></select>
-        <select id="sel-assistant" onchange="applyFilters()" style="background:white;border:1px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;"><option value="">Tous</option></select>
-        <select id="sel-structure" onchange="applyFilters()" style="background:white;border:1px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;"><option value="">Toutes</option></select>
-        <select id="sel-activite"  onchange="applyFilters()" style="background:white;border:1px solid #ccc;border-radius:6px;padding:6px 10px;font-size:13px;"><option value="">Toutes</option></select>
         <button onclick="exportIndexCSV()" style="background:#27ae60;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">⬇ Export CSV</button>
-        <button onclick="resetFilters()" style="background:#95a5a6;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">🔄 Réinitialiser</button>
     </div>
 </div>
 
-<div class="container">
+<!-- Overlay + panneau filtres latéral -->
+<div id="filter-overlay" onclick="toggleFilterPanel()"></div>
+<div id="filter-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <strong style="font-size:15px;color:#273c75;">🔍 Filtres</strong>
+        <button onclick="toggleFilterPanel()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;">✕</button>
+    </div>
+
+    <div class="fp-section">
+        <div class="fp-head open" onclick="toggleSection(this)">Collaborateur <span class="fa">▾</span></div>
+        <div class="fp-body open">
+            <input class="fp-search" placeholder="Rechercher...">
+            <div class="fp-list" id="fp-list-collaborateur"></div>
+        </div>
+    </div>
+    <div class="fp-section">
+        <div class="fp-head open" onclick="toggleSection(this)">Assistant <span class="fa">▾</span></div>
+        <div class="fp-body open">
+            <input class="fp-search" placeholder="Rechercher...">
+            <div class="fp-list" id="fp-list-assistant"></div>
+        </div>
+    </div>
+    <div class="fp-section">
+        <div class="fp-head open" onclick="toggleSection(this)">Structure <span class="fa">▾</span></div>
+        <div class="fp-body open">
+            <input class="fp-search" placeholder="Rechercher...">
+            <div class="fp-list" id="fp-list-structure"></div>
+        </div>
+    </div>
+    <div class="fp-section">
+        <div class="fp-head open" onclick="toggleSection(this)">Activité <span class="fa">▾</span></div>
+        <div class="fp-body open">
+            <input class="fp-search" placeholder="Rechercher...">
+            <div class="fp-list" id="fp-list-activite_r"></div>
+        </div>
+    </div>
+    <div class="fp-section">
+        <div class="fp-head open" onclick="toggleSection(this)">Clôture <span class="fa">▾</span></div>
+        <div class="fp-body open">
+            <input class="fp-search" id="fp-cloture" placeholder='Ex : "03" pour mars...' oninput="applyFilters()">
+        </div>
+    </div>
+
+    <button id="btn-reset-panel" onclick="resetFilters()">🔄 Réinitialiser</button>
+</div>
+
+<div class="container" id="main-content">
 
 <div id="alert-anniv"></div>
 
@@ -520,22 +617,41 @@ function checkAnniversaires(data) {
     }
 }
 
-async function populateSelects() {
-    const configs = [
-        { id: "sel-collab",    field: "collaborateur", def: "Tous" },
-        { id: "sel-assistant", field: "assistant",     def: "Tous" },
-        { id: "sel-structure", field: "structure",     def: "Toutes" },
-        { id: "sel-activite",  field: "activite_r",    def: "Toutes" },
-    ];
-    await Promise.all(configs.map(async ({ id, field, def }) => {
+function toggleFilterPanel() {
+    document.getElementById('filter-panel').classList.toggle('open');
+    document.getElementById('filter-overlay').classList.toggle('open');
+    document.getElementById('main-content').classList.toggle('shifted');
+}
+
+function toggleSection(head) {
+    head.classList.toggle('open');
+    head.nextElementSibling.classList.toggle('open');
+}
+
+async function populatePanel() {
+    const fields = ["collaborateur", "assistant", "structure", "activite_r"];
+    await Promise.all(fields.map(async field => {
         try {
             const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
             if (!res.ok) return;
             const values = await res.json();
-            const sel = document.getElementById(id);
-            if (!sel) return;
-            sel.innerHTML = `<option value="">${def}</option>` +
-                values.map(v => `<option value="${v}">${v}</option>`).join('');
+            const list = document.getElementById(`fp-list-${field}`);
+            if (!list) return;
+            list.innerHTML = values.map(v => `
+                <label>
+                    <input type="checkbox" value="${esc(v)}" onchange="applyFilters()">
+                    ${esc(v)}
+                </label>`).join('');
+            // Barre de recherche interne à la section
+            const searchInput = list.previousElementSibling;
+            if (searchInput) {
+                searchInput.addEventListener('input', e => {
+                    const q = e.target.value.toLowerCase();
+                    list.querySelectorAll('label').forEach(lbl => {
+                        lbl.style.display = lbl.textContent.trim().toLowerCase().includes(q) ? '' : 'none';
+                    });
+                });
+            }
         } catch {}
     }));
 }
@@ -545,12 +661,13 @@ function applyFilters() {
 }
 
 function resetFilters() {
-    ["sel-collab", "sel-assistant", "sel-structure", "sel-activite", "filter-tranche"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = "";
-    });
-    const search = document.getElementById("search");
-    if (search) search.value = "";
+    document.querySelectorAll("#filter-panel input[type=checkbox]").forEach(cb => cb.checked = false);
+    const cl = document.getElementById("fp-cloture");
+    if (cl) cl.value = "";
+    const tr = document.getElementById("filter-tranche");
+    if (tr) tr.value = "";
+    const s = document.getElementById("search");
+    if (s) s.value = "";
     applyFilters();
 }
 
@@ -567,13 +684,17 @@ async function loadPage(page = 1) {
     document.getElementById("avg-honos").innerHTML     = '<span class="skeleton-card" style="width:90px;"></span>';
 
     const get = id => (document.getElementById(id) || {value: ''}).value.trim();
-    const search       = get("search");
-    const tranche      = get("filter-tranche");
-    const cloture      = get("text-filter-date_de_cloture");
-    const collaborateur = get("sel-collab");
-    const assistant     = get("sel-assistant");
-    const structure     = get("sel-structure");
-    const activite_r    = get("sel-activite");
+    const firstChecked = field => {
+        const cb = document.querySelector(`#fp-list-${field} input:checked`);
+        return cb ? cb.value : '';
+    };
+    const search        = get("search");
+    const tranche       = get("filter-tranche");
+    const cloture       = get("fp-cloture");
+    const collaborateur = firstChecked("collaborateur");
+    const assistant     = firstChecked("assistant");
+    const structure     = firstChecked("structure");
+    const activite_r    = firstChecked("activite_r");
 
     const params = new URLSearchParams({ page, limit: _LIMIT });
     if (search)        params.set("search", search);
@@ -717,7 +838,7 @@ function updateDashboard({ total, honoraires_moyen }) {
 document.getElementById("search").addEventListener("input", applyFilters);
 document.getElementById("filter-tranche").addEventListener("change", applyFilters);
 
-populateSelects().then(() => loadPage(1));
+populatePanel().then(() => loadPage(1));
 setInterval(() => loadPage(_currentPage), 5 * 60 * 1000);
 
 /* Menu déroulant navigation */
