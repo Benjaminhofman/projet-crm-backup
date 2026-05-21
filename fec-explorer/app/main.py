@@ -249,6 +249,10 @@ def get_clients(
     franchise_tva_achrevente: str = "",
     op_prevoyance: str = "",
     arbitrage_remuneration_dirigeant: str = "",
+    collaborateur_exact: str = "",
+    assistant_exact: str = "",
+    structure_exact: str = "",
+    activite_r_exact: str = "",
 ):
     conn = _get_db_conn()
     try:
@@ -273,6 +277,17 @@ def get_clients(
         ALLOWED = {"cvae","is","tvs","ca12","liasse","impot_sur_le_revenu","cotisation_fonciere_entreprise","dividendes","situation","tbb","juridique"}
         if filterField and filterField in ALLOWED and filterValue == "true":
             conditions.append(f'"{filterField}" = TRUE')
+
+        # Filtres exact (correspondance stricte = %s, pas ILIKE)
+        for field, val in [
+            ("collaborateur", collaborateur_exact),
+            ("assistant",     assistant_exact),
+            ("structure",     structure_exact),
+            ("activite_r",    activite_r_exact),
+        ]:
+            if val:
+                conditions.append(f'"{field}" = %s')
+                params.append(val)
 
         # Filtres TEXT opportunités — mission_placement accepte plusieurs valeurs séparées par virgule
         for field, val in [
