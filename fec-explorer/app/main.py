@@ -455,7 +455,7 @@ def get_clients_stats(
 
 @app.get("/api/clients/distinct", summary="Valeurs distinctes d'une colonne (whitelist)")
 def get_clients_distinct(field: str):
-    ALLOWED = {"collaborateur", "assistant", "structure", "activite_r"}
+    ALLOWED = {"collaborateur", "assistant", "structure", "activite_r", "annee"}
     if field not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"Champ non autorisé : {field}")
     conn = _get_db_conn()

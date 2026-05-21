@@ -33,10 +33,11 @@ body {
     margin-bottom: 15px;
 }
 
-.filters input {
+.filters select {
     padding: 6px;
     border-radius: 6px;
     border: 1px solid #ccc;
+    background: white;
 }
 
 table {
@@ -82,10 +83,10 @@ textarea {
 </div>
 
 <div class="filters">
-    <input id="f-assistant" placeholder="Assistant">
-    <input id="f-collab" placeholder="Collaborateur">
-    <input id="f-annee" placeholder="Année">
-    <input id="f-cloture" placeholder="Clôture">
+    <select id="f-assistant"><option value="">Tous</option></select>
+    <select id="f-collab"><option value="">Tous</option></select>
+    <select id="f-annee"><option value="">Toutes</option></select>
+    <select id="f-cloture"><option value="">Toutes</option></select>
 </div>
 
 <table>
@@ -304,10 +305,10 @@ async function loadPage(page = 1) {
     const collaborateur = get('f-collab');
     const annee         = get('f-annee');
     const cloture       = get('f-cloture');
-    if (assistant)     params.set('assistant',     assistant);
-    if (collaborateur) params.set('collaborateur', collaborateur);
-    if (annee)         params.set('annee',         annee);
-    if (cloture)       params.set('cloture',       cloture);
+    if (assistant)     params.set('assistant_exact',     assistant);
+    if (collaborateur) params.set('collaborateur_exact', collaborateur);
+    if (annee)         params.set('annee',               annee);
+    if (cloture)       params.set('cloture',              cloture);
 
     let response;
     try {
@@ -327,8 +328,33 @@ async function loadPage(page = 1) {
 
 function applyFilters() { loadPage(1); }
 
+async function populateSelects() {
+    const fill = async (id, field) => {
+        const sel = document.getElementById(id);
+        try {
+            const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
+            const vals = await res.json();
+            vals.forEach(v => {
+                if (!v) return;
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                sel.appendChild(opt);
+            });
+        } catch {}
+    };
+    await Promise.all([
+        fill('f-assistant',  'assistant'),
+        fill('f-collab',     'collaborateur'),
+        fill('f-annee',      'annee'),
+    ]);
+}
+
 async function load() {
-    bindFilterInputs(".filters input");
+    await populateSelects();
+    document.querySelectorAll('.filters select').forEach(sel => {
+        sel.addEventListener('change', applyFilters);
+    });
     await loadPage(1);
 }
 
