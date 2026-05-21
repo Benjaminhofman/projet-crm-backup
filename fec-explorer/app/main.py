@@ -274,10 +274,19 @@ def get_clients(
         if cloture:
             conditions.append("date_de_cloture::text ILIKE %s")
             params.append(f"%{cloture}%")
-        ALLOWED = {"cvae","is","tvs","ca12","liasse","impot_sur_le_revenu","cotisation_fonciere_entreprise","dividendes","situation","tbb","juridique"}
+        TEXT_OPP = {"mission_retraite","mission_patrimoniale","op_prevoyance",
+                    "franchise_tva_prest","franchise_tva_achrevente",
+                    "arbitrage_remuneration_dirigeant"}
+        ALLOWED = {"cvae","is","tvs","ca12","liasse","impot_sur_le_revenu",
+                   "cotisation_fonciere_entreprise","dividendes","situation","tbb","juridique"
+                   } | TEXT_OPP | {"mission_placement"}
         if filterField and filterField in ALLOWED and filterValue == "true":
             if filterField == "dividendes":
                 conditions.append('"dividendes" > 0')
+            elif filterField == "mission_placement":
+                conditions.append('"mission_placement" IN (\'OPPORTUNITÉ FORTE\',\'OPPORTUNITÉ MOYENNE\')')
+            elif filterField in TEXT_OPP:
+                conditions.append(f'"{filterField}" IS NOT NULL AND "{filterField}" != \'\' AND "{filterField}" != \'Données manquantes\'')
             else:
                 conditions.append(f'"{filterField}" = TRUE')
 
@@ -292,7 +301,7 @@ def get_clients(
                 conditions.append(f'"{field}" = %s')
                 params.append(val)
 
-        # Filtres TEXT opportunités — mission_placement accepte plusieurs valeurs séparées par virgule
+        # Filtres TEXT opportunités — IS NOT NULL / != '' / != 'Données manquantes'
         for field, val in [
             ("mission_retraite",               mission_retraite),
             ("mission_patrimoniale",           mission_patrimoniale),
@@ -302,18 +311,10 @@ def get_clients(
             ("arbitrage_remuneration_dirigeant", arbitrage_remuneration_dirigeant),
         ]:
             if val:
-                conditions.append(f'"{field}" = %s')
-                params.append(val)
+                conditions.append(f'"{field}" IS NOT NULL AND "{field}" != \'\' AND "{field}" != \'Données manquantes\'')
 
         if mission_placement:
-            valeurs = [v.strip() for v in mission_placement.split(",") if v.strip()]
-            if len(valeurs) == 1:
-                conditions.append('"mission_placement" = %s')
-                params.append(valeurs[0])
-            elif valeurs:
-                placeholders = ", ".join(["%s"] * len(valeurs))
-                conditions.append(f'"mission_placement" IN ({placeholders})')
-                params.extend(valeurs)
+            conditions.append('"mission_placement" IN (\'OPPORTUNITÉ FORTE\',\'OPPORTUNITÉ MOYENNE\')')
 
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
