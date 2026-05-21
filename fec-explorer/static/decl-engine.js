@@ -26,7 +26,7 @@ function initDeclaratifPage(config) {
         theadRow.appendChild(th);
     });
 
-    bindFilterInputs(".filters-top input");
+    bindFilterInputs(".filters-top input:not(#search)");
 
     const filterTop = document.querySelector('.filters-top');
     if (filterTop) {
@@ -41,6 +41,8 @@ function initDeclaratifPage(config) {
         srchInp.setAttribute('autocomplete', 'off');
         filterTop.insertBefore(srchDl,  filterTop.firstChild);
         filterTop.insertBefore(srchInp, srchDl);
+        let _st;
+        srchInp.addEventListener('input', () => { clearTimeout(_st); _st = setTimeout(applyFilters, 300); });
 
         // Bouton Réinitialiser
         const btn = document.createElement('button');
@@ -58,27 +60,25 @@ function initDeclaratifPage(config) {
 }
 
 async function populateSelects() {
-    const fill = async (dlId, field, labelFn) => {
-        const dl = document.getElementById(dlId);
-        if (!dl) return;
-        try {
-            const res = await fetch('/api/clients/distinct?field=' + field);
-            const vals = await res.json();
+    try {
+        const res = await fetch('/api/clients/filters');
+        const f = await res.json();
+        const fill = (id, vals, labelFn) => {
+            const dl = document.getElementById(id);
+            if (!dl) return;
             vals.forEach(v => {
                 if (!v) return;
                 const opt = document.createElement('option');
                 opt.value = labelFn ? labelFn(v) : v;
                 dl.appendChild(opt);
             });
-        } catch {}
-    };
-    await Promise.all([
-        fill('dl-search',    'nom_client'),
-        fill('dl-assistant', 'assistant'),
-        fill('dl-collab',    'collaborateur'),
-        fill('dl-annee',     'annee'),
-        fill('dl-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
-    ]);
+        };
+        fill('dl-search',    f.noms,           null);
+        fill('dl-assistant', f.assistants,     null);
+        fill('dl-collab',    f.collaborateurs,  null);
+        fill('dl-annee',     f.annees,         null);
+        fill('dl-cloture',   f.mois_cloture,   v => `${MOIS_LABELS[v] || v} (${v})`);
+    } catch {}
 }
 
 function display(data) {
