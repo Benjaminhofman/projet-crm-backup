@@ -348,33 +348,35 @@ const MOIS_LABELS = {
 };
 
 async function populateSelects() {
-    const fill = async (id, field, labelFn) => {
-        const dl = document.getElementById(id);
-        try {
-            const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
-            const vals = await res.json();
+    try {
+        const res = await fetch(`${API_URL}/clients/filters`);
+        const f = await res.json();
+        const fill = (id, vals, labelFn) => {
+            const dl = document.getElementById(id);
+            if (!dl) return;
             vals.forEach(v => {
                 if (!v) return;
                 const opt = document.createElement('option');
                 opt.value = labelFn ? labelFn(v) : v;
                 dl.appendChild(opt);
             });
-        } catch {}
-    };
-    await Promise.all([
-        fill('dl-search',    'nom_client'),
-        fill('dl-assistant', 'assistant'),
-        fill('dl-collab',    'collaborateur'),
-        fill('dl-annee',     'annee'),
-        fill('dl-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
-    ]);
+        };
+        fill('dl-search',    f.noms,          null);
+        fill('dl-assistant', f.assistants,    null);
+        fill('dl-collab',    f.collaborateurs, null);
+        fill('dl-annee',     f.annees,        null);
+        fill('dl-cloture',   f.mois_cloture,  v => `${MOIS_LABELS[v] || v} (${v})`);
+    } catch {}
 }
 
 async function load() {
     await populateSelects();
-    document.querySelectorAll('.filters input[list]').forEach(inp => {
+    document.querySelectorAll('.filters input[list]:not(#search)').forEach(inp => {
         inp.addEventListener('input', applyFilters);
     });
+    let _st;
+    const srch = document.getElementById('search');
+    if (srch) srch.addEventListener('input', () => { clearTimeout(_st); _st = setTimeout(applyFilters, 300); });
     await loadPage(1);
 }
 
