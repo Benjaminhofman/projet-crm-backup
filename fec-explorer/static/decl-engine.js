@@ -144,10 +144,10 @@ async function loadPage(page = 1) {
     const ff = String(_pageConfig?.filterField || '');
     if (ff) params.append('filterField', ff);
     if (ff) params.append('filterValue', 'true');
-    if (assistant)     params.set("assistant", assistant);
-    if (collaborateur) params.set("collaborateur", collaborateur);
-    if (annee)         params.set("annee", annee);
-    if (cloture)       params.set("cloture", cloture);
+    if (assistant)     params.set("assistant_exact",     assistant);
+    if (collaborateur) params.set("collaborateur_exact", collaborateur);
+    if (annee)         params.set("annee",               annee);
+    if (cloture)       params.set("cloture", "-" + cloture + "-");
 
     console.log("URL fetch:", `/api/clients?${params}`);
     try {

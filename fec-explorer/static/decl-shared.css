@@ -59,15 +59,18 @@ body {
     flex-wrap: wrap;
 }
 
-.filters-top input {
+.filters-top input,
+.filters-top select {
     padding: 6px 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
     font-size: 14px;
+    background: white;
     transition: border-color 0.2s;
 }
 
-.filters-top input:focus {
+.filters-top input:focus,
+.filters-top select:focus {
     outline: none;
     border-color: #273c75;
     box-shadow: 0 0 0 2px rgba(39,60,117,0.15);
