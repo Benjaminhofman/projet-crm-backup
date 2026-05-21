@@ -1419,6 +1419,27 @@ def debug_age_check(siret: str):
         conn.close()
 
 
+@app.get("/api/debug/bool_counts", summary="Compte TRUE / NULL pour une colonne booléenne")
+def debug_bool_counts(col: str = "ca12"):
+    ALLOWED = {"ca12","tvs","cvae","is","liasse","impot_sur_le_revenu","cotisation_fonciere_entreprise","dividendes","situation","tbb","juridique"}
+    if col not in ALLOWED:
+        return {"error": f"Colonne '{col}' non autorisée"}
+    conn = _get_db_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(f'SELECT COUNT(*) FROM clients WHERE "{col}" = TRUE')
+            count_true = cur.fetchone()[0]
+            cur.execute(f'SELECT COUNT(*) FROM clients WHERE "{col}" IS NULL')
+            count_null = cur.fetchone()[0]
+            cur.execute('SELECT COUNT(*) FROM clients')
+            total = cur.fetchone()[0]
+        return {"colonne": col, "total": total, "true": count_true, "null": count_null, "false_ou_false": total - count_true - count_null}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.get("/api/migrate/install_trigger_rendement", summary="Installe le trigger BEFORE qui calcule rendement depuis NEW.*")
 def install_trigger_rendement():
     conn = _get_db_conn()
