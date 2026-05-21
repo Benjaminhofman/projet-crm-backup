@@ -307,7 +307,7 @@ display = function(data) {
 initDeclaratifPage({
     titre: "Suivi TVS",
     emoji: "🚗",
-    requireFn: c => c.tvs === true || c.tvs === 'true' || c.tvs === 't' || c.tvs === 1,
+    filterField: "tvs",
     columns: TVS_COLS
 });
 </script>
