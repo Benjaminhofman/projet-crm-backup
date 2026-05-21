@@ -33,10 +33,12 @@ body {
     margin-bottom: 15px;
 }
 
-.filters-top input {
+.filters-top input,
+.filters-top select {
     padding: 6px;
     border-radius: 6px;
     border: 1px solid #ccc;
+    background: white;
 }
 
 table {
@@ -194,10 +196,10 @@ input {
 <!-- FILTRES -->
 <div class="filters-top">
     <input id="search" placeholder="🔍 Nom client...">
-    <input id="filter-assistant" placeholder="Assistant...">
-    <input id="filter-collab" placeholder="Collaborateur...">
-    <input id="filter-annee" placeholder="Année...">
-    <input id="filter-cloture" placeholder="Clôture...">
+    <select id="filter-assistant"><option value="" disabled selected>— Assistant —</option></select>
+    <select id="filter-collab"><option value="" disabled selected>— Collaborateur —</option></select>
+    <select id="filter-annee"><option value="" disabled selected>— Année —</option></select>
+    <select id="filter-cloture"><option value="" disabled selected>— Clôture —</option></select>
 </div>
 
 <table>
@@ -457,11 +459,11 @@ async function loadPage(page = 1) {
     const cloture      = get("filter-cloture");
 
     const params = new URLSearchParams({ page, limit: _LIMIT });
-    if (search)        params.set("search", search);
-    if (assistant)     params.set("assistant", assistant);
-    if (collaborateur) params.set("collaborateur", collaborateur);
-    if (annee)         params.set("annee", annee);
-    if (cloture)       params.set("cloture", cloture);
+    if (search)        params.set("search",              search);
+    if (assistant)     params.set("assistant_exact",     assistant);
+    if (collaborateur) params.set("collaborateur_exact", collaborateur);
+    if (annee)         params.set("annee",               annee);
+    if (cloture)       params.set("cloture",             "-" + cloture + "-");
 
     try {
         const res = await fetch(`${API_URL}/clients?${params}`);
@@ -480,8 +482,39 @@ function applyFilters() {
     loadPage(1);
 }
 
-document.querySelectorAll(".filters-top input").forEach(el => {
-    el.addEventListener("input", applyFilters);
+document.getElementById("search").addEventListener("input", applyFilters);
+
+const MOIS_LABELS = {
+    '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
+    '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
+    '09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'
+};
+async function populateSelects() {
+    const fill = async (id, field, labelFn) => {
+        const sel = document.getElementById(id);
+        try {
+            const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
+            const vals = await res.json();
+            vals.forEach(v => {
+                if (!v) return;
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = labelFn ? labelFn(v) : v;
+                sel.appendChild(opt);
+            });
+        } catch {}
+    };
+    await Promise.all([
+        fill('filter-assistant', 'assistant'),
+        fill('filter-collab',    'collaborateur'),
+        fill('filter-annee',     'annee'),
+        fill('filter-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
+    ]);
+}
+populateSelects().then(() => {
+    document.querySelectorAll('.filters-top select').forEach(sel => {
+        sel.addEventListener('change', applyFilters);
+    });
 });
 
 loadPage(1);
