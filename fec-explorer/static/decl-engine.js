@@ -21,6 +21,25 @@ function initDeclaratifPage(config) {
     });
 
     bindFilterInputs(".filters-top input");
+
+    // Labels des selects filtres (title + première option)
+    const filterLabels = {
+        'filter-assistant': 'Assistant',
+        'filter-collab':    'Collaborateur',
+        'filter-annee':     'Année',
+        'filter-cloture':   'Clôture'
+    };
+    Object.entries(filterLabels).forEach(([id, label]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.title = label;
+        if (el.tagName === 'SELECT' && el.options[0] && el.options[0].value === '') {
+            el.options[0].textContent = label + '...';
+        } else if (el.tagName === 'INPUT' && !el.placeholder) {
+            el.placeholder = label + '...';
+        }
+    });
+
     loadPage(1);
 }
 
