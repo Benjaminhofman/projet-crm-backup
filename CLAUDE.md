@@ -494,7 +494,7 @@ remboursements d'assurance).
 | CA12 | `ca12` | clôture 31/12 → 5 mai ; sinon dernier jour du 3e mois après clôture | `#27ae60` |
 | TVS | `tvs` | `ca12=true` → même date que le CA12 du client ; `ca12=false` → 27 janvier N+1 | `#3498db` |
 | 2561 / IFU | `dividendes > 1` | 16 février | `#f39c12` |
-| DAS2 | — | 5 mai (sans nom client) | — |
+| DAS2 | — | 20 mai (sans nom client) | — |
 | DECLOYER | — | 30 avril (sans nom client) | — |
 
 Note : le 1er acompte IS 2026 est le 16 mars (15 mars = dimanche).
