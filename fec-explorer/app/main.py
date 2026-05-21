@@ -276,7 +276,7 @@ def get_clients(
             params.append(f"%{cloture}%")
         ALLOWED = {"cvae","is","tvs","ca12","liasse","impot_sur_le_revenu","cotisation_fonciere_entreprise","dividendes","situation","tbb","juridique"}
         if filterField and filterField in ALLOWED and filterValue == "true":
-            conditions.append(f'"{filterField}" = TRUE')
+            conditions.append(f'("{filterField}" = TRUE OR "{filterField}" = \'t\')')
 
         # Filtres exact (correspondance stricte = %s, pas ILIKE)
         for field, val in [
