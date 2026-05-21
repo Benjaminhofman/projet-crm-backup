@@ -385,7 +385,8 @@ function display(data) {
             const td = document.createElement('td');
             const cb = document.createElement('input');
             cb.type = 'checkbox';
-            cb.checked = col.checkedFn ? col.checkedFn(c) : !!c[col.field];
+            const isTruthy = v => v===true||v==='t'||v==='true'||v===1||v==='1';
+            cb.checked = col.checkedFn ? col.checkedFn(c) : isTruthy(c[col.field]);
 
             if (col.editable) {
                 cb.className = 'decl-checkbox';
