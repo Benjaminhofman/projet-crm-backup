@@ -168,7 +168,6 @@ async function loadPage(page = 1) {
     if (annee)         params.set("annee",               annee);
     if (cloture)       params.set("cloture", "-" + cloture + "-");
 
-    console.log("URL fetch:", `/api/clients?${params}`);
     try {
         const res = await fetch(`/api/clients?${params}`);
         if (!res.ok) throw new Error("Erreur HTTP " + res.status);
