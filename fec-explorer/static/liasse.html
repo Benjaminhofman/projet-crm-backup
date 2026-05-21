@@ -16,10 +16,14 @@
 <div class="counter" id="counter"></div>
 
 <div class="filters-top">
-    <select id="filter-assistant"><option value="">Tous</option></select>
-    <select id="filter-collab"><option value="">Tous</option></select>
-    <select id="filter-annee"><option value="">Toutes</option></select>
-    <select id="filter-cloture"><option value="">Toutes</option></select>
+    <input type="text" id="filter-assistant" list="dl-assistant" placeholder="— Assistant —" autocomplete="off">
+    <datalist id="dl-assistant"></datalist>
+    <input type="text" id="filter-collab" list="dl-collab" placeholder="— Collaborateur —" autocomplete="off">
+    <datalist id="dl-collab"></datalist>
+    <input type="text" id="filter-annee" list="dl-annee" placeholder="— Année —" autocomplete="off">
+    <datalist id="dl-annee"></datalist>
+    <input type="text" id="filter-cloture" list="dl-cloture" placeholder="— Clôture —" autocomplete="off">
+    <datalist id="dl-cloture"></datalist>
 </div>
 
 <table>
@@ -162,38 +166,6 @@ function exportCSV(data, filename, columns) {
 </script>
 <script src="decl-engine.js"></script>
 <script>
-const MOIS_LABELS = {
-    '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
-    '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
-    '09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'
-};
-async function populateSelects() {
-    const fill = async (id, field, labelFn) => {
-        const sel = document.getElementById(id);
-        try {
-            const res = await fetch(`/api/clients/distinct?field=${field}`);
-            const vals = await res.json();
-            vals.forEach(v => {
-                if (!v) return;
-                const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = labelFn ? labelFn(v) : v;
-                sel.appendChild(opt);
-            });
-        } catch {}
-    };
-    await Promise.all([
-        fill('filter-assistant', 'assistant'),
-        fill('filter-collab',    'collaborateur'),
-        fill('filter-annee',     'annee'),
-        fill('filter-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
-    ]);
-}
-populateSelects().then(() => {
-    document.querySelectorAll('.filters-top select').forEach(sel => {
-        sel.addEventListener('change', applyFilters);
-    });
-});
 initDeclaratifPage({
     titre: "Suivi Liasse",
     emoji: "📊",

@@ -91,7 +91,8 @@ tr:hover {
     flex-wrap: wrap;
 }
 
-.filter-box select {
+.filter-box select,
+.filter-box input {
     padding: 6px 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
@@ -156,16 +157,20 @@ tr:hover {
 
 <div class="filters-top">
     <div class="filter-box">
-        <select id="filter-assistant"><option value="">— Assistant —</option></select>
+        <input type="text" id="filter-assistant" list="dl-assistant" placeholder="— Assistant —" autocomplete="off">
+        <datalist id="dl-assistant"></datalist>
     </div>
     <div class="filter-box">
-        <select id="filter-collab"><option value="">— Collaborateur —</option></select>
+        <input type="text" id="filter-collab" list="dl-collab" placeholder="— Collaborateur —" autocomplete="off">
+        <datalist id="dl-collab"></datalist>
     </div>
     <div class="filter-box">
-        <select id="filter-annee"><option value="">— Année —</option></select>
+        <input type="text" id="filter-annee" list="dl-annee" placeholder="— Année —" autocomplete="off">
+        <datalist id="dl-annee"></datalist>
     </div>
     <div class="filter-box">
-        <select id="filter-cloture"><option value="">— Clôture —</option></select>
+        <input type="text" id="filter-cloture" list="dl-cloture" placeholder="— Clôture —" autocomplete="off">
+        <datalist id="dl-cloture"></datalist>
     </div>
 </div>
 
@@ -454,7 +459,10 @@ async function loadPage(page = 1) {
     if (assistant)     params.set('assistant_exact',     assistant);
     if (collaborateur) params.set('collaborateur_exact', collaborateur);
     if (annee)         params.set('annee',               annee);
-    if (cloture)       params.set('cloture', '-' + cloture + '-');
+    if (cloture) {
+        const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
+        params.set('cloture', '-' + mm + '-');
+    }
 
     const activeFields = Array.from(
         document.querySelectorAll("#filter-row input[data-field]:checked")
@@ -510,32 +518,31 @@ const MOIS_LABELS = {
 
 async function populateSelects() {
     const fill = async (id, field, labelFn) => {
-        const sel = document.getElementById(id);
+        const dl = document.getElementById(id);
         try {
             const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
             const vals = await res.json();
             vals.forEach(v => {
                 if (!v) return;
                 const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = labelFn ? labelFn(v) : v;
-                sel.appendChild(opt);
+                opt.value = labelFn ? labelFn(v) : v;
+                dl.appendChild(opt);
             });
         } catch {}
     };
     await Promise.all([
-        fill('filter-assistant', 'assistant'),
-        fill('filter-collab',    'collaborateur'),
-        fill('filter-annee',     'annee'),
-        fill('filter-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
+        fill('dl-assistant', 'assistant'),
+        fill('dl-collab',    'collaborateur'),
+        fill('dl-annee',     'annee'),
+        fill('dl-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
     ]);
 }
 
 async function load() {
     buildFilterRow();
     await populateSelects();
-    document.querySelectorAll('.filters-top select').forEach(sel => {
-        sel.addEventListener('change', applyFilters);
+    document.querySelectorAll('.filters-top input[list]').forEach(inp => {
+        inp.addEventListener('input', applyFilters);
     });
     await loadPage(1);
 }

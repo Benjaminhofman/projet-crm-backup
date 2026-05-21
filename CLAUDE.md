@@ -661,3 +661,165 @@ Régressions fréquentes : après une modif de `missions.html`, vérifier que
 - Endpoint `/api/debug/health` (vérifie la présence des 11 triggers)
 - Affichage badges colorés `franchise_tva` sur `declaratif.html`
 - Cron Render quotidien pour `refresh_age` et `anciennete`
+## Session 21/05/2026 — Filtres, performance, Make, sécurité
+
+### requireFn vs filterField — règle critique
+Les pages déclaratives doivent utiliser `filterField` (filtre serveur)
+et NON `requireFn` (filtre JS côté client).
+
+`requireFn` ne fonctionne que sur les 50 clients de la page courante
+→ pagination et compteur incorrects.
+
+**Mapping correct par page :**
+| Page | filterField |
+|------|-------------|
+| ca12.html | `"ca12"` |
+| tvs.html | `"tvs"` |
+| cvae.html | `"cvae"` |
+| is.html | `"is"` |
+| ir.html | `"impot_sur_le_revenu"` |
+| liasse.html | `"liasse"` |
+| cfe.html | `"cotisation_fonciere_entreprise"` |
+| dividendes.html | `"dividendes"` (NUMERIC → filtre > 0) |
+| juridique.html | `"juridique"` |
+| situation.html | `"situation"` |
+| tbb.html | `"tbb"` |
+
+Ne jamais utiliser `requireFn` sur une page paginée.
+
+---
+
+### Types PostgreSQL des colonnes déclaratives
+Vérifié via `information_schema.columns` :
+- **boolean** : `ca12`, `tvs`, `cvae`, `cotisation_fonciere_entreprise`,
+  `impot_sur_le_revenu`, `is`, `juridique`, `liasse`, `situation`, `tbb`
+- **numeric** : `dividendes`
+
+Condition SQL selon le type :
+- boolean → `"champ" = TRUE`
+- numeric → `"champ" > 0`
+
+Dans `main.py`, `get_clients()` gère déjà les deux cas :
+```python
+if filterField == "dividendes":
+    conditions.append('"dividendes" > 0')
+else:
+    conditions.append(f'"{filterField}" = TRUE')
+```
+
+---
+
+### Filtres exact côté serveur (index.html)
+Nouveaux paramètres dans `GET /api/clients` :
+`collaborateur_exact`, `assistant_exact`,
+`structure_exact`, `activite_r_exact`
+→ correspondance stricte `= %s` (pas ILIKE)
+→ évite que `assistant1` matche `assistant10`
+
+Même ajout dans `get_clients_stats()` pour que les compteurs
+dashboard reflètent les filtres.
+
+---
+
+### Endpoint `/api/clients/distinct`
+`GET /api/clients/distinct?field=collaborateur`
+Retourne les valeurs distinctes non nulles triées.
+Whitelist : `collaborateur`, `assistant`, `structure`, `activite_r`.
+Utilisé pour alimenter les datalists/selects indépendamment
+de la pagination.
+
+---
+
+### Endpoint `/api/auth/token-make`
+`POST /api/auth/token-make`
+Protégé par `ADMIN_TOKEN` (header `Authorization: Bearer`).
+Génère un JWT sans expiration pour les automatisations Make.
+Payload : `{"sub": "make-automation", "role": "readonly"}`
+
+PowerShell pour générer le token :
+```powershell
+$token = 'ADMIN_TOKEN_VALUE'
+$h = @{Authorization="Bearer $token"; "Content-Type"="application/json"}
+Invoke-RestMethod -Method Post -Uri "https://projet-crm-m0o3.onrender.com/api/auth/token-make" -Headers $h
+```
+
+⚠️ Token à stocker dans Make uniquement, jamais dans un fichier versionné.
+
+---
+
+### Correction ADMIN_TOKEN Render
+Le token Render était `CRM-Hofman-2026-!Lorient` (! mal placé)
+au lieu de `CRM-Hofman-2026-Lorient!`.
+Tous les appels `/api/migrate/*` et `/api/debug/*` échouaient
+silencieusement en production depuis le début.
+Corrigé dans Render → Environment le 21/05/2026.
+
+---
+
+### Automatisation Make — Alertes calendrier fiscal
+Scénario Make opérationnel :
+- Déclencheur : chaque jour à 07:00
+- Module HTTP : `GET /api/calendrier/fiscal` avec token Make
+- Iterator + Text aggregator : filtre événements du jour
+- Microsoft 365 Email : récapitulatif à `benjamin.hofman@hotmail.com`
+- Filtre : email envoyé uniquement si au moins 1 événement
+
+**Important** : `/api/calendrier/fiscal` ne nécessite pas de pagination
+— il charge tous les clients pour construire le calendrier complet.
+Ne jamais ajouter de limite à cet endpoint.
+
+---
+
+### Bouton déconnexion violet
+Dans `auth.js`, `injectLogoutButton()` :
+- Couleur : `background:#8e44ad`
+- Hover : `background:#6c3483`
+
+---
+
+### Panneau filtres latéral (index.html)
+Filtres restructurés en panneau latéral rétractable :
+- Bouton "Filtres" dans le header ouvre/ferme le panneau
+- Sections : Collaborateur, Assistant, Structure, Activité, Clôture
+- Bouton "Réinitialiser" vide tous les filtres + search + tranche
+- Filtres Structure et Activité alimentés depuis `/api/clients/distinct`
+
+---
+
+### Guillemets typographiques — prévention
+Après toute refonte importante d'un fichier HTML,
+vérifier la présence de guillemets courbes U+2018/U+2019 :
+```python
+with open('fichier.html', encoding='utf-8') as f: data = f.read()
+count = data.count('\u2018') + data.count('\u2019')
+print(f'{count} guillemets courbes — {"⚠️ corriger" if count else "✅ OK"}')
+```
+
+---
+
+### Index PostgreSQL (ajoutés le 21/05/2026)
+```sql
+CREATE INDEX IF NOT EXISTS idx_clients_nom ON clients(nom_client);
+CREATE INDEX IF NOT EXISTS idx_clients_collab ON clients(collaborateur);
+CREATE INDEX IF NOT EXISTS idx_clients_assistant ON clients(assistant);
+CREATE INDEX IF NOT EXISTS idx_clients_annee ON clients(annee);
+```
+Via `GET /api/migrate/add_indexes` (protégé ADMIN_TOKEN).
+Utiles à partir de ~1000 clients.
+
+---
+
+### État du projet (21/05/2026)
+- 1010 clients en base (10 réels + 1000 fictifs pour tests)
+- Pagination serveur opérationnelle sur toutes les interfaces
+- Filtres booléens corrigés sur toutes les pages déclaratives
+- Automatisation Make calendrier fiscal active
+- Token Make sans expiration généré et configuré
+
+### Prochaines étapes
+- Supprimer les logs debug temporaires (`/api/debug/bool_counts`,
+  logs AUTH HEADER dans `token-make`)
+- Cron Render quotidien pour `refresh_age` et `anciennete`
+- Pagination `opportunites.html` complète avec filtres serveur
+- Export CSV filtré sur `commercial.html` et `declaratif.html`
+- Endpoint `/api/clients/light` (colonnes réduites) pour performance

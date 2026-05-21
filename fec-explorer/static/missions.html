@@ -33,7 +33,8 @@ body {
     margin-bottom: 15px;
 }
 
-.filters select {
+.filters select,
+.filters input[list] {
     padding: 6px;
     border-radius: 6px;
     border: 1px solid #ccc;
@@ -83,10 +84,14 @@ textarea {
 </div>
 
 <div class="filters">
-    <select id="f-assistant"><option value="" disabled selected>— Assistant —</option></select>
-    <select id="f-collab"><option value="" disabled selected>— Collaborateur —</option></select>
-    <select id="f-annee"><option value="" disabled selected>— Année —</option></select>
-    <select id="f-cloture"><option value="" disabled selected>— Clôture —</option></select>
+    <input type="text" id="f-assistant" list="dl-assistant" placeholder="— Assistant —" autocomplete="off">
+    <datalist id="dl-assistant"></datalist>
+    <input type="text" id="f-collab" list="dl-collab" placeholder="— Collaborateur —" autocomplete="off">
+    <datalist id="dl-collab"></datalist>
+    <input type="text" id="f-annee" list="dl-annee" placeholder="— Année —" autocomplete="off">
+    <datalist id="dl-annee"></datalist>
+    <input type="text" id="f-cloture" list="dl-cloture" placeholder="— Clôture —" autocomplete="off">
+    <datalist id="dl-cloture"></datalist>
 </div>
 
 <table>
@@ -308,7 +313,10 @@ async function loadPage(page = 1) {
     if (assistant)     params.set('assistant_exact',     assistant);
     if (collaborateur) params.set('collaborateur_exact', collaborateur);
     if (annee)         params.set('annee',               annee);
-    if (cloture)       params.set('cloture', '-' + cloture + '-');
+    if (cloture) {
+        const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
+        params.set('cloture', '-' + mm + '-');
+    }
 
     let response;
     try {
@@ -336,31 +344,30 @@ const MOIS_LABELS = {
 
 async function populateSelects() {
     const fill = async (id, field, labelFn) => {
-        const sel = document.getElementById(id);
+        const dl = document.getElementById(id);
         try {
             const res = await fetch(`${API_URL}/clients/distinct?field=${field}`);
             const vals = await res.json();
             vals.forEach(v => {
                 if (!v) return;
                 const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = labelFn ? labelFn(v) : v;
-                sel.appendChild(opt);
+                opt.value = labelFn ? labelFn(v) : v;
+                dl.appendChild(opt);
             });
         } catch {}
     };
     await Promise.all([
-        fill('f-assistant', 'assistant'),
-        fill('f-collab',    'collaborateur'),
-        fill('f-annee',     'annee'),
-        fill('f-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
+        fill('dl-assistant', 'assistant'),
+        fill('dl-collab',    'collaborateur'),
+        fill('dl-annee',     'annee'),
+        fill('dl-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
     ]);
 }
 
 async function load() {
     await populateSelects();
-    document.querySelectorAll('.filters select').forEach(sel => {
-        sel.addEventListener('change', applyFilters);
+    document.querySelectorAll('.filters input[list]').forEach(inp => {
+        inp.addEventListener('input', applyFilters);
     });
     await loadPage(1);
 }

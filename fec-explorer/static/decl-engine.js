@@ -1,6 +1,12 @@
 // Moteur partagé pour toutes les pages de suivi déclaratif.
 // Chaque page appelle initDeclaratifPage(config) avec sa configuration unique.
 
+const MOIS_LABELS = {
+    '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
+    '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
+    '09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'
+};
+
 let _pageConfig = null;
 let _currentData = [];
 let _currentPage = 1;
@@ -21,26 +27,31 @@ function initDeclaratifPage(config) {
     });
 
     bindFilterInputs(".filters-top input");
-
-    // Labels des selects filtres (title + première option)
-    const filterLabels = {
-        'filter-assistant': 'Assistant',
-        'filter-collab':    'Collaborateur',
-        'filter-annee':     'Année',
-        'filter-cloture':   'Clôture'
-    };
-    Object.entries(filterLabels).forEach(([id, label]) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.title = label;
-        if (el.tagName === 'SELECT' && el.options[0] && el.options[0].value === '') {
-            el.options[0].textContent = label + '...';
-        } else if (el.tagName === 'INPUT' && !el.placeholder) {
-            el.placeholder = label + '...';
-        }
-    });
-
+    populateSelects();
     loadPage(1);
+}
+
+async function populateSelects() {
+    const fill = async (dlId, field, labelFn) => {
+        const dl = document.getElementById(dlId);
+        if (!dl) return;
+        try {
+            const res = await fetch('/api/clients/distinct?field=' + field);
+            const vals = await res.json();
+            vals.forEach(v => {
+                if (!v) return;
+                const opt = document.createElement('option');
+                opt.value = labelFn ? labelFn(v) : v;
+                dl.appendChild(opt);
+            });
+        } catch {}
+    };
+    await Promise.all([
+        fill('dl-assistant', 'assistant'),
+        fill('dl-collab',    'collaborateur'),
+        fill('dl-annee',     'annee'),
+        fill('dl-cloture',   'mois_cloture', v => `${MOIS_LABELS[v] || v} (${v})`),
+    ]);
 }
 
 function display(data) {
@@ -166,7 +177,10 @@ async function loadPage(page = 1) {
     if (assistant)     params.set("assistant_exact",     assistant);
     if (collaborateur) params.set("collaborateur_exact", collaborateur);
     if (annee)         params.set("annee",               annee);
-    if (cloture)       params.set("cloture", "-" + cloture + "-");
+    if (cloture) {
+        const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
+        params.set("cloture", "-" + mm + "-");
+    }
 
     try {
         const res = await fetch(`/api/clients?${params}`);
