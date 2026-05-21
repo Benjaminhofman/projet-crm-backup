@@ -94,6 +94,7 @@ tr:hover {
     <input type="text" id="f-cloture" list="dl-cloture" placeholder="— Clôture —" autocomplete="off">
     <datalist id="dl-cloture"></datalist>
     <button onclick="document.querySelectorAll('.filters input[list],.filters select').forEach(el=>el.value='');applyFilters();" style="background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">🔄 Réinitialiser</button>
+    <button onclick="exportAll()" style="background:#27ae60;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">⬇ Exporter tout</button>
 </div>
 
 <table>
@@ -475,6 +476,55 @@ async function loadPage(page = 1) {
 
 function applyFilters() {
     loadPage(1);
+}
+
+async function exportAll() {
+    const get = id => (document.getElementById(id) || { value: "" }).value.trim();
+    const params = new URLSearchParams({ limit: 0 });
+    const assistant     = get("f-assistant");
+    const collaborateur = get("f-collab");
+    const annee         = get("f-annee");
+    const cloture       = get("f-cloture");
+    const search        = get("search");
+    if (assistant)     params.set("assistant_exact",     assistant);
+    if (collaborateur) params.set("collaborateur_exact", collaborateur);
+    if (annee)         params.set("annee",               annee);
+    if (cloture) {
+        const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
+        params.set("cloture", "-" + mm + "-");
+    }
+    if (search) params.set("search", search);
+    document.querySelectorAll("#filters-opportunites input:checked").forEach(cb => {
+        const field = cb.dataset.field;
+        if (field === "mission_placement") {
+            params.set("mission_placement", "OPPORTUNITÉ FORTE,OPPORTUNITÉ MOYENNE");
+        } else {
+            params.set(field, "OUI");
+        }
+    });
+    try {
+        const res = await fetch(`/api/clients?${params}`);
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        const response = await res.json();
+        exportCSV(response.data ?? [], 'opportunites.csv', [
+            { label: 'Code',                        field: 'code_client' },
+            { label: 'Nom',                         field: 'nom_client' },
+            { label: 'Assistant',                   field: 'assistant' },
+            { label: 'Collaborateur',               field: 'collaborateur' },
+            { label: 'Année',                       field: 'annee' },
+            { label: 'Clôture',                     field: 'date_de_cloture' },
+            { label: 'Retraite',                    field: 'mission_retraite' },
+            { label: 'Patrimoniale',                field: 'mission_patrimoniale' },
+            { label: 'Placement',                   field: 'mission_placement' },
+            { label: 'Franchise TVA prest',         field: 'franchise_tva_prest' },
+            { label: 'Franchise TVA achat/revente', field: 'franchise_tva_achrevente' },
+            { label: 'Prévoyance',                  field: 'op_prevoyance' },
+            { label: 'Arbitrage rémunération',      field: 'arbitrage_remuneration_dirigeant' },
+        ]);
+    } catch (err) {
+        console.error("Erreur exportAll:", err);
+        alert("Erreur lors de l'export.");
+    }
 }
 
 const MOIS_LABELS = {

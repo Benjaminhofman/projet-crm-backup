@@ -207,6 +207,7 @@ input {
     <input type="text" id="filter-cloture" list="dl-cloture" placeholder="— Clôture —" autocomplete="off">
     <datalist id="dl-cloture"></datalist>
     <button onclick="document.querySelectorAll('.filters-top input,.filters-top select').forEach(el=>el.value='');applyFilters();" style="background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">🔄 Réinitialiser</button>
+    <button onclick="exportAll()" style="background:#27ae60;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">⬇ Exporter tout</button>
 </div>
 
 <table>
@@ -490,6 +491,46 @@ async function loadPage(page = 1) {
 
 function applyFilters() {
     loadPage(1);
+}
+
+async function exportAll() {
+    const get = id => (document.getElementById(id) || {value: ''}).value.trim();
+    const params = new URLSearchParams({ limit: 0 });
+    const search        = get("search");
+    const assistant     = get("filter-assistant");
+    const collaborateur = get("filter-collab");
+    const annee         = get("filter-annee");
+    const cloture       = get("filter-cloture");
+    if (search)        params.set("search",              search);
+    if (assistant)     params.set("assistant_exact",     assistant);
+    if (collaborateur) params.set("collaborateur_exact", collaborateur);
+    if (annee)         params.set("annee",               annee);
+    if (cloture) {
+        const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
+        params.set("cloture", "-" + mm + "-");
+    }
+    try {
+        const res = await fetch(`${API_URL}/clients?${params}`);
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        const response = await res.json();
+        exportCSV(response.data ?? [], 'rendement.csv', [
+            { label: 'Code',          field: 'code_client' },
+            { label: 'Nom',           field: 'nom_client' },
+            { label: 'Assistant',     field: 'assistant' },
+            { label: 'Collaborateur', field: 'collaborateur' },
+            { label: 'Année',         field: 'annee' },
+            { label: 'Clôture',       field: 'date_de_cloture' },
+            { label: 'CA',            field: 'ca_r' },
+            { label: 'Résultat',      field: 'resultat_r' },
+            { label: 'Ancienneté',    field: 'anciennete' },
+            { label: 'Temps (h)',     field: 'temps_passe' },
+            { label: 'Honoraires',    field: 'honoraires_cpta' },
+            { label: 'Rendement',     field: 'rendement' },
+        ]);
+    } catch (err) {
+        console.error("Erreur exportAll:", err);
+        alert("Erreur lors de l'export.");
+    }
 }
 
 let _st;
