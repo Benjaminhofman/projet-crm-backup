@@ -445,14 +445,28 @@ async function loadPage(page = 1) {
 
     const get = id => (document.getElementById(id) || { value: '' }).value.trim();
     const params = new URLSearchParams({ page, limit: _LIMIT });
-    const assistant    = get('filter-assistant');
+    const assistant     = get('filter-assistant');
     const collaborateur = get('filter-collab');
-    const annee        = get('filter-annee');
-    const cloture      = get('filter-cloture');
+    const annee         = get('filter-annee');
+    const cloture       = get('filter-cloture');
     if (assistant)     params.set('assistant',     assistant);
     if (collaborateur) params.set('collaborateur', collaborateur);
     if (annee)         params.set('annee',         annee);
     if (cloture)       params.set('cloture',       cloture);
+
+    const activeFields = Array.from(
+        document.querySelectorAll("#filter-row input[data-field]:checked")
+    ).map(cb => cb.dataset.field);
+
+    // Filtre serveur : une seule case cochée sans checkedFn (pas dividendes)
+    const singleServerField = activeFields.length === 1 &&
+        !columns.find(c => c.field === activeFields[0])?.checkedFn
+        ? activeFields[0] : null;
+
+    if (singleServerField) {
+        params.set('filterField', singleServerField);
+        params.set('filterValue', 'true');
+    }
 
     let response;
     try {
@@ -468,12 +482,9 @@ async function loadPage(page = 1) {
 
     const data = response.data ?? [];
 
-    // Filtrage JS uniquement pour les cases à cocher de colonnes
-    const activeFields = Array.from(
-        document.querySelectorAll("#filter-row input[data-field]:checked")
-    ).map(cb => cb.dataset.field);
-
-    const filtered = activeFields.length
+    // Filtre JS : plusieurs cases cochées, ou dividendes (checkedFn)
+    const useJsFilter = !singleServerField && activeFields.length > 0;
+    const filtered = useJsFilter
         ? data.filter(c => activeFields.every(f => {
             const col = columns.find(col => col.field === f);
             return col?.checkedFn ? col.checkedFn(c) : !!c[f];
@@ -481,7 +492,7 @@ async function loadPage(page = 1) {
         : data;
 
     document.getElementById("counter").textContent =
-        "Nombre de dossiers : " + (activeFields.length ? filtered.length : response.total);
+        "Nombre de dossiers : " + (useJsFilter ? filtered.length : response.total);
 
     display(filtered);
     renderPagination(response.page, response.pages, response.total);
