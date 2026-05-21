@@ -177,6 +177,7 @@ tr:hover {
         <datalist id="dl-cloture"></datalist>
     </div>
     <button onclick="['search','filter-assistant','filter-collab','filter-annee','filter-cloture'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.querySelectorAll('#filter-row input[type=checkbox]').forEach(cb=>cb.checked=false);applyFilters();" style="background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">🔄 Réinitialiser</button>
+    <button id="btn-export" onclick="exportAll()" style="background:#27ae60;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">⬇ Exporter tout</button>
 </div>
 
 <table>
@@ -516,6 +517,78 @@ async function loadPage(page = 1) {
 }
 
 function applyFilters() { loadPage(1); }
+
+async function exportAll() {
+    const btn = document.getElementById('btn-export');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Export…'; }
+
+    const get = id => (document.getElementById(id) || { value: '' }).value.trim();
+    const params = new URLSearchParams({ limit: 0 });
+    const search        = get('search');
+    const assistant     = get('filter-assistant');
+    const collaborateur = get('filter-collab');
+    const annee         = get('filter-annee');
+    const cloture       = get('filter-cloture');
+    if (search)         params.set('search',              search);
+    if (assistant)      params.set('assistant_exact',     assistant);
+    if (collaborateur)  params.set('collaborateur_exact', collaborateur);
+    if (annee)          params.set('annee',               annee);
+    if (cloture) {
+        const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
+        params.set('cloture', '-' + mm + '-');
+    }
+
+    const activeFields = Array.from(
+        document.querySelectorAll('#filter-row input[data-field]:checked')
+    ).map(cb => cb.dataset.field);
+
+    const singleServerField = activeFields.length === 1 &&
+        !columns.find(c => c.field === activeFields[0])?.checkedFn
+        ? activeFields[0] : null;
+    if (singleServerField) {
+        params.set('filterField', singleServerField);
+        params.set('filterValue', 'true');
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/clients?${params}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const response = await res.json();
+        let data = response.data ?? [];
+
+        const useJsFilter = !singleServerField && activeFields.length > 0;
+        if (useJsFilter) {
+            data = data.filter(c => activeFields.every(f => {
+                const col = columns.find(col => col.field === f);
+                return col?.checkedFn ? col.checkedFn(c) : !!c[f];
+            }));
+        }
+
+        exportCSV(data, 'declaratif.csv', [
+            { label: 'Code',          field: 'code_client' },
+            { label: 'Nom',           field: 'nom_client' },
+            { label: 'Assistant',     field: 'assistant' },
+            { label: 'Collaborateur', field: 'collaborateur' },
+            { label: 'Année',         field: 'annee' },
+            { label: 'Clôture',       field: 'date_de_cloture' },
+            { label: 'CA12',          field: 'ca12' },
+            { label: 'TVS',           field: 'tvs' },
+            { label: 'CVAE',          field: 'cvae' },
+            { label: 'IR',            field: 'impot_sur_le_revenu' },
+            { label: 'IS',            field: 'is' },
+            { label: 'Liasse',        field: 'liasse' },
+            { label: 'CFE',           field: 'cotisation_fonciere_entreprise' },
+            { label: 'Dividendes',    field: 'dividendes' },
+            { label: 'Juridique',     field: 'juridique' },
+            { label: 'Situation',     field: 'situation' },
+            { label: 'TBB',           field: 'tbb' },
+        ]);
+    } catch (err) {
+        alert('Erreur lors de l\'export : ' + err.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '⬇ Exporter tout'; }
+    }
+}
 
 const MOIS_LABELS = {
     '01':'Janvier','02':'Février','03':'Mars','04':'Avril',

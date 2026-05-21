@@ -105,6 +105,7 @@ select {
     <select id="f-placement"><option value="">Placement</option></select>
     <select id="f-prevoyance"><option value="">Prévoyance</option></select>
     <button onclick="document.querySelectorAll('.filters input[list],.filters select').forEach(el=>el.value='');applyFilters();" style="background:#95a5a6;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">🔄 Réinitialiser</button>
+    <button id="btn-export" onclick="exportAll()" style="background:#27ae60;color:white;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;">⬇ Exporter tout</button>
 </div>
 
 <table>
@@ -397,6 +398,61 @@ async function loadPage(page = 1) {
 
 function applyFilters() { loadPage(1); }
 
+async function exportAll() {
+    const btn = document.getElementById('btn-export');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Export…'; }
+
+    const get = id => (document.getElementById(id) || { value: '' }).value.trim();
+    const params = new URLSearchParams({ limit: 0 });
+    const assistant     = get('f-assistant');
+    const collaborateur = get('f-collab');
+    const annee         = get('f-annee');
+    const cloture       = get('f-cloture');
+    const search        = get('search');
+    if (assistant)     params.set('assistant_exact',     assistant);
+    if (collaborateur) params.set('collaborateur_exact', collaborateur);
+    if (annee)         params.set('annee',               annee);
+    if (cloture) {
+        const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
+        params.set('cloture', '-' + mm + '-');
+    }
+    if (search) params.set('search', search);
+
+    try {
+        const res = await fetch(`${API_URL}/clients?${params}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const response = await res.json();
+        let data = response.data ?? [];
+
+        // Filtrage JS pour les selects de statut (non pris en charge côté serveur)
+        const retraite   = get('f-retraite');
+        const patrimoine = get('f-patrimoine');
+        const placement  = get('f-placement');
+        const prevoyance = get('f-prevoyance');
+        if (retraite)   data = data.filter(c => c.suivi_mission_retraite     === retraite);
+        if (patrimoine) data = data.filter(c => c.suivi_mission_patrimoniale === patrimoine);
+        if (placement)  data = data.filter(c => c.suivi_mission_placement    === placement);
+        if (prevoyance) data = data.filter(c => c.suivi_mission_prevoyance  === prevoyance);
+
+        exportCSV(data, 'commercial.csv', [
+            { label: 'Code',          field: 'code_client' },
+            { label: 'Année',         field: 'annee' },
+            { label: 'Nom',           field: 'nom_client' },
+            { label: 'Assistant',     field: 'assistant' },
+            { label: 'Collaborateur', field: 'collaborateur' },
+            { label: 'Clôture',       field: 'date_de_cloture' },
+            { label: 'Retraite',      field: 'suivi_mission_retraite' },
+            { label: 'Patrimoniale',  field: 'suivi_mission_patrimoniale' },
+            { label: 'Placement',     field: 'suivi_mission_placement' },
+            { label: 'Prévoyance',    field: 'suivi_mission_prevoyance' },
+        ]);
+    } catch (err) {
+        alert('Erreur lors de l\'export : ' + err.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '⬇ Exporter tout'; }
+    }
+}
+
 const MOIS_LABELS = {
     '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
     '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
@@ -429,9 +485,12 @@ async function populateSelects() {
 async function load() {
     initSelectFilters();
     await populateSelects();
-    document.querySelectorAll('.filters input[list]').forEach(inp => {
+    document.querySelectorAll('.filters input[list]:not(#search)').forEach(inp => {
         inp.addEventListener('input', applyFilters);
     });
+    let _st;
+    const srch = document.getElementById('search');
+    if (srch) srch.addEventListener('input', () => { clearTimeout(_st); _st = setTimeout(applyFilters, 300); });
     document.querySelectorAll('.filters select').forEach(sel => {
         sel.addEventListener('change', applyFilters);
     });
