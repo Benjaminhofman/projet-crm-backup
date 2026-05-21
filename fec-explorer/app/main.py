@@ -317,29 +317,9 @@ def get_clients(
 
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
-        # Colonnes essentielles pour les vues liste — exclut les 12 colonnes mensuelles
-        # TVS (janvier_tvs…decembre_tvs) et les 12 CA12 soldes (janvier_ca12_solde…decembre_ca12_solde).
-        # SELECT * est conservé uniquement dans get_client(siret) pour la fiche complète.
-        COLS = """
-            siret, code_client, nom_client, annee, assistant, collaborateur, date_de_cloture,
-            structure, activite_r, code_naf_r, achat_revente, prevoyance,
-            ca_r, resultat_r, tresorerie_r, honoraires_cpta, temps_passe, cfe_r,
-            anniversaire, date_entree, mai_ir,
-            age, anciennete, rendement,
-            mission_retraite, mission_patrimoniale, mission_placement,
-            franchise_tva_prest, franchise_tva_achrevente, op_prevoyance, arbitrage_remuneration_dirigeant,
-            ca12, tvs, cvae, "is", impot_sur_le_revenu, liasse,
-            cotisation_fonciere_entreprise, dividendes, juridique, situation, tbb,
-            mai_cvae, acompte_cvae_juin, acompte_cvae_septembre,
-            juillet_ca12, decembre_ca12,
-            suivi_mission_retraite, suivi_mission_patrimoniale, suivi_mission_placement, suivi_mission_prevoyance,
-            juridique_exceptionnel, previsionnel, eval, prevoyance_s, patrimoniale, placement,
-            commentaires
-        """
-
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             if limit == 0:
-                cur.execute(f"SELECT {COLS} FROM clients {where} ORDER BY nom_client", params)
+                cur.execute(f"SELECT * FROM clients {where} ORDER BY nom_client", params)
                 rows = [{k: _serialize(v) for k, v in row.items()} for row in cur.fetchall()]
                 return {"data": rows, "total": len(rows), "page": 1, "pages": 1}
 
@@ -348,7 +328,7 @@ def get_clients(
 
             offset = (page - 1) * limit
             cur.execute(
-                f"SELECT {COLS} FROM clients {where} ORDER BY nom_client LIMIT %s OFFSET %s",
+                f"SELECT * FROM clients {where} ORDER BY nom_client LIMIT %s OFFSET %s",
                 params + [limit, offset],
             )
             rows = [
