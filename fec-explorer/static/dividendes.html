@@ -165,9 +165,7 @@ function exportCSV(data, filename, columns) {
 initDeclaratifPage({
     titre: "Suivi Dividendes",
     emoji: "💰",
-    // Pas de filterField : on charge tous les clients,
-    // requireFn restreint l'affichage aux dossiers avec dividendes
-    requireFn: c => parseFloat(c.dividendes) > 0,
+    filterField: "dividendes",
     columns: [
         { header: "Dividendes", field: "dividendes" },
         { header: "Date 2777",  field: "date_2777_dividendes", type: "date" },
