@@ -134,6 +134,13 @@ function display(data) {
                 inp.onchange = function () { updateField(c.siret, col.field, this.value, this); };
                 td.appendChild(inp);
 
+            } else if (col.type === 'readonly') {
+                // Colonne lecture seule — affiche une valeur formatée sans input
+                const span = document.createElement('span');
+                span.textContent = col.formatFn ? col.formatFn(c[col.field], c) : (c[col.field] ?? '—');
+                span.style.cssText = 'font-size:13px;color:#555;';
+                td.appendChild(span);
+
             } else {
                 // Type texte par défaut
                 const inp = document.createElement('input');
@@ -142,6 +149,8 @@ function display(data) {
                 if (col.disabledFn && col.disabledFn(c)) {
                     inp.disabled = true;
                     inp.style.background = '#f0f0f0';
+                    // Tooltip sur le TD (les inputs disabled n'affichent pas toujours le title)
+                    if (col.tooltipFn) td.title = col.tooltipFn(c);
                 }
                 inp.onchange = function () { updateField(c.siret, col.field, this.value, this); };
                 td.appendChild(inp);

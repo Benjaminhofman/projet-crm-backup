@@ -166,14 +166,25 @@ function exportCSV(data, filename, columns) {
 </script>
 <script src="decl-engine.js"></script>
 <script>
+const _fmtCA = (v, c) => {
+    if (v == null || v === '') return '—';
+    return Number(v).toLocaleString('fr-FR') + ' €';
+};
+const _tooltipCA = c => {
+    if (c.ca_r == null || c.ca_r === '') return 'CA non renseigné — seuil CVAE : 500 000 €';
+    return 'CA : ' + Number(c.ca_r).toLocaleString('fr-FR') + ' € — seuil CVAE : 500 000 €';
+};
+const _disabledCVAE = c => c.ca_r != null && c.ca_r !== '' && parseFloat(c.ca_r) <= 500000;
+
 initDeclaratifPage({
     titre: "Suivi CVAE",
     emoji: "📊",
     filterField: "cvae",
     columns: [
-        { header: "Mai CVAE",         field: "mai_cvae",              disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000 },
-        { header: "Acompte Juin",     field: "acompte_cvae_juin",     disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000 },
-        { header: "Acompte Septembre",field: "acompte_cvae_septembre",disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000 }
+        { header: "CA",               field: "ca_r",                  type: 'readonly', formatFn: _fmtCA },
+        { header: "Mai CVAE",         field: "mai_cvae",              disabledFn: _disabledCVAE, tooltipFn: _tooltipCA },
+        { header: "Acompte Juin",     field: "acompte_cvae_juin",     disabledFn: _disabledCVAE, tooltipFn: _tooltipCA },
+        { header: "Acompte Septembre",field: "acompte_cvae_septembre",disabledFn: _disabledCVAE, tooltipFn: _tooltipCA }
     ]
 });
 </script>
