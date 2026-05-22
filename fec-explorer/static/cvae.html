@@ -171,7 +171,9 @@ initDeclaratifPage({
     emoji: "📊",
     filterField: "cvae",
     columns: [
-        { header: "Mai CVAE", field: "mai_cvae", disabledFn: c => !(c.ca_r > 500000) }
+        { header: "Mai CVAE",         field: "mai_cvae",              disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000 },
+        { header: "Acompte Juin",     field: "acompte_cvae_juin",     disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000 },
+        { header: "Acompte Septembre",field: "acompte_cvae_septembre",disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000 }
     ]
 });
 </script>
