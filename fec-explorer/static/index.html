@@ -320,6 +320,41 @@ tr:hover {
     border: none; padding: 10px; border-radius: 6px;
     cursor: pointer; font-weight: 600; font-size: 13px;
 }
+
+/* ── Dashboard enrichi ───────────────────────────────────────── */
+.dashboard { flex-wrap: wrap; }
+.card.kpi {
+    flex: 1; min-width: 200px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: transform 0.15s ease;
+}
+.card.kpi:hover { transform: translateY(-3px); }
+.card.kpi h4 { margin: 0 0 8px; color: #7f8c9b; font-size: 13px; font-weight: 600; }
+.kpi-val { margin: 0; font-size: 24px; font-weight: 700; color: #273c75; line-height: 1.2; }
+.kpi-sub { display: block; margin-top: 4px; font-size: 12px; color: #27ae60; font-weight: 600; }
+
+.dash-panels {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px; margin-bottom: 20px;
+}
+@media (max-width: 900px) { .dash-panels { grid-template-columns: 1fr; } }
+.dash-panel {
+    background: white; border-radius: 10px;
+    padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.dash-panel h3 { margin: 0 0 14px; font-size: 15px; color: #273c75; }
+.collab-scroll { max-height: 280px; overflow-y: auto; }
+.collab-row { margin-bottom: 10px; }
+.collab-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 3px; }
+.collab-name { font-weight: 600; color: #2c3e50; }
+.collab-meta { color: #7f8c9b; font-size: 12px; white-space: nowrap; }
+.bar-bg { background: #eef0f5; border-radius: 6px; height: 10px; overflow: hidden; }
+.bar-fill { background: linear-gradient(90deg, #4a69bd, #273c75); height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+.anniv-scroll { max-height: 280px; overflow-y: auto; }
+.anniv-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 4px; border-bottom: 1px solid #f0f2f5; font-size: 13px; }
+.anniv-item:last-child { border-bottom: none; }
+.anniv-days { background: #fff3e0; color: #e67e22; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.dash-empty { color: #aaa; font-size: 13px; padding: 8px 0; }
 </style>
 </head>
 
@@ -409,19 +444,44 @@ tr:hover {
 
 <div id="alert-anniv"></div>
 
+<!-- KPI cards -->
 <div class="dashboard">
-    <div class="card">
+    <div class="card kpi">
         <h4>👥 Clients</h4>
-        <p id="total-clients">0</p>
+        <p class="kpi-val" id="total-clients">0</p>
     </div>
 
-    <div class="card">
-        <h4>💰 Honos moyen</h4>
-        <p id="avg-honos">0 €</p>
+    <div class="card kpi">
+        <h4>💰 Honoraires moyen</h4>
+        <p class="kpi-val" id="avg-honos">0 €</p>
     </div>
 
-    <div class="card">
-        <button class="btn" onclick="sortByHonos()">📊 Top honoraires</button>
+    <div class="card kpi">
+        <h4>🏆 Top honoraires</h4>
+        <p class="kpi-val" id="kpi-top-honos" style="font-size:17px;">—</p>
+        <span class="kpi-sub" id="kpi-top-honos-val"></span>
+    </div>
+
+    <div class="card kpi">
+        <h4>🎂 Anniversaire du jour</h4>
+        <p class="kpi-val" id="kpi-anniv-jour" style="font-size:17px;">—</p>
+    </div>
+</div>
+
+<!-- Sections détaillées -->
+<div class="dash-panels">
+    <div class="dash-panel">
+        <h3>👤 Répartition collaborateurs</h3>
+        <div class="collab-scroll" id="collab-repartition">
+            <div class="dash-empty">Chargement…</div>
+        </div>
+    </div>
+
+    <div class="dash-panel">
+        <h3>🎉 Anniversaires à venir (45 jours)</h3>
+        <div class="anniv-scroll" id="anniv-45">
+            <div class="dash-empty">Chargement…</div>
+        </div>
     </div>
 </div>
 
@@ -835,11 +895,120 @@ function updateDashboard({ total, honoraires_moyen }) {
         new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(honoraires_moyen ?? 0);
 }
 
+/* ── Dashboard enrichi : calculé une fois sur tout le portefeuille ──── */
+
+// Parse "YYYY-MM-DD" en date locale (évite le décalage UTC, voir CLAUDE.md)
+function parseLocalDate(str) {
+    if (!str) return null;
+    const [y, m, d] = String(str).substring(0, 10).split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+}
+
+// Nombre de jours avant le prochain anniversaire (0 = aujourd'hui)
+function daysUntilBirthday(str) {
+    const bd = parseLocalDate(str);
+    if (!bd) return null;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let next = new Date(today.getFullYear(), bd.getMonth(), bd.getDate());
+    if (next < today) next = new Date(today.getFullYear() + 1, bd.getMonth(), bd.getDate());
+    return Math.round((next - today) / 86400000);
+}
+
+const fmtEUR  = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
+const fmtEUR0 = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+
+// Charge l'intégralité des clients (limit=0) pour les KPI calculés côté client
+async function loadDashboardExtra() {
+    try {
+        const res = await fetch(`${API_URL}/clients?limit=0`);
+        if (!res.ok) return;
+        const response = await res.json();
+        const data = response.data ?? [];
+        renderTopHonos(data);
+        renderAnnivJour(data);
+        renderCollabRepartition(data);
+        renderAnniv45(data);
+    } catch (err) {
+        console.error("Erreur loadDashboardExtra:", err);
+    }
+}
+
+// KPI : client avec le plus d'honoraires
+function renderTopHonos(data) {
+    let top = null;
+    data.forEach(c => {
+        const h = parseFloat(c.honoraires_cpta);
+        if (!isNaN(h) && (!top || h > top.h)) top = { nom: c.nom_client, h };
+    });
+    const elN = document.getElementById("kpi-top-honos");
+    const elV = document.getElementById("kpi-top-honos-val");
+    if (top) {
+        elN.textContent = top.nom || "—";
+        elV.textContent = fmtEUR(top.h);
+    } else {
+        elN.textContent = "—";
+        elV.textContent = "";
+    }
+}
+
+// KPI : anniversaire(s) tombant aujourd'hui
+function renderAnnivJour(data) {
+    const el = document.getElementById("kpi-anniv-jour");
+    const noms = data.filter(c => daysUntilBirthday(c.anniversaire) === 0)
+                     .map(c => c.nom_client).filter(Boolean);
+    el.textContent = noms.length ? noms.join(", ") : "Aucun";
+}
+
+// Section : répartition par collaborateur (barre + somme honoraires)
+function renderCollabRepartition(data) {
+    const map = {};
+    data.forEach(c => {
+        const k = c.collaborateur || "— non assigné —";
+        if (!map[k]) map[k] = { count: 0, honos: 0 };
+        map[k].count++;
+        const h = parseFloat(c.honoraires_cpta);
+        if (!isNaN(h)) map[k].honos += h;
+    });
+    const total = data.length || 1;
+    const rows = Object.entries(map).sort((a, b) => b[1].count - a[1].count);
+    const el = document.getElementById("collab-repartition");
+    if (!rows.length) { el.innerHTML = '<div class="dash-empty">Aucune donnée</div>'; return; }
+    el.innerHTML = rows.map(([nom, v]) => {
+        const pct = Math.round(v.count / total * 100);
+        return `
+        <div class="collab-row">
+            <div class="collab-head">
+                <span class="collab-name">${esc(nom)}</span>
+                <span class="collab-meta">${v.count} client${v.count > 1 ? 's' : ''} · ${fmtEUR0(v.honos)}</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+    }).join('');
+}
+
+// Section : anniversaires dans les 45 prochains jours (hors aujourd'hui)
+function renderAnniv45(data) {
+    const list = data.map(c => ({ nom: c.nom_client, d: daysUntilBirthday(c.anniversaire) }))
+        .filter(x => x.d !== null && x.d > 0 && x.d <= 45)
+        .sort((a, b) => a.d - b.d);
+    const el = document.getElementById("anniv-45");
+    if (!list.length) { el.innerHTML = '<div class="dash-empty">Aucun anniversaire dans les 45 jours</div>'; return; }
+    el.innerHTML = list.map(x => `
+        <div class="anniv-item">
+            <span>🎂 ${esc(x.nom || '—')}</span>
+            <span class="anniv-days">${x.d === 1 ? 'demain' : 'dans ' + x.d + ' j'}</span>
+        </div>`).join('');
+}
+
 document.getElementById("search").addEventListener("input", applyFilters);
 document.getElementById("filter-tranche").addEventListener("change", applyFilters);
 
 populatePanel().then(() => loadPage(1));
+loadDashboardExtra();
 setInterval(() => loadPage(_currentPage), 5 * 60 * 1000);
+setInterval(loadDashboardExtra, 5 * 60 * 1000);
 
 /* Menu déroulant navigation */
 function toggleNavMenu() {
