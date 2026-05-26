@@ -1046,6 +1046,15 @@ function renderEspaceBadge(collab) {
             style="background:rgba(255,255,255,0.25);color:white;border:none;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>`;
 }
 
+// Propage ?collab=X sur tous les liens du menu Navigation (si présent)
+function propagateCollabToNav(collab) {
+    if (!collab) return; // pas de param → liens normaux
+    document.querySelectorAll("#nav-menu a").forEach(a => {
+        const base = a.getAttribute("href").split("?")[0];
+        a.setAttribute("href", base + "?collab=" + encodeURIComponent(collab));
+    });
+}
+
 // Au chargement : lit ?collab et applique l'espace collaborateur
 document.addEventListener("DOMContentLoaded", () => {
     const collab = new URLSearchParams(location.search).get("collab") || "";
@@ -1055,6 +1064,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const sel = document.getElementById("mon-espace");
         if (sel) sel.value = collab;
         renderEspaceBadge(collab);
+        propagateCollabToNav(collab);
     }
     // collaborateur_exact est injecté dans loadPage() via le param ?collab
 });
