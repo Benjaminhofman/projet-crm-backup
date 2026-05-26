@@ -638,7 +638,7 @@ function exportCSV(data, filename, columns) {
     URL.revokeObjectURL(url);
 }
 </script>
-<script src="/espace.js?v=7"></script>
+<script src="/espace.js?v=8"></script>
 <script>
 let _currentPage = 1;
 const _LIMIT = 50;
@@ -927,10 +927,14 @@ function daysUntilBirthday(str) {
 const fmtEUR  = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
 const fmtEUR0 = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
 
-// Charge l'intégralité des clients (limit=0) pour les KPI calculés côté client
+// Charge les clients (limit=0) pour les KPI calculés côté client.
+// Filtré sur l'espace actif (collaborateur) s'il est sélectionné.
 async function loadDashboardExtra() {
     try {
-        const res = await fetch(`${API_URL}/clients?limit=0`);
+        const params = new URLSearchParams({ limit: 0 });
+        const espaceCollab = sessionStorage.getItem("espaceCollab");
+        if (espaceCollab) params.set("collaborateur_exact", espaceCollab);
+        const res = await fetch(`${API_URL}/clients?${params}`);
         if (!res.ok) return;
         const response = await res.json();
         const data = response.data ?? [];

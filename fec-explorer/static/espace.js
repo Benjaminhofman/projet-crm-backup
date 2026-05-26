@@ -70,6 +70,7 @@ function onMonEspaceChange(val) {
     else sessionStorage.removeItem("espaceCollab");
     renderEspaceBadge(val);                            // badge à jour (ou masqué)
     if (typeof loadPage === "function") loadPage(1);   // recharge la liste filtrée
+    if (typeof loadDashboardExtra === "function") loadDashboardExtra(); // dashboard filtré
 }
 
 // Badge "Espace : X" du header index, avec bouton ✕ (quitte l'espace)
