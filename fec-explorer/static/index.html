@@ -638,6 +638,7 @@ function exportCSV(data, filename, columns) {
     URL.revokeObjectURL(url);
 }
 </script>
+<script src="/espace.js"></script>
 <script>
 let _currentPage = 1;
 const _LIMIT = 50;
@@ -720,29 +721,7 @@ async function populatePanel() {
     }));
 }
 
-// Select "Mon espace" : alimenté par /api/clients/filters (collaborateurs)
-async function populateMonEspace() {
-    const sel = document.getElementById("mon-espace");
-    if (!sel) return;
-    try {
-        const res = await fetch(`${API_URL}/clients/filters`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const current = new URLSearchParams(location.search).get("collab") || "";
-        (data.collaborateurs || []).forEach(c => {
-            const opt = document.createElement("option");
-            opt.value = c;
-            opt.textContent = c;
-            if (c === current) opt.selected = true;
-            sel.appendChild(opt);
-        });
-    } catch {}
-}
-
-// Navigation au changement : index.html?collab=<val> (vide si "— Tous —")
-function onMonEspaceChange(val) {
-    window.location.href = "index.html?collab=" + encodeURIComponent(val || "");
-}
+// populateMonEspace / onMonEspaceChange : déplacés dans espace.js
 
 function applyFilters() {
     loadPage(1);
@@ -1034,41 +1013,9 @@ function renderAnniv45(data) {
 document.getElementById("search").addEventListener("input", applyFilters);
 document.getElementById("filter-tranche").addEventListener("change", applyFilters);
 
-// Affiche le badge "Espace : X" dans le header (✕ → retour sans param)
-function renderEspaceBadge(collab) {
-    const badge = document.getElementById("espace-badge");
-    if (!badge) return;
-    if (!collab) { badge.style.display = "none"; badge.innerHTML = ""; return; }
-    badge.style.display = "inline-flex";
-    badge.innerHTML = `Espace : ${esc(collab)}
-        <button onclick="window.location.href='index.html'"
-            title="Quitter cet espace"
-            style="background:rgba(255,255,255,0.25);color:white;border:none;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>`;
-}
+// renderEspaceBadge / propagateCollabToNav / init espace : déplacés dans espace.js
 
-// Propage ?collab=X sur tous les liens du menu Navigation (si présent)
-function propagateCollabToNav(collab) {
-    if (!collab) return; // pas de param → liens normaux
-    document.querySelectorAll("#nav-menu a").forEach(a => {
-        const base = a.getAttribute("href").split("?")[0];
-        a.setAttribute("href", base + "?collab=" + encodeURIComponent(collab));
-    });
-}
-
-// Au chargement : lit ?collab et applique l'espace collaborateur
-document.addEventListener("DOMContentLoaded", () => {
-    const collab = new URLSearchParams(location.search).get("collab") || "";
-    if (collab) {
-        // Pré-remplir le select (l'option est ajoutée par populateMonEspace,
-        // mais on force la valeur dès maintenant si elle est déjà présente)
-        const sel = document.getElementById("mon-espace");
-        if (sel) sel.value = collab;
-        renderEspaceBadge(collab);
-        propagateCollabToNav(collab);
-    }
-    // collaborateur_exact est injecté dans loadPage() via le param ?collab
-});
-
+initEspaceIndex();
 populatePanel().then(() => loadPage(1));
 populateMonEspace();
 loadDashboardExtra();

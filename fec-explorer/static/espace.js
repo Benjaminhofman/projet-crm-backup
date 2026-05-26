@@ -37,3 +37,70 @@ function injectEspaceCollab() {
         if (header) header.appendChild(badge);
     }
 }
+
+
+// ── Espace collaborateur côté index.html (select + badge ✕ + nav) ─────
+// index.html pilote l'espace via un <select id="mon-espace"> et un badge
+// fermable, et propage ?collab sur les liens du menu Navigation.
+
+// Alimente le <select id="mon-espace"> depuis /api/clients/filters
+async function populateMonEspace() {
+    const sel = document.getElementById("mon-espace");
+    if (!sel) return;
+    try {
+        const res = await fetch("/api/clients/filters");
+        if (!res.ok) return;
+        const data = await res.json();
+        const current = new URLSearchParams(location.search).get("collab") || "";
+        (data.collaborateurs || []).forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c;
+            opt.textContent = c;
+            if (c === current) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    } catch {}
+}
+
+// Navigation au changement du select : index.html?collab=<val> (vide = "— Tous —")
+function onMonEspaceChange(val) {
+    window.location.href = "index.html?collab=" + encodeURIComponent(val || "");
+}
+
+// Badge "Espace : X" du header index, avec bouton ✕ (quitte l'espace)
+function renderEspaceBadge(collab) {
+    const badge = document.getElementById("espace-badge");
+    if (!badge) return;
+    if (!collab) { badge.style.display = "none"; badge.textContent = ""; return; }
+    badge.style.display = "inline-flex";
+    badge.textContent = "Espace : " + collab + " "; // textContent → anti-XSS
+    const close = document.createElement("button");
+    close.textContent = "✕";
+    close.title = "Quitter cet espace";
+    close.onclick = () => { window.location.href = "index.html"; };
+    close.style.cssText = "background:rgba(255,255,255,0.25);color:white;border:none;"
+        + "width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;"
+        + "line-height:1;display:flex;align-items:center;justify-content:center;margin-left:6px;";
+    badge.appendChild(close);
+}
+
+// Propage ?collab=X sur tous les liens du menu Navigation (si présent)
+function propagateCollabToNav(collab) {
+    if (!collab) return; // pas de param → liens normaux
+    document.querySelectorAll("#nav-menu a").forEach(a => {
+        const base = a.getAttribute("href").split("?")[0];
+        a.setAttribute("href", base + "?collab=" + encodeURIComponent(collab));
+    });
+}
+
+// Initialise l'espace collaborateur sur index.html (à appeler au démarrage)
+function initEspaceIndex() {
+    const collab = new URLSearchParams(location.search).get("collab") || "";
+    if (collab) {
+        const sel = document.getElementById("mon-espace");
+        if (sel) sel.value = collab; // pré-remplissage immédiat
+        renderEspaceBadge(collab);
+        propagateCollabToNav(collab);
+    }
+    // collaborateur_exact est injecté dans loadPage() via le param ?collab
+}
