@@ -382,6 +382,9 @@ tr:hover {
         </div>
 
         <button onclick="toggleFilterPanel()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;">🔽 Filtres</button>
+        <select id="mon-espace" onchange="onMonEspaceChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
+            <option value="">— Tous —</option>
+        </select>
         <input type="text" id="search" placeholder="🔍 Rechercher un client...">
         <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
             <option value="">Toutes tranches</option>
@@ -716,6 +719,30 @@ async function populatePanel() {
     }));
 }
 
+// Select "Mon espace" : alimenté par /api/clients/filters (collaborateurs)
+async function populateMonEspace() {
+    const sel = document.getElementById("mon-espace");
+    if (!sel) return;
+    try {
+        const res = await fetch(`${API_URL}/clients/filters`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const current = new URLSearchParams(location.search).get("collab") || "";
+        (data.collaborateurs || []).forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c;
+            opt.textContent = c;
+            if (c === current) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    } catch {}
+}
+
+// Navigation au changement : index.html?collab=<val> (vide si "— Tous —")
+function onMonEspaceChange(val) {
+    window.location.href = "index.html?collab=" + encodeURIComponent(val || "");
+}
+
 function applyFilters() {
     loadPage(1);
 }
@@ -748,10 +775,11 @@ async function loadPage(page = 1) {
         const cb = document.querySelector(`#fp-list-${field} input:checked`);
         return cb ? cb.value : '';
     };
+    const urlCollab     = new URLSearchParams(location.search).get("collab") || "";
     const search        = get("search");
     const tranche       = get("filter-tranche");
     const cloture       = get("fp-cloture");
-    const collaborateur = firstChecked("collaborateur");
+    const collaborateur = firstChecked("collaborateur") || urlCollab;
     const assistant     = firstChecked("assistant");
     const structure     = firstChecked("structure");
     const activite_r    = firstChecked("activite_r");
@@ -1006,6 +1034,7 @@ document.getElementById("search").addEventListener("input", applyFilters);
 document.getElementById("filter-tranche").addEventListener("change", applyFilters);
 
 populatePanel().then(() => loadPage(1));
+populateMonEspace();
 loadDashboardExtra();
 setInterval(() => loadPage(_currentPage), 5 * 60 * 1000);
 setInterval(loadDashboardExtra, 5 * 60 * 1000);
