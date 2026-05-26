@@ -968,12 +968,12 @@ async function loadDashboardExtra() {
 }
 
 // Section « Mon portefeuille » : KPIs synthétiques affichés à la place de la
-// répartition collaborateurs quand un espace ASSISTANT est actif.
+// répartition collaborateurs quand un espace est actif (collaborateur OU assistant).
 function renderPortefeuille(data) {
     const panel = document.getElementById("panel-portefeuille");
-    const espaceAssistant = sessionStorage.getItem("espaceAssistant");
+    const espaceActif = sessionStorage.getItem("espaceCollab") || sessionStorage.getItem("espaceAssistant");
     if (!panel) return;
-    if (!espaceAssistant) { panel.style.display = "none"; return; }
+    if (!espaceActif) { panel.style.display = "none"; return; }
 
     panel.style.display = "";
     let honosTotal = 0, nbHonos = 0;
