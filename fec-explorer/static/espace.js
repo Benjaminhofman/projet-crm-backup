@@ -1,33 +1,31 @@
-// Module partagé : gestion de l'« espace collaborateur » transmis via ?collab.
-// Inclus sur index.html (propagation), et sur les pages de suivi
-// (decl-engine, missions, opportunites, commercial, rendement).
+// Module partagé : gestion de l'« espace collaborateur ».
+// L'espace actif est stocké dans sessionStorage sous la clé "espaceCollab"
+// (état UI éphémère, effacé à la fermeture de l'onglet — comme le token JWT
+// crm_token). Aucune donnée métier n'est persistée ici.
 //
-// Au chargement de la page, si le paramètre ?collab=X est présent :
-//   1. injecte X dans l'input collaborateur existant (filter-collab / f-collab)
-//      → repris en collaborateur_exact par loadPage()
-//   2. affiche un badge « 🏢 Espace : X » (lien retour vers index.html?collab=X)
-//
-// L'appel à loadPage(1) / applyFilters() reste de la responsabilité de la page,
-// après injection de la valeur.
+// - index.html : <select id="mon-espace"> écrit la clé (onMonEspaceChange) ;
+//   initEspaceIndex() pré-remplit le select + badge ✕ au chargement.
+// - Pages de suivi : injectEspaceCollab() lit la clé, remplit l'input
+//   collaborateur, affiche un badge, et expose window._espaceCollab.
+// - Chaque loadPage() lit sessionStorage pour poser collaborateur_exact.
+//   Plus aucune propagation de ?collab dans les liens : sessionStorage
+//   persiste entre toutes les navigations du même onglet.
 
 function injectEspaceCollab() {
-    const collab = new URLSearchParams(location.search).get("collab");
-    if (!collab) return; // pas de param → comportement normal
+    const collab = sessionStorage.getItem("espaceCollab");
+    if (!collab) return;
 
     // 1. Injecter dans l'input collaborateur existant (selon la page)
     const inp = document.getElementById("filter-collab")
              || document.getElementById("f-collab");
     if (inp) inp.value = collab;
-
-    // Expose la valeur globalement : loadPage() peut filtrer même si l'input
-    // n'est pas encore rempli (ordre de chargement des scripts).
     window._espaceCollab = collab;
 
-    // 2. Badge « Espace : X » — lien retour vers l'accueil de cet espace
+    // 2. Badge « Espace : X » — lien retour vers l'accueil (l'espace persiste)
     const badge = document.createElement("a");
-    badge.href = "index.html?collab=" + encodeURIComponent(collab);
+    badge.href = "index.html";
     badge.textContent = "🏢 Espace : " + collab;
-    badge.title = "Retour à l'accueil de cet espace";
+    badge.title = "Retour à l'accueil";
     badge.style.cssText = "margin-left:14px;background:#fff;color:#273c75;"
         + "padding:5px 12px;border-radius:16px;font-size:13px;text-decoration:none;"
         + "font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.15);vertical-align:middle;";
@@ -40,61 +38,10 @@ function injectEspaceCollab() {
         const header = document.querySelector(".header");
         if (header) header.appendChild(badge);
     }
-
-    // 3. Propager ?collab sur tous les liens internes vers des pages .html
-    // (retour ⬅, liens de declaratif.html/missions.html vers les sous-pages
-    // déclaratives, etc.). Les params existants (ex. ?siret=) sont préservés.
-    propagateCollabToLinks(collab);
-
-    // 4. Les liens vers les sous-pages sont parfois générés/injectés
-    // dynamiquement APRÈS ce premier passage (rendu du tableau par
-    // decl-engine.js, pagination, etc.). Un MutationObserver réapplique la
-    // propagation à chaque ajout de nœud. On observe childList + subtree
-    // UNIQUEMENT : propagateCollabToLinks() modifie des attributs (href/onclick)
-    // via setAttribute, donc observer les attributs créerait une boucle infinie.
-    if (!window._espaceObserver) {
-        window._espaceObserver = new MutationObserver(() => propagateCollabToLinks(collab));
-        window._espaceObserver.observe(document.body, { childList: true, subtree: true });
-    }
-}
-
-// Ajoute ?collab=X à tous les liens internes vers une page .html.
-// Couvre deux formes : <a href="…html"> ET onclick="location.href='…html'".
-// Préserve les autres paramètres d'URL et l'éventuel ancre #hash.
-function propagateCollabToLinks(collab) {
-    if (!collab) return;
-
-    // Forme 1 : ancres <a href="…html">
-    document.querySelectorAll("a[href]").forEach(a => {
-        const href = a.getAttribute("href");
-        if (!href) return;
-        if (/^https?:\/\//i.test(href) || href.startsWith("//")) return; // externe
-        if (!/\.html(\?|#|$)/.test(href)) return; // uniquement pages .html
-        const [pathQuery, hash] = href.split("#");
-        const [base, query] = pathQuery.split("?");
-        const sp = new URLSearchParams(query || "");
-        if (sp.get("collab") === collab) return; // déjà à jour
-        sp.set("collab", collab);
-        a.setAttribute("href", base + "?" + sp.toString() + (hash ? "#" + hash : ""));
-    });
-
-    // Forme 2 : onclick="location.href='…html'" (ex. en-têtes de declaratif.html)
-    document.querySelectorAll('[onclick*="location.href"]').forEach(el => {
-        const oc = el.getAttribute("onclick");
-        if (!oc) return;
-        const newOc = oc.replace(/location\.href\s*=\s*'([^']*\.html)([^']*)'/g, (m, base, q) => {
-            const sp = new URLSearchParams(q.replace(/^\?/, ""));
-            sp.set("collab", collab);
-            return "location.href='" + base + "?" + sp.toString() + "'";
-        });
-        if (newOc !== oc) el.setAttribute("onclick", newOc);
-    });
 }
 
 
-// ── Espace collaborateur côté index.html (select + badge ✕ + nav) ─────
-// index.html pilote l'espace via un <select id="mon-espace"> et un badge
-// fermable, et propage ?collab sur les liens du menu Navigation.
+// ── Espace collaborateur côté index.html (select + badge ✕) ───────────
 
 // Alimente le <select id="mon-espace"> depuis /api/clients/filters
 async function populateMonEspace() {
@@ -104,7 +51,7 @@ async function populateMonEspace() {
         const res = await fetch("/api/clients/filters");
         if (!res.ok) return;
         const data = await res.json();
-        const current = new URLSearchParams(location.search).get("collab") || "";
+        const current = sessionStorage.getItem("espaceCollab") || "";
         (data.collaborateurs || []).forEach(c => {
             const opt = document.createElement("option");
             opt.value = c;
@@ -115,9 +62,12 @@ async function populateMonEspace() {
     } catch {}
 }
 
-// Navigation au changement du select : index.html?collab=<val> (vide = "— Tous —")
+// Changement du select : écrit l'espace en sessionStorage puis recharge.
+// "— Tous —" (val vide) → efface la clé. Le reload réapplique le filtre.
 function onMonEspaceChange(val) {
-    window.location.href = "index.html?collab=" + encodeURIComponent(val || "");
+    if (val) sessionStorage.setItem("espaceCollab", val);
+    else sessionStorage.removeItem("espaceCollab");
+    location.reload();
 }
 
 // Badge "Espace : X" du header index, avec bouton ✕ (quitte l'espace)
@@ -130,30 +80,20 @@ function renderEspaceBadge(collab) {
     const close = document.createElement("button");
     close.textContent = "✕";
     close.title = "Quitter cet espace";
-    close.onclick = () => { window.location.href = "index.html"; };
+    close.onclick = () => { sessionStorage.removeItem("espaceCollab"); location.reload(); };
     close.style.cssText = "background:rgba(255,255,255,0.25);color:white;border:none;"
         + "width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;"
         + "line-height:1;display:flex;align-items:center;justify-content:center;margin-left:6px;";
     badge.appendChild(close);
 }
 
-// Propage ?collab=X sur tous les liens du menu Navigation (si présent)
-function propagateCollabToNav(collab) {
-    if (!collab) return; // pas de param → liens normaux
-    document.querySelectorAll("#nav-menu a").forEach(a => {
-        const base = a.getAttribute("href").split("?")[0];
-        a.setAttribute("href", base + "?collab=" + encodeURIComponent(collab));
-    });
-}
-
 // Initialise l'espace collaborateur sur index.html (à appeler au démarrage)
 function initEspaceIndex() {
-    const collab = new URLSearchParams(location.search).get("collab") || "";
+    const collab = sessionStorage.getItem("espaceCollab") || "";
     if (collab) {
         const sel = document.getElementById("mon-espace");
-        if (sel) sel.value = collab; // pré-remplissage immédiat
+        if (sel) sel.value = collab; // pré-remplissage du select
         renderEspaceBadge(collab);
-        propagateCollabToNav(collab);
     }
-    // collaborateur_exact est injecté dans loadPage() via le param ?collab
+    // collaborateur_exact est posé dans loadPage() via sessionStorage
 }

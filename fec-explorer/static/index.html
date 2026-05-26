@@ -638,7 +638,7 @@ function exportCSV(data, filename, columns) {
     URL.revokeObjectURL(url);
 }
 </script>
-<script src="/espace.js?v=5"></script>
+<script src="/espace.js?v=6"></script>
 <script>
 let _currentPage = 1;
 const _LIMIT = 50;
@@ -755,11 +755,11 @@ async function loadPage(page = 1) {
         const cb = document.querySelector(`#fp-list-${field} input:checked`);
         return cb ? cb.value : '';
     };
-    const urlCollab     = new URLSearchParams(location.search).get("collab") || "";
+    const espaceCollab  = sessionStorage.getItem("espaceCollab") || "";
     const search        = get("search");
     const tranche       = get("filter-tranche");
     const cloture       = get("fp-cloture");
-    const collaborateur = firstChecked("collaborateur") || urlCollab;
+    const collaborateur = firstChecked("collaborateur") || espaceCollab;
     const assistant     = firstChecked("assistant");
     const structure     = firstChecked("structure");
     const activite_r    = firstChecked("activite_r");
@@ -1013,7 +1013,7 @@ function renderAnniv45(data) {
 document.getElementById("search").addEventListener("input", applyFilters);
 document.getElementById("filter-tranche").addEventListener("change", applyFilters);
 
-// renderEspaceBadge / propagateCollabToNav / init espace : déplacés dans espace.js
+// Logique « espace collaborateur » (sessionStorage) : voir espace.js
 
 initEspaceIndex();
 populatePanel().then(() => loadPage(1));

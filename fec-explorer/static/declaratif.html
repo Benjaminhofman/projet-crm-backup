@@ -324,7 +324,7 @@ function exportCSV(data, filename, columns) {
     URL.revokeObjectURL(url);
 }
 </script>
-<script src="/espace.js?v=5"></script>
+<script src="/espace.js?v=6"></script>
 <script>
 
 // Définition complète des colonnes déclaratives (ordre = ordre des en-têtes)
@@ -489,7 +489,7 @@ async function loadPage(page = 1) {
 
     // Espace collaborateur : ?collab lu directement dans l'URL, juste avant le
     // fetch → filtre toujours actif si présent, sans action de l'utilisateur.
-    const _c = new URLSearchParams(location.search).get("collab");
+    const _c = sessionStorage.getItem("espaceCollab");
     if (_c) params.set("collaborateur_exact", _c);
 
     let response;

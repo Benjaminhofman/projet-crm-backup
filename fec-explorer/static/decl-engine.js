@@ -221,12 +221,10 @@ async function loadPage(page = 1) {
         params.set("cloture", "-" + mm + "-");
     }
 
-    // Espace collaborateur : ?collab lu directement dans l'URL, juste avant le
-    // fetch → filtre toujours actif si présent, sans action de l'utilisateur.
-    const _c = new URLSearchParams(location.search).get("collab");
+    // Espace collaborateur : lu dans sessionStorage juste avant le fetch
+    // → filtre toujours actif si un espace est sélectionné.
+    const _c = sessionStorage.getItem("espaceCollab");
     if (_c) params.set("collaborateur_exact", _c);
-
-    console.log("params:", params.toString()); // DEBUG TEMPORAIRE — à retirer
 
     try {
         const res = await fetch(`/api/clients?${params}`);

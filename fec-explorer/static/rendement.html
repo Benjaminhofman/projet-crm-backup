@@ -349,7 +349,7 @@ function exportCSV(data, filename, columns) {
 }
 </script>
 
-<script src="/espace.js?v=5"></script>
+<script src="/espace.js?v=6"></script>
 <script>
 let _currentPage = 1;
 const _LIMIT = 50;
@@ -480,7 +480,7 @@ async function loadPage(page = 1) {
 
     // Espace collaborateur : ?collab lu directement dans l'URL, juste avant le
     // fetch → filtre toujours actif si présent, sans action de l'utilisateur.
-    const _c = new URLSearchParams(location.search).get("collab");
+    const _c = sessionStorage.getItem("espaceCollab");
     if (_c) params.set("collaborateur_exact", _c);
 
     try {

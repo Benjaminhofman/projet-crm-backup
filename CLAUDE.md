@@ -1055,13 +1055,18 @@ Sinon `applyFilters` est bindé deux fois sur `#search` (direct + debounced).
 - disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000
 
 
-## Espace collaborateur — filtre `?collab` (26/05/2026)
+## Espace collaborateur — `sessionStorage` (26/05/2026, refondu)
 
 ### Principe
 Permet à un collaborateur de naviguer dans tout le CRM en ne voyant que SON
-portefeuille, via un paramètre d'URL `?collab=<nom>` propagé de page en page.
-Aucune donnée persistée : tout repose sur le paramètre d'URL + le filtre
-serveur `collaborateur_exact` existant.
+portefeuille. L'espace actif est stocké dans **`sessionStorage` sous la clé
+`espaceCollab`** (et NON plus via un paramètre d'URL `?collab`). Le filtre
+serveur reste `collaborateur_exact`.
+
+> Exception assumée à la « Règle absolue » sur `sessionStorage` : `espaceCollab`
+> est un **état UI éphémère** (filtre de vue, effacé à la fermeture de l'onglet),
+> pas une donnée métier — même statut que le token JWT `crm_token` déjà stocké
+> en `sessionStorage`. Aucune donnée client n'y est persistée.
 
 ### Module partagé `static/espace.js`
 Source unique de toute la logique « espace ». Inclus dans 17 pages via
@@ -1069,43 +1074,46 @@ Source unique de toute la logique « espace ». Inclus dans 17 pages via
 à CHAQUE modif du fichier). Deux modèles de pages :
 
 - **`index.html`** (pilotage) : `<select id="mon-espace">` + badge fermable ✕.
-  Fonctions : `populateMonEspace()` (alimente le select via
-  `/api/clients/filters`), `onMonEspaceChange()` (navigation
-  `index.html?collab=<val>`), `renderEspaceBadge()` (badge « Espace : X » avec
-  bouton ✕ → `index.html` sans param), `propagateCollabToNav()` (ajoute
-  `?collab` sur tous les liens `#nav-menu a`), `initEspaceIndex()` (orchestre
-  au démarrage). Appel : `initEspaceIndex()` puis `populateMonEspace()`.
+  - `onMonEspaceChange(val)` : `sessionStorage.setItem('espaceCollab', val)`
+    (ou `removeItem` si « — Tous — ») puis `location.reload()`.
+  - `populateMonEspace()` : alimente le select via `/api/clients/filters`,
+    présélectionne d'après `sessionStorage`.
+  - `renderEspaceBadge()` : badge « Espace : X » avec ✕ →
+    `removeItem('espaceCollab')` + reload.
+  - `initEspaceIndex()` : lit `sessionStorage`, pré-remplit le select + badge.
 
-- **Pages de suivi** (badge-lien) : `injectEspaceCollab()` lit `?collab`,
-  pré-remplit l'input collaborateur (`filter-collab` ou `f-collab`), expose
-  `window._espaceCollab`, et affiche un badge « 🏢 Espace : X » (lien retour
-  `index.html?collab=X`) après `#page-title` sinon dans `.header`.
+- **Pages de suivi** : `injectEspaceCollab()` lit `sessionStorage`, pré-remplit
+  l'input collaborateur (`filter-collab` ou `f-collab`), expose
+  `window._espaceCollab`, affiche un badge « 🏢 Espace : X » (lien vers
+  `index.html`) après `#page-title` sinon dans `.header`.
+
+⚠️ Plus AUCUNE propagation `?collab` dans les liens (fonctions
+`propagateCollabToNav` / `propagateCollabToLinks` et le `MutationObserver`
+SUPPRIMÉS) : `sessionStorage` persiste nativement entre les navigations du
+même onglet.
 
 ### Règle critique — filtre TOUJOURS appliqué dans `loadPage()`
-Ne JAMAIS se fier au pré-remplissage de l'input (race possible : `loadPage(1)`
-peut partir avant que `injectEspaceCollab()` ait rempli l'input). Chaque
-`loadPage()` lit `?collab` directement dans l'URL, **juste avant le `fetch`**,
-en DERNIER `params.set` (donc prioritaire sur tout) :
+Chaque `loadPage()` lit `sessionStorage` **juste avant le `fetch`**, en DERNIER
+`params.set` (prioritaire) :
 ```javascript
-const _c = new URLSearchParams(location.search).get("collab");
+const _c = sessionStorage.getItem("espaceCollab");
 if (_c) params.set("collaborateur_exact", _c);
 ```
-Présent dans le `loadPage()` de : `decl-engine.js`, `declaratif.html`,
-`missions.html`, `opportunites.html`, `commercial.html`, `rendement.html`.
+Présent dans : `decl-engine.js`, `declaratif.html`, `missions.html`,
+`opportunites.html`, `commercial.html`, `rendement.html`. Sur `index.html`,
+`loadPage()` lit aussi `sessionStorage.getItem('espaceCollab')`.
 
 ### Architecture des pages déclaratives — PIÈGE
 - `decl-engine.js` est le moteur partagé chargé par **11 pages HTML
   indépendantes** (`cvae`, `tvs`, `ca12`, `dividendes`, `juridique`, `tbb`,
-  `situation`, `is`, `cfe`, `liasse`, `ir`). PAS d'iframe → `location.search`
-  y est l'URL propre de chaque page (ex. `cvae.html?collab=X`).
+  `situation`, `is`, `cfe`, `liasse`, `ir`). PAS d'iframe.
 - `declaratif.html` est une page DISTINCTE avec sa PROPRE `loadPage()` (ne
   charge pas `decl-engine.js`). Toute logique espace doit y être ajoutée
   séparément.
 
 ### Non couvert (TODO)
-- `exportAll()` lit encore l'input (OK car rempli au clic), pas `?collab`
-  directement → à aligner si besoin d'export robuste.
-- Propagation `?collab` sur les liens internes (retour ⬅) des pages de suivi.
+- `exportAll()` lit encore l'input (OK car rempli au chargement par
+  `injectEspaceCollab`), pas `sessionStorage` directement.
 
 
 ## Claude Code — capacités
