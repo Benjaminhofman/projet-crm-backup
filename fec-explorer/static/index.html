@@ -387,6 +387,7 @@ tr:hover {
 .pf-table tbody tr { cursor: pointer; transition: background 0.12s; }
 .pf-table tbody tr:hover { background: #f4f6fb; }
 .pf-table .pf-count { text-align: right; font-weight: 700; color: #273c75; }
+.pf-table tfoot .pf-total td { border-top: 2px solid #e3e7ef; border-bottom: none; font-weight: 700; color: #273c75; padding-top: 10px; }
 .opp-badge b { background: rgba(255,255,255,0.28); padding: 1px 7px; border-radius: 10px; font-size: 12px; }
 .collab-scroll { max-height: 280px; overflow-y: auto; }
 .collab-row { margin-bottom: 10px; }
@@ -1086,8 +1087,10 @@ function renderSuiviCommercial(data) {
     ];
     const collab    = sessionStorage.getItem("espaceCollab");
     const assistant = sessionStorage.getItem("espaceAssistant");
+    let total = 0;
     const rows = defs.map(o => {
         const n = data.filter(c => o.ok(c[o.field])).length;
+        total += n;
         const sp = new URLSearchParams();
         sp.set(o.field, o.param);
         if (collab)    sp.set("collab", collab);
@@ -1098,7 +1101,9 @@ function renderSuiviCommercial(data) {
             <td class="pf-count">${n}</td>
         </tr>`;
     }).join("");
-    el.innerHTML = `<thead><tr><th>Mission</th><th style="text-align:right;">Nb détectés</th></tr></thead><tbody>${rows}</tbody>`;
+    el.innerHTML = `<thead><tr><th>Mission</th><th style="text-align:right;">Nb détectés</th></tr></thead>`
+        + `<tbody>${rows}</tbody>`
+        + `<tfoot><tr class="pf-total"><td>Total missions détectées</td><td class="pf-count">${total}</td></tr></tfoot>`;
 }
 
 // KPI : client avec le plus d'honoraires
