@@ -1082,12 +1082,12 @@ function renderOpportunites(data) {
 function renderSuiviCommercial(data) {
     const el = document.getElementById("portefeuille-commercial");
     if (!el) return;
-    // statut : colonne comptée (=== 'détecté') ; link* : filtre du lien commercial.html
+    // statut : colonne comptée (=== 'détecté') et filtre du lien commercial.html
     const defs = [
-        { label: "Retraite",     statut: "suivi_mission_retraite",     linkField: "mission_retraite",     linkVal: "OUI" },
-        { label: "Patrimoniale", statut: "suivi_mission_patrimoniale", linkField: "mission_patrimoniale", linkVal: "OUI" },
-        { label: "Placement",    statut: "suivi_mission_placement",    linkField: "mission_placement",    linkVal: "OPPORTUNITÉ FORTE" },
-        { label: "Prévoyance",   statut: "suivi_mission_prevoyance",   linkField: "op_prevoyance",        linkVal: "OUI" }
+        { label: "Retraite",     statut: "suivi_mission_retraite" },
+        { label: "Patrimoniale", statut: "suivi_mission_patrimoniale" },
+        { label: "Placement",    statut: "suivi_mission_placement" },
+        { label: "Prévoyance",   statut: "suivi_mission_prevoyance" }
     ];
     const collab    = sessionStorage.getItem("espaceCollab");
     const assistant = sessionStorage.getItem("espaceAssistant");
@@ -1096,7 +1096,7 @@ function renderSuiviCommercial(data) {
         const n = data.filter(c => c[o.statut] === "détecté").length;
         total += n;
         const sp = new URLSearchParams();
-        sp.set(o.linkField, o.linkVal);
+        sp.set(o.statut, "détecté");
         if (collab)    sp.set("collab", collab);
         if (assistant) sp.set("assistant", assistant);
         const href = "commercial.html?" + sp.toString();

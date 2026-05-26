@@ -372,9 +372,6 @@ async function loadPage(page = 1) {
     const _a = sessionStorage.getItem("espaceAssistant");
     if (_a) params.set("assistant_exact", _a);
 
-    // Filtres détection mission issus de l'URL (liens du dashboard)
-    for (const [k, v] of Object.entries(_urlMissionFilters)) params.set(k, v);
-
     let response;
     try {
         const res = await fetch(`${API_URL}/clients?${params}`);
@@ -509,15 +506,19 @@ async function load() {
     await loadPage(1);
 }
 
-// Filtres détection mission transmis au fetch (depuis les liens du dashboard)
-let _urlMissionFilters = {};
-
-// Lit les paramètres d'URL et pré-applique espace + filtres mission
+// Lit les paramètres d'URL et pré-applique espace + statut de suivi
 function applyUrlFilters() {
     const params = new URLSearchParams(location.search);
-    // Champs de détection mission → transmis tels quels au serveur dans loadPage
-    ["mission_retraite", "mission_patrimoniale", "mission_placement", "op_prevoyance"].forEach(f => {
-        if (params.has(f)) _urlMissionFilters[f] = params.get(f);
+    // Statut de suivi → présélection du select correspondant (filtre JS existant)
+    const statutMap = {
+        suivi_mission_retraite:     "f-retraite",
+        suivi_mission_patrimoniale: "f-patrimoine",
+        suivi_mission_placement:    "f-placement",
+        suivi_mission_prevoyance:   "f-prevoyance"
+    };
+    Object.entries(statutMap).forEach(([field, selId]) => {
+        const v = params.get(field);
+        if (v) { const sel = document.getElementById(selId); if (sel) sel.value = v; }
     });
     // Espace collaborateur / assistant
     const collab = params.get("collab");
