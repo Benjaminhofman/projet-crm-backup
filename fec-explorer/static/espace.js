@@ -62,12 +62,14 @@ async function populateMonEspace() {
     } catch {}
 }
 
-// Changement du select : écrit l'espace en sessionStorage puis recharge.
-// "— Tous —" (val vide) → efface la clé. Le reload réapplique le filtre.
+// Changement du select : écrit l'espace en sessionStorage puis ré-applique le
+// filtre SANS rechargement complet (badge + loadPage(1)).
+// "— Tous —" (val vide) → efface la clé.
 function onMonEspaceChange(val) {
     if (val) sessionStorage.setItem("espaceCollab", val);
     else sessionStorage.removeItem("espaceCollab");
-    location.reload();
+    renderEspaceBadge(val);                            // badge à jour (ou masqué)
+    if (typeof loadPage === "function") loadPage(1);   // recharge la liste filtrée
 }
 
 // Badge "Espace : X" du header index, avec bouton ✕ (quitte l'espace)
@@ -80,7 +82,11 @@ function renderEspaceBadge(collab) {
     const close = document.createElement("button");
     close.textContent = "✕";
     close.title = "Quitter cet espace";
-    close.onclick = () => { sessionStorage.removeItem("espaceCollab"); location.reload(); };
+    close.onclick = () => {
+        const sel = document.getElementById("mon-espace");
+        if (sel) sel.value = "";        // remet le select sur « — Tous — »
+        onMonEspaceChange("");          // efface l'espace + recharge sans reload
+    };
     close.style.cssText = "background:rgba(255,255,255,0.25);color:white;border:none;"
         + "width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;"
         + "line-height:1;display:flex;align-items:center;justify-content:center;margin-left:6px;";
