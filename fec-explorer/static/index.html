@@ -379,7 +379,8 @@ tr:hover {
 .pf-kpi span { color: #7f8c9b; }
 .pf-kpi strong { color: #273c75; font-size: 16px; }
 #portefeuille-opportunites { display: flex; flex-wrap: wrap; gap: 8px; }
-.opp-badge { display: inline-flex; align-items: center; gap: 6px; color: white; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+.opp-badge { display: inline-flex; align-items: center; gap: 6px; color: white; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.12); text-decoration: none; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+.opp-badge:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(0,0,0,0.2); }
 .opp-badge b { background: rgba(255,255,255,0.28); padding: 1px 7px; border-radius: 10px; font-size: 12px; }
 .collab-scroll { max-height: 280px; overflow-y: auto; }
 .collab-row { margin-bottom: 10px; }
@@ -1040,19 +1041,25 @@ function renderOpportunites(data) {
     const el = document.getElementById("portefeuille-opportunites");
     if (!el) return;
     const defs = [
-        { label: "Retraite",                 color: "#8e44ad", ok: v => v === "OUI" },
-        { label: "Patrimoniale",             color: "#2980b9", ok: v => v === "OUI", field: "mission_patrimoniale" },
-        { label: "Placement",                color: "#16a085", ok: v => v === "OPPORTUNITÉ FORTE" || v === "OPPORTUNITÉ MOYENNE", field: "mission_placement" },
-        { label: "Franchise TVA prest.",     color: "#e67e22", ok: v => v === "OUI", field: "franchise_tva_prest" },
-        { label: "Franchise TVA achat-rev.", color: "#d35400", ok: v => v === "OUI", field: "franchise_tva_achrevente" },
-        { label: "Prévoyance",               color: "#c0392b", ok: v => v === "OUI", field: "op_prevoyance" },
-        { label: "Arbitrage rémunération",   color: "#27ae60", ok: v => v === "OUI", field: "arbitrage_remuneration_dirigeant" }
+        { label: "Retraite",                 color: "#8e44ad", field: "mission_retraite",                 param: "OUI",               ok: v => v === "OUI" },
+        { label: "Patrimoniale",             color: "#2980b9", field: "mission_patrimoniale",             param: "OUI",               ok: v => v === "OUI" },
+        { label: "Placement",                color: "#16a085", field: "mission_placement",                param: "OPPORTUNITÉ FORTE", ok: v => v === "OPPORTUNITÉ FORTE" || v === "OPPORTUNITÉ MOYENNE" },
+        { label: "Franchise TVA prest.",     color: "#e67e22", field: "franchise_tva_prest",              param: "OUI",               ok: v => v === "OUI" },
+        { label: "Franchise TVA achat-rev.", color: "#d35400", field: "franchise_tva_achrevente",         param: "OUI",               ok: v => v === "OUI" },
+        { label: "Prévoyance",               color: "#c0392b", field: "op_prevoyance",                    param: "OUI",               ok: v => v === "OUI" },
+        { label: "Arbitrage rémunération",   color: "#27ae60", field: "arbitrage_remuneration_dirigeant", param: "OUI",               ok: v => v === "OUI" }
     ];
-    defs[0].field = "mission_retraite";
+    const collab    = sessionStorage.getItem("espaceCollab");
+    const assistant = sessionStorage.getItem("espaceAssistant");
     const html = defs.map(o => {
         const n = data.filter(c => o.ok(c[o.field])).length;
         if (!n) return "";
-        return `<span class="opp-badge" style="background:${o.color};">${o.label} <b>${n}</b></span>`;
+        const sp = new URLSearchParams();
+        sp.set(o.field, o.param);
+        if (collab)    sp.set("collab", collab);
+        if (assistant) sp.set("assistant", assistant);
+        const href = "opportunites.html?" + sp.toString();
+        return `<a class="opp-badge" href="${href}" style="background:${o.color};">${o.label} <b>${n}</b></a>`;
     }).filter(Boolean).join("");
     el.innerHTML = html || '<div class="dash-empty">Aucune opportunité</div>';
 }
