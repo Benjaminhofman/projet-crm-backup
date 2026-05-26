@@ -216,15 +216,15 @@ async function loadPage(page = 1) {
     if (assistant)     params.set("assistant_exact",     assistant);
     if (collaborateur) params.set("collaborateur_exact", collaborateur);
     if (annee)         params.set("annee",               annee);
-
-    // Espace collaborateur (?collab) : appliqué même si l'input n'est pas
-    // encore rempli (lecture directe de l'URL, prioritaire).
-    const collab = new URLSearchParams(location.search).get("collab");
-    if (collab) params.set("collaborateur_exact", collab);
     if (cloture) {
         const mm = cloture.match(/\((\d{2})\)$/)?.[1] || cloture;
         params.set("cloture", "-" + mm + "-");
     }
+
+    // Espace collaborateur : ?collab lu directement dans l'URL, juste avant le
+    // fetch → filtre toujours actif si présent, sans action de l'utilisateur.
+    const _c = new URLSearchParams(location.search).get("collab");
+    if (_c) params.set("collaborateur_exact", _c);
 
     try {
         const res = await fetch(`/api/clients?${params}`);

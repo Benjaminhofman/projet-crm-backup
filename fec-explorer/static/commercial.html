@@ -351,11 +351,6 @@ async function loadPage(page = 1) {
 
     const get = id => (document.getElementById(id) || { value: '' }).value.trim();
     const params = new URLSearchParams({ page, limit: _LIMIT });
-
-    // Espace collaborateur (?collab) : appliqué même si l'input n'est pas
-    // encore rempli (lecture directe de l'URL).
-    const _collab = new URLSearchParams(location.search).get("collab");
-    if (_collab) params.set("collaborateur_exact", _collab);
     const assistant     = get('f-assistant');
     const collaborateur = get('f-collab');
     const annee         = get('f-annee');
@@ -369,6 +364,11 @@ async function loadPage(page = 1) {
     }
     const search = get('search');
     if (search) params.set('search', search);
+
+    // Espace collaborateur : ?collab lu directement dans l'URL, juste avant le
+    // fetch → filtre toujours actif si présent, sans action de l'utilisateur.
+    const _c = new URLSearchParams(location.search).get("collab");
+    if (_c) params.set("collaborateur_exact", _c);
 
     let response;
     try {
