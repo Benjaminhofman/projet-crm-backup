@@ -328,6 +328,8 @@ async function loadPage(page = 1) {
     // fetch → filtre toujours actif si présent, sans action de l'utilisateur.
     const _c = sessionStorage.getItem("espaceCollab");
     if (_c) params.set("collaborateur_exact", _c);
+    const _a = sessionStorage.getItem("espaceAssistant");
+    if (_a) params.set("assistant_exact", _a);
 
     let response;
     try {

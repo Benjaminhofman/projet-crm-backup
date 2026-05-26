@@ -225,6 +225,8 @@ async function loadPage(page = 1) {
     // → filtre toujours actif si un espace est sélectionné.
     const _c = sessionStorage.getItem("espaceCollab");
     if (_c) params.set("collaborateur_exact", _c);
+    const _a = sessionStorage.getItem("espaceAssistant");
+    if (_a) params.set("assistant_exact", _a);
 
     try {
         const res = await fetch(`/api/clients?${params}`);
