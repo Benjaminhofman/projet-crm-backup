@@ -474,7 +474,7 @@ tr:hover {
 
 <!-- Sections détaillées -->
 <div class="dash-panels">
-    <div class="dash-panel">
+    <div class="dash-panel" id="panel-repartition">
         <h3>👤 Répartition collaborateurs</h3>
         <div class="collab-scroll" id="collab-repartition">
             <div class="dash-empty">Chargement…</div>
@@ -974,7 +974,11 @@ function renderAnnivJour(data) {
 }
 
 // Section : répartition par collaborateur (barre + somme honoraires)
+// Masquée quand un espace est actif (une seule ligne → peu utile).
 function renderCollabRepartition(data) {
+    const panel = document.getElementById("panel-repartition");
+    if (panel) panel.style.display = sessionStorage.getItem("espaceCollab") ? "none" : "";
+
     const map = {};
     data.forEach(c => {
         const k = c.collaborateur || "— non assigné —";
