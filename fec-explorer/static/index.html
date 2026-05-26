@@ -348,6 +348,9 @@ tr:hover {
 .pf-kpi:last-child { border-bottom: none; }
 .pf-kpi span { color: #7f8c9b; }
 .pf-kpi strong { color: #273c75; font-size: 16px; }
+#portefeuille-opportunites { display: flex; flex-wrap: wrap; gap: 8px; }
+.opp-badge { display: inline-flex; align-items: center; gap: 6px; color: white; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+.opp-badge b { background: rgba(255,255,255,0.28); padding: 1px 7px; border-radius: 10px; font-size: 12px; }
 .collab-scroll { max-height: 280px; overflow-y: auto; }
 .collab-row { margin-bottom: 10px; }
 .collab-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 3px; }
@@ -495,6 +498,8 @@ tr:hover {
     <div class="dash-panel" id="panel-portefeuille" style="display:none;">
         <h3>🏠 Mon portefeuille</h3>
         <div id="portefeuille-kpis"></div>
+        <h3 style="margin-top:18px;">📊 Opportunités</h3>
+        <div id="portefeuille-opportunites"></div>
     </div>
 
     <div class="dash-panel">
@@ -987,6 +992,31 @@ function renderPortefeuille(data) {
         <div class="pf-kpi"><span>👥 Clients</span><strong>${data.length}</strong></div>
         <div class="pf-kpi"><span>💰 Honoraires total</span><strong>${fmtEUR0(honosTotal)}</strong></div>
         <div class="pf-kpi"><span>📊 Honoraires moyen</span><strong>${fmtEUR0(moyen)}</strong></div>`;
+
+    renderOpportunites(data);
+}
+
+// Section « 📊 Opportunités » : compteur de clients par type d'opportunité
+// sur le portefeuille filtré. Badge coloré nom + compteur, masqué si 0.
+function renderOpportunites(data) {
+    const el = document.getElementById("portefeuille-opportunites");
+    if (!el) return;
+    const defs = [
+        { label: "Retraite",                 color: "#8e44ad", ok: v => v === "OUI" },
+        { label: "Patrimoniale",             color: "#2980b9", ok: v => v === "OUI", field: "mission_patrimoniale" },
+        { label: "Placement",                color: "#16a085", ok: v => v === "OPPORTUNITÉ FORTE" || v === "OPPORTUNITÉ MOYENNE", field: "mission_placement" },
+        { label: "Franchise TVA prest.",     color: "#e67e22", ok: v => v === "OUI", field: "franchise_tva_prest" },
+        { label: "Franchise TVA achat-rev.", color: "#d35400", ok: v => v === "OUI", field: "franchise_tva_achrevente" },
+        { label: "Prévoyance",               color: "#c0392b", ok: v => v === "OUI", field: "op_prevoyance" },
+        { label: "Arbitrage rémunération",   color: "#27ae60", ok: v => v === "OUI", field: "arbitrage_remuneration_dirigeant" }
+    ];
+    defs[0].field = "mission_retraite";
+    const html = defs.map(o => {
+        const n = data.filter(c => o.ok(c[o.field])).length;
+        if (!n) return "";
+        return `<span class="opp-badge" style="background:${o.color};">${o.label} <b>${n}</b></span>`;
+    }).filter(Boolean).join("");
+    el.innerHTML = html || '<div class="dash-empty">Aucune opportunité</div>';
 }
 
 // KPI : client avec le plus d'honoraires
