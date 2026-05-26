@@ -349,7 +349,7 @@ function exportCSV(data, filename, columns) {
 }
 </script>
 
-<script src="/espace.js?v=2"></script>
+<script src="/espace.js?v=3"></script>
 <script>
 let _currentPage = 1;
 const _LIMIT = 50;
@@ -468,6 +468,11 @@ async function loadPage(page = 1) {
     const cloture      = get("filter-cloture");
 
     const params = new URLSearchParams({ page, limit: _LIMIT });
+
+    // Espace collaborateur (?collab) : appliqué même si l'input n'est pas
+    // encore rempli (lecture directe de l'URL).
+    const _collab = new URLSearchParams(location.search).get("collab");
+    if (_collab) params.set("collaborateur_exact", _collab);
     if (search)        params.set("search",              search);
     if (assistant)     params.set("assistant_exact",     assistant);
     if (collaborateur) params.set("collaborateur_exact", collaborateur);

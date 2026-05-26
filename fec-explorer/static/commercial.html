@@ -244,7 +244,7 @@ function exportCSV(data, filename, columns) {
     URL.revokeObjectURL(url);
 }
 </script>
-<script src="/espace.js?v=2"></script>
+<script src="/espace.js?v=3"></script>
 <script>
 
 
@@ -351,6 +351,11 @@ async function loadPage(page = 1) {
 
     const get = id => (document.getElementById(id) || { value: '' }).value.trim();
     const params = new URLSearchParams({ page, limit: _LIMIT });
+
+    // Espace collaborateur (?collab) : appliqué même si l'input n'est pas
+    // encore rempli (lecture directe de l'URL).
+    const _collab = new URLSearchParams(location.search).get("collab");
+    if (_collab) params.set("collaborateur_exact", _collab);
     const assistant     = get('f-assistant');
     const collaborateur = get('f-collab');
     const annee         = get('f-annee');

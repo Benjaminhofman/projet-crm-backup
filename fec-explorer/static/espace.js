@@ -19,6 +19,10 @@ function injectEspaceCollab() {
              || document.getElementById("f-collab");
     if (inp) inp.value = collab;
 
+    // Expose la valeur globalement : loadPage() peut filtrer même si l'input
+    // n'est pas encore rempli (ordre de chargement des scripts).
+    window._espaceCollab = collab;
+
     // 2. Badge « Espace : X » — lien retour vers l'accueil de cet espace
     const badge = document.createElement("a");
     badge.href = "index.html?collab=" + encodeURIComponent(collab);
