@@ -877,7 +877,10 @@ function renderPagination(page, pages, total) {
         pag = document.createElement('div');
         pag.id = 'pagination';
         pag.style.cssText = 'display:flex;align-items:center;gap:12px;margin-top:10px;font-size:14px;padding:10px 0;';
-        document.querySelector('table').after(pag);
+        // Toujours attaché au tableau clients (#clients-table), jamais à la
+        // pf-table de la vue portefeuille qui apparaît avant dans le DOM.
+        const clientsTable = document.getElementById('clients-table').closest('table');
+        clientsTable.after(pag);
     }
     pag.innerHTML = `
         <button onclick="loadPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}
