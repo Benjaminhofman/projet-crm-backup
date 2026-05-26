@@ -40,6 +40,28 @@ function injectEspaceCollab() {
         const header = document.querySelector(".header");
         if (header) header.appendChild(badge);
     }
+
+    // 3. Propager ?collab sur tous les liens internes vers des pages .html
+    // (retour ⬅, liens de declaratif.html/missions.html vers les sous-pages
+    // déclaratives, etc.). Les params existants (ex. ?siret=) sont préservés.
+    propagateCollabToLinks(collab);
+}
+
+// Ajoute ?collab=X à tous les <a> internes pointant vers une page .html.
+// Préserve les autres paramètres d'URL et l'éventuel ancre #hash.
+function propagateCollabToLinks(collab) {
+    if (!collab) return;
+    document.querySelectorAll("a[href]").forEach(a => {
+        const href = a.getAttribute("href");
+        if (!href) return;
+        if (/^https?:\/\//i.test(href) || href.startsWith("//")) return; // externe
+        if (!/\.html(\?|#|$)/.test(href)) return; // uniquement pages .html
+        const [pathQuery, hash] = href.split("#");
+        const [base, query] = pathQuery.split("?");
+        const sp = new URLSearchParams(query || "");
+        sp.set("collab", collab);
+        a.setAttribute("href", base + "?" + sp.toString() + (hash ? "#" + hash : ""));
+    });
 }
 
 
