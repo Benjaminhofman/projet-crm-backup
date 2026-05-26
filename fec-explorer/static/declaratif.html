@@ -324,6 +324,7 @@ function exportCSV(data, filename, columns) {
     URL.revokeObjectURL(url);
 }
 </script>
+<script src="/espace.js?v=3"></script>
 <script>
 
 // Définition complète des colonnes déclaratives (ordre = ordre des en-têtes)
@@ -486,6 +487,11 @@ async function loadPage(page = 1) {
         params.set('filterValue', 'true');
     }
 
+    // Espace collaborateur : ?collab lu directement dans l'URL, juste avant le
+    // fetch → filtre toujours actif si présent, sans action de l'utilisateur.
+    const _c = new URLSearchParams(location.search).get("collab");
+    if (_c) params.set("collaborateur_exact", _c);
+
     let response;
     try {
         const res = await fetch(`${API_URL}/clients?${params}`);
@@ -627,6 +633,7 @@ async function load() {
     let _st;
     const srch = document.getElementById('search');
     if (srch) srch.addEventListener('input', () => { clearTimeout(_st); _st = setTimeout(applyFilters, 300); });
+    injectEspaceCollab(); // défini dans espace.js : pré-remplit l'input + badge
     await loadPage(1);
 }
 
