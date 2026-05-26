@@ -386,6 +386,9 @@ tr:hover {
         <select id="mon-espace" onchange="onMonEspaceChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
             <option value="">👤 Collaborateur</option>
         </select>
+        <select id="mon-assistant" onchange="onMonAssistantChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
+            <option value="">👤 Assistant</option>
+        </select>
         <span id="espace-badge" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,0.18);color:white;padding:5px 6px 5px 12px;border-radius:16px;font-size:13px;font-weight:600;"></span>
         <input type="text" id="search" placeholder="🔍 Rechercher un client...">
         <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
@@ -642,7 +645,7 @@ function exportCSV(data, filename, columns) {
     URL.revokeObjectURL(url);
 }
 </script>
-<script src="/espace.js?v=8"></script>
+<script src="/espace.js?v=9"></script>
 <script>
 let _currentPage = 1;
 const _LIMIT = 50;
@@ -759,12 +762,13 @@ async function loadPage(page = 1) {
         const cb = document.querySelector(`#fp-list-${field} input:checked`);
         return cb ? cb.value : '';
     };
-    const espaceCollab  = sessionStorage.getItem("espaceCollab") || "";
+    const espaceCollab    = sessionStorage.getItem("espaceCollab") || "";
+    const espaceAssistant = sessionStorage.getItem("espaceAssistant") || "";
     const search        = get("search");
     const tranche       = get("filter-tranche");
     const cloture       = get("fp-cloture");
     const collaborateur = firstChecked("collaborateur") || espaceCollab;
-    const assistant     = firstChecked("assistant");
+    const assistant     = firstChecked("assistant") || espaceAssistant;
     const structure     = firstChecked("structure");
     const activite_r    = firstChecked("activite_r");
 

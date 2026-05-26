@@ -43,27 +43,34 @@ function injectEspaceCollab() {
 
 // ── Espace collaborateur côté index.html (select + badge ✕) ───────────
 
-// Alimente le <select id="mon-espace"> depuis /api/clients/filters
+// Alimente les selects <#mon-espace> (collaborateurs) et <#mon-assistant>
+// (assistants) depuis /api/clients/filters, en un seul fetch.
 async function populateMonEspace() {
-    const sel = document.getElementById("mon-espace");
-    if (!sel) return;
+    const selC = document.getElementById("mon-espace");
+    const selA = document.getElementById("mon-assistant");
+    if (!selC && !selA) return;
     try {
         const res = await fetch("/api/clients/filters");
         if (!res.ok) return;
         const data = await res.json();
-        const current = sessionStorage.getItem("espaceCollab") || "";
-        (data.collaborateurs || []).forEach(c => {
-            const opt = document.createElement("option");
-            opt.value = c;
-            opt.textContent = c;
-            if (c === current) opt.selected = true;
-            sel.appendChild(opt);
-        });
+        const fill = (sel, vals, currentKey) => {
+            if (!sel) return;
+            const current = sessionStorage.getItem(currentKey) || "";
+            (vals || []).forEach(v => {
+                const opt = document.createElement("option");
+                opt.value = v;
+                opt.textContent = v;
+                if (v === current) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        };
+        fill(selC, data.collaborateurs, "espaceCollab");
+        fill(selA, data.assistants,     "espaceAssistant");
     } catch {}
 }
 
-// Changement du select : écrit l'espace en sessionStorage puis ré-applique le
-// filtre SANS rechargement complet (badge + loadPage(1)).
+// Changement du select collaborateur : écrit l'espace en sessionStorage puis
+// ré-applique le filtre SANS rechargement complet (badge + loadPage(1)).
 // "— Tous —" (val vide) → efface la clé.
 function onMonEspaceChange(val) {
     if (val) sessionStorage.setItem("espaceCollab", val);
@@ -71,6 +78,15 @@ function onMonEspaceChange(val) {
     renderEspaceBadge(val);                            // badge à jour (ou masqué)
     if (typeof loadPage === "function") loadPage(1);   // recharge la liste filtrée
     if (typeof loadDashboardExtra === "function") loadDashboardExtra(); // dashboard filtré
+}
+
+// Changement du select assistant : écrit l'espace assistant en sessionStorage
+// puis recharge la liste SANS rechargement complet.
+function onMonAssistantChange(val) {
+    if (val) sessionStorage.setItem("espaceAssistant", val);
+    else sessionStorage.removeItem("espaceAssistant");
+    renderEspaceBadge(sessionStorage.getItem("espaceCollab")); // badge collaborateur inchangé
+    if (typeof loadPage === "function") loadPage(1);
 }
 
 // Badge "Espace : X" du header index, avec bouton ✕ (quitte l'espace)
