@@ -1055,6 +1055,32 @@ Sinon `applyFilters` est bindé deux fois sur `#search` (direct + debounced).
 - disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000
 
 
+## ÉTAPE 45 — Espace collaborateur (26/05/2026)
+- Sélecteur « Mon espace » sur index.html
+- `sessionStorage('espaceCollab')` partagé entre toutes les pages
+- Badge « Espace : X » + bouton ✕ sur toutes les pages
+- `collaborateur_exact` injecté dans `loadPage()` sur toutes les pages
+- Dashboard index.html filtré sur l'espace actif
+  (KPIs + répartition + anniversaires) ; répartition masquée + grille
+  pleine largeur + titre « Portefeuille de X » quand un espace est actif
+- Changement d'espace sans rechargement complet (loadPage(1) + loadDashboardExtra)
+- `espace.js ?v=8`, `decl-engine.js ?v=3`
+
+### État du projet (26/05/2026)
+- 45 étapes réalisées
+- Espace collaborateur opérationnel : un collaborateur peut filtrer tout le
+  CRM sur son portefeuille via le sélecteur « Mon espace » (sessionStorage),
+  filtre appliqué côté serveur (`collaborateur_exact`) sur chaque page.
+- CRM en production : https://projet-crm-m0o3.onrender.com
+
+### Prochaines étapes
+- `exportAll()` des pages de suivi : lire `sessionStorage` pour exporter
+  en cohérence avec l'espace actif
+- Titre/badge « espace » sur les pages de suivi (homogénéité avec l'accueil)
+- Persistance optionnelle du dernier espace côté serveur (sessionStorage est
+  vidé à la fermeture de l'onglet)
+
+
 ## Espace collaborateur — `sessionStorage` (26/05/2026, refondu)
 
 ### Principe
