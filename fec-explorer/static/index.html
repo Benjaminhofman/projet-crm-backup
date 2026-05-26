@@ -449,6 +449,9 @@ tr:hover {
 
 <div id="alert-anniv"></div>
 
+<!-- Titre contextuel affiché uniquement quand un espace est actif -->
+<h2 id="espace-title" style="display:none;margin:0 0 16px;color:#273c75;font-size:20px;"></h2>
+
 <!-- KPI cards -->
 <div class="dashboard">
     <div class="card kpi">
@@ -977,12 +980,19 @@ function renderAnnivJour(data) {
 // Section : répartition par collaborateur (barre + somme honoraires)
 // Masquée quand un espace est actif (une seule ligne → peu utile).
 function renderCollabRepartition(data) {
-    const espaceActif = !!sessionStorage.getItem("espaceCollab");
+    const espaceCollab = sessionStorage.getItem("espaceCollab");
+    const espaceActif = !!espaceCollab;
     const panel = document.getElementById("panel-repartition");
     if (panel) panel.style.display = espaceActif ? "none" : "";
     // Grille en pleine largeur quand le panneau répartition est masqué
     const grid = document.getElementById("dash-panels");
     if (grid) grid.classList.toggle("full", espaceActif);
+    // Titre contextuel « Portefeuille de X »
+    const title = document.getElementById("espace-title");
+    if (title) {
+        title.style.display = espaceActif ? "" : "none";
+        title.textContent = espaceActif ? "📁 Portefeuille de " + espaceCollab : "";
+    }
 
     const map = {};
     data.forEach(c => {
