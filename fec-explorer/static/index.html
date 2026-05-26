@@ -385,6 +385,7 @@ tr:hover {
         <select id="mon-espace" onchange="onMonEspaceChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
             <option value="">— Tous —</option>
         </select>
+        <span id="espace-badge" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,0.18);color:white;padding:5px 6px 5px 12px;border-radius:16px;font-size:13px;font-weight:600;"></span>
         <input type="text" id="search" placeholder="🔍 Rechercher un client...">
         <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
             <option value="">Toutes tranches</option>
@@ -1032,6 +1033,31 @@ function renderAnniv45(data) {
 
 document.getElementById("search").addEventListener("input", applyFilters);
 document.getElementById("filter-tranche").addEventListener("change", applyFilters);
+
+// Affiche le badge "Espace : X" dans le header (✕ → retour sans param)
+function renderEspaceBadge(collab) {
+    const badge = document.getElementById("espace-badge");
+    if (!badge) return;
+    if (!collab) { badge.style.display = "none"; badge.innerHTML = ""; return; }
+    badge.style.display = "inline-flex";
+    badge.innerHTML = `Espace : ${esc(collab)}
+        <button onclick="window.location.href='index.html'"
+            title="Quitter cet espace"
+            style="background:rgba(255,255,255,0.25);color:white;border:none;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>`;
+}
+
+// Au chargement : lit ?collab et applique l'espace collaborateur
+document.addEventListener("DOMContentLoaded", () => {
+    const collab = new URLSearchParams(location.search).get("collab") || "";
+    if (collab) {
+        // Pré-remplir le select (l'option est ajoutée par populateMonEspace,
+        // mais on force la valeur dès maintenant si elle est déjà présente)
+        const sel = document.getElementById("mon-espace");
+        if (sel) sel.value = collab;
+        renderEspaceBadge(collab);
+    }
+    // collaborateur_exact est injecté dans loadPage() via le param ?collab
+});
 
 populatePanel().then(() => loadPage(1));
 populateMonEspace();
