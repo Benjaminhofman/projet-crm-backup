@@ -14,18 +14,48 @@ body {
 .header {
     background: #273c75;
     color: white;
-    padding: 15px 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
-
+/* Ligne 1 — marque, recherche, actions */
+.header-row1 {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 25px;
+    background: #273c75;
+}
+.header-brand {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    white-space: nowrap;
+}
 .header input {
     padding: 8px;
     border-radius: 6px;
     border: none;
-    width: 250px;
 }
+.header-search {
+    flex: 1 1 auto;
+    min-width: 160px;
+}
+/* Ligne 2 — navigation + filtres (scroll horizontal si étroit) */
+.header-row2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 25px;
+    background: #32508f;
+}
+.header-row2 > .nav-dropdown { flex-shrink: 0; }
+.header-row2-scroll {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+}
+.header-row2-scroll > * { flex-shrink: 0; }
 
 .container {
     padding: 20px;
@@ -369,11 +399,18 @@ tr:hover {
 <body>
 
 <div class="header">
-    <h2>📊 CRM Clients</h2>
 
-    <div style="display:flex; gap:10px; align-items:center;">
+    <!-- Ligne 1 : marque + recherche + actions (Déconnexion injecté ici par auth.js) -->
+    <div class="header-row1">
+        <h2 class="header-brand">📊 CRM Clients</h2>
+        <input type="text" id="search" class="header-search" placeholder="🔍 Rechercher un client...">
+        <button onclick="exportIndexCSV()" style="background:#27ae60;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;">⬇ Export CSV</button>
+    </div>
 
-        <!-- Menu déroulant navigation -->
+    <!-- Ligne 2 : navigation + filtres -->
+    <div class="header-row2">
+
+        <!-- Menu déroulant navigation (hors zone scrollable → dropdown non rogné) -->
         <div class="nav-dropdown">
             <button class="nav-btn" id="nav-btn" onclick="toggleNavMenu()">
                 ☰ Navigation <span class="nav-arrow">▾</span>
@@ -389,23 +426,24 @@ tr:hover {
             </div>
         </div>
 
-        <button onclick="toggleFilterPanel()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;">🔽 Filtres</button>
-        <select id="mon-espace" onchange="onMonEspaceChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
-            <option value="">👤 Collaborateur</option>
-        </select>
-        <select id="mon-assistant" onchange="onMonAssistantChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
-            <option value="">👤 Assistant</option>
-        </select>
-        <span id="espace-badge" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,0.18);color:white;padding:5px 6px 5px 12px;border-radius:16px;font-size:13px;font-weight:600;"></span>
-        <input type="text" id="search" placeholder="🔍 Rechercher un client...">
-        <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
-            <option value="">Toutes tranches</option>
-            <option value="excellent">⭐ Excellent (≥80)</option>
-            <option value="bon">👍 Bon (60-79)</option>
-            <option value="moyen">⚠️ Moyen (40-59)</option>
-            <option value="faible">🔴 Faible (&lt;40)</option>
-        </select>
-        <button onclick="exportIndexCSV()" style="background:#27ae60;color:white;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">⬇ Export CSV</button>
+        <!-- Groupe scrollable horizontalement sur écran étroit -->
+        <div class="header-row2-scroll">
+            <button onclick="toggleFilterPanel()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;">🔽 Filtres</button>
+            <select id="mon-espace" onchange="onMonEspaceChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
+                <option value="">👤 Collaborateur</option>
+            </select>
+            <select id="mon-assistant" onchange="onMonAssistantChange(this.value)" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
+                <option value="">👤 Assistant</option>
+            </select>
+            <span id="espace-badge" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,0.18);color:white;padding:5px 6px 5px 12px;border-radius:16px;font-size:13px;font-weight:600;"></span>
+            <select id="filter-tranche" style="padding:6px;border-radius:6px;border:1px solid #ccc;font-size:13px;">
+                <option value="">Toutes tranches</option>
+                <option value="excellent">⭐ Excellent (≥80)</option>
+                <option value="bon">👍 Bon (60-79)</option>
+                <option value="moyen">⚠️ Moyen (40-59)</option>
+                <option value="faible">🔴 Faible (&lt;40)</option>
+            </select>
+        </div>
     </div>
 </div>
 
