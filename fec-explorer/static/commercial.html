@@ -372,6 +372,9 @@ async function loadPage(page = 1) {
     const _a = sessionStorage.getItem("espaceAssistant");
     if (_a) params.set("assistant_exact", _a);
 
+    // Filtres détection mission issus de l'URL (liens du dashboard)
+    for (const [k, v] of Object.entries(_urlMissionFilters)) params.set(k, v);
+
     let response;
     try {
         const res = await fetch(`${API_URL}/clients?${params}`);
@@ -501,8 +504,34 @@ async function load() {
     document.querySelectorAll('.filters select').forEach(sel => {
         sel.addEventListener('change', applyFilters);
     });
-    injectEspaceCollab(); // défini dans espace.js
+    applyUrlFilters();    // filtre mission + espace depuis l'URL (liens du dashboard)
+    injectEspaceCollab(); // défini dans espace.js : remplit l'input + badge depuis sessionStorage
     await loadPage(1);
+}
+
+// Filtres détection mission transmis au fetch (depuis les liens du dashboard)
+let _urlMissionFilters = {};
+
+// Lit les paramètres d'URL et pré-applique espace + filtres mission
+function applyUrlFilters() {
+    const params = new URLSearchParams(location.search);
+    // Champs de détection mission → transmis tels quels au serveur dans loadPage
+    ["mission_retraite", "mission_patrimoniale", "mission_placement", "op_prevoyance"].forEach(f => {
+        if (params.has(f)) _urlMissionFilters[f] = params.get(f);
+    });
+    // Espace collaborateur / assistant
+    const collab = params.get("collab");
+    if (collab) {
+        sessionStorage.setItem("espaceCollab", collab);
+        const inp = document.getElementById("f-collab");
+        if (inp) inp.value = collab;
+    }
+    const assistant = params.get("assistant");
+    if (assistant) {
+        sessionStorage.setItem("espaceAssistant", assistant);
+        const inp = document.getElementById("f-assistant");
+        if (inp) inp.value = assistant;
+    }
 }
 
 load();
