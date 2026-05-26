@@ -226,6 +226,8 @@ async function loadPage(page = 1) {
     const _c = new URLSearchParams(location.search).get("collab");
     if (_c) params.set("collaborateur_exact", _c);
 
+    console.log("params:", params.toString()); // DEBUG TEMPORAIRE — à retirer
+
     try {
         const res = await fetch(`/api/clients?${params}`);
         if (!res.ok) throw new Error("Erreur HTTP " + res.status);
