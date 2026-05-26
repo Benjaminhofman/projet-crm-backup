@@ -55,8 +55,26 @@ function initDeclaratifPage(config) {
         filterTop.appendChild(btn);
     }
 
+    injectEspaceCollab();
     populateSelects();
     loadPage(1);
+}
+
+// Espace collaborateur transmis via ?collab depuis index.html
+function injectEspaceCollab() {
+    const collab = new URLSearchParams(location.search).get("collab");
+    if (!collab) return;
+    const inp = document.getElementById("filter-collab") || document.getElementById("f-collab");
+    if (inp) inp.value = collab; // injecté dans collaborateur_exact via loadPage()
+    const title = document.getElementById("page-title");
+    if (title) {
+        const badge = document.createElement("a");
+        badge.href = "index.html?collab=" + encodeURIComponent(collab);
+        badge.textContent = "🏢 Espace : " + collab;
+        badge.title = "Retour à l'accueil de cet espace";
+        badge.style.cssText = "margin-left:14px;background:#fff;color:#273c75;padding:5px 12px;border-radius:16px;font-size:13px;text-decoration:none;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.15);vertical-align:middle;";
+        title.insertAdjacentElement("afterend", badge);
+    }
 }
 
 async function populateSelects() {

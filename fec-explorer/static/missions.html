@@ -377,7 +377,25 @@ async function load() {
     let _st;
     const srch = document.getElementById('search');
     if (srch) srch.addEventListener('input', () => { clearTimeout(_st); _st = setTimeout(applyFilters, 300); });
+    injectEspaceCollab();
     await loadPage(1);
+}
+
+// Espace collaborateur transmis via ?collab depuis index.html
+function injectEspaceCollab() {
+    const collab = new URLSearchParams(location.search).get("collab");
+    if (!collab) return;
+    const inp = document.getElementById("f-collab");
+    if (inp) inp.value = collab; // injecté dans collaborateur_exact via loadPage()
+    const header = document.querySelector(".header");
+    if (header) {
+        const badge = document.createElement("a");
+        badge.href = "index.html?collab=" + encodeURIComponent(collab);
+        badge.textContent = "🏢 Espace : " + collab;
+        badge.title = "Retour à l'accueil de cet espace";
+        badge.style.cssText = "margin-left:14px;background:#fff;color:#273c75;padding:5px 12px;border-radius:16px;font-size:13px;text-decoration:none;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.15);";
+        header.appendChild(badge);
+    }
 }
 
 load();
