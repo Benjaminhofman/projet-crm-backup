@@ -1081,6 +1081,24 @@ Sinon `applyFilters` est bindé deux fois sur `#search` (direct + debounced).
   vidé à la fermeture de l'onglet)
 
 
+## ÉTAPE 47 — Dashboard portefeuille enrichi (26/05/2026)
+> Note : pas d'ÉTAPE 46 dans ce fichier (numérotation poursuivie à 47 sur demande).
+- Badges Opportunités cliquables vers opportunites.html
+  avec filtre type + collab/assistant propagé en URL
+- opportunites.html lit les params URL au chargement
+- Section "💼 Suivi Commercial" dans vue portefeuille :
+  tableau Mission | Nb détectés | Nb acceptés
+  colonnes : suivi_mission_retraite/patrimoniale/
+  placement/prevoyance (valeurs exactes 'détecté','accepté')
+- Liens vers commercial.html avec suivi_mission_X=détecté
+  + collab/assistant propagé
+- commercial.html lit les params URL au chargement
+- Exclusivité mutuelle collab/assistant :
+  sélectionner l'un vide l'autre (sessionStorage + select)
+- Pagination repositionnée sous le tableau principal
+- Total missions détectées en pied de tableau
+
+
 ## Espace collaborateur — `sessionStorage` (26/05/2026, refondu)
 
 ### Principe
@@ -1146,3 +1164,23 @@ Présent dans : `decl-engine.js`, `declaratif.html`, `missions.html`,
 - Prompts courts suffisent (5-10 lignes max)
 - Peut lire, modifier plusieurs fichiers, committer et pusher en autonomie
 - Pas besoin de découper si la tâche est claire
+
+Mets à jour CLAUDE.md, ajoute après l'étape 45 :
+
+ÉTAPE 46 — Espace assistant + dashboard opportunités (26/05/2026)
+- Sélecteur "👤 Assistant" dans le header de index.html
+- sessionStorage('espaceAssistant') partagé entre toutes les pages
+- assistant_exact injecté dans loadPage() de decl-engine.js,
+  missions.html, opportunites.html, commercial.html, 
+  rendement.html, declaratif.html
+- Vue "Portefeuille de X" identique collab et assistant :
+  KPIs filtrés, Mon portefeuille, Anniversaires 45j
+- Section "📊 Opportunités" : badges colorés avec compteurs
+  (Retraite, Patrimoniale, Placement, Franchise TVA prest/achrev,
+  Prévoyance, Arbitrage rémunération) — masqués si compteur = 0
+- Header redesigné sur 2 lignes : logo+search+actions / 
+  navigation+filtres+espaces
+- Masquage section "Répartition collaborateurs" 
+  quand un espace assistant est actif
+
+  
