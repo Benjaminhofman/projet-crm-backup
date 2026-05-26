@@ -87,6 +87,7 @@ function onMonAssistantChange(val) {
     else sessionStorage.removeItem("espaceAssistant");
     renderEspaceBadge();                               // badges à jour (collab + assistant)
     if (typeof loadPage === "function") loadPage(1);
+    if (typeof loadDashboardExtra === "function") loadDashboardExtra(); // dashboard (portefeuille)
 }
 
 // Badges du header index : « Espace : X » (collaborateur) et

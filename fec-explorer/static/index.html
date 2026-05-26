@@ -344,6 +344,10 @@ tr:hover {
     padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .dash-panel h3 { margin: 0 0 14px; font-size: 15px; color: #273c75; }
+.pf-kpi { display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; border-bottom: 1px solid #f0f2f5; font-size: 14px; }
+.pf-kpi:last-child { border-bottom: none; }
+.pf-kpi span { color: #7f8c9b; }
+.pf-kpi strong { color: #273c75; font-size: 16px; }
 .collab-scroll { max-height: 280px; overflow-y: auto; }
 .collab-row { margin-bottom: 10px; }
 .collab-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 3px; }
@@ -486,6 +490,11 @@ tr:hover {
         <div class="collab-scroll" id="collab-repartition">
             <div class="dash-empty">Chargement…</div>
         </div>
+    </div>
+
+    <div class="dash-panel" id="panel-portefeuille" style="display:none;">
+        <h3>🏠 Mon portefeuille</h3>
+        <div id="portefeuille-kpis"></div>
     </div>
 
     <div class="dash-panel">
@@ -645,7 +654,7 @@ function exportCSV(data, filename, columns) {
     URL.revokeObjectURL(url);
 }
 </script>
-<script src="/espace.js?v=10"></script>
+<script src="/espace.js?v=11"></script>
 <script>
 let _currentPage = 1;
 const _LIMIT = 50;
@@ -936,12 +945,14 @@ const fmtEUR  = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currenc
 const fmtEUR0 = v => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
 
 // Charge les clients (limit=0) pour les KPI calculés côté client.
-// Filtré sur l'espace actif (collaborateur) s'il est sélectionné.
+// Filtré sur l'espace actif (collaborateur ET/OU assistant) s'il est sélectionné.
 async function loadDashboardExtra() {
     try {
         const params = new URLSearchParams({ limit: 0 });
         const espaceCollab = sessionStorage.getItem("espaceCollab");
         if (espaceCollab) params.set("collaborateur_exact", espaceCollab);
+        const espaceAssistant = sessionStorage.getItem("espaceAssistant");
+        if (espaceAssistant) params.set("assistant_exact", espaceAssistant);
         const res = await fetch(`${API_URL}/clients?${params}`);
         if (!res.ok) return;
         const response = await res.json();
@@ -949,10 +960,33 @@ async function loadDashboardExtra() {
         renderTopHonos(data);
         renderAnnivJour(data);
         renderCollabRepartition(data);
+        renderPortefeuille(data);
         renderAnniv45(data);
     } catch (err) {
         console.error("Erreur loadDashboardExtra:", err);
     }
+}
+
+// Section « Mon portefeuille » : KPIs synthétiques affichés à la place de la
+// répartition collaborateurs quand un espace ASSISTANT est actif.
+function renderPortefeuille(data) {
+    const panel = document.getElementById("panel-portefeuille");
+    const espaceAssistant = sessionStorage.getItem("espaceAssistant");
+    if (!panel) return;
+    if (!espaceAssistant) { panel.style.display = "none"; return; }
+
+    panel.style.display = "";
+    let honosTotal = 0, nbHonos = 0;
+    data.forEach(c => {
+        const h = parseFloat(c.honoraires_cpta);
+        if (!isNaN(h)) { honosTotal += h; nbHonos++; }
+    });
+    const moyen = nbHonos ? honosTotal / nbHonos : 0;
+    const el = document.getElementById("portefeuille-kpis");
+    el.innerHTML = `
+        <div class="pf-kpi"><span>👥 Clients</span><strong>${data.length}</strong></div>
+        <div class="pf-kpi"><span>💰 Honoraires total</span><strong>${fmtEUR0(honosTotal)}</strong></div>
+        <div class="pf-kpi"><span>📊 Honoraires moyen</span><strong>${fmtEUR0(moyen)}</strong></div>`;
 }
 
 // KPI : client avec le plus d'honoraires
@@ -985,18 +1019,22 @@ function renderAnnivJour(data) {
 // Masquée quand un espace est actif (une seule ligne → peu utile).
 function renderCollabRepartition(data) {
     const espaceCollab = sessionStorage.getItem("espaceCollab");
-    const espaceActif = !!espaceCollab;
+    const espaceAssistant = sessionStorage.getItem("espaceAssistant");
+    // Répartition masquée si un espace (collaborateur OU assistant) est actif
+    const espaceActif = !!espaceCollab || !!espaceAssistant;
     const panel = document.getElementById("panel-repartition");
-    if (panel) panel.style.display = espaceActif ? "none" : "";
+    if (panel) panel.style.display = espaceActif ? "none" : "block";
     // Grille en pleine largeur quand le panneau répartition est masqué
     const grid = document.getElementById("dash-panels");
     if (grid) grid.classList.toggle("full", espaceActif);
     // Titre contextuel « Portefeuille de X »
     const title = document.getElementById("espace-title");
     if (title) {
+        const label = espaceCollab || espaceAssistant || "";
         title.style.display = espaceActif ? "" : "none";
-        title.textContent = espaceActif ? "📁 Portefeuille de " + espaceCollab : "";
+        title.textContent = espaceActif ? "📁 Portefeuille de " + label : "";
     }
+    if (espaceActif) return; // répartition non calculée si masquée
 
     const map = {};
     data.forEach(c => {
