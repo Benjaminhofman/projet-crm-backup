@@ -574,8 +574,36 @@ async function load() {
     document.querySelectorAll("#filters-opportunites input").forEach(el => {
         el.addEventListener("change", applyFilters);
     });
-    injectEspaceCollab(); // défini dans espace.js
+    applyUrlFilters();    // pré-coche les filtres d'opportunité + espace depuis l'URL
+    injectEspaceCollab(); // défini dans espace.js : remplit l'input + badge depuis sessionStorage
     loadPage(1);
+}
+
+// Lit les paramètres d'URL et pré-applique les filtres (liens du dashboard)
+function applyUrlFilters() {
+    const params = new URLSearchParams(location.search);
+    // Cases d'opportunité : cochées si le champ est présent dans l'URL
+    ["mission_retraite", "mission_patrimoniale", "mission_placement",
+     "franchise_tva_prest", "franchise_tva_achrevente", "op_prevoyance",
+     "arbitrage_remuneration_dirigeant"].forEach(f => {
+        if (params.has(f)) {
+            const cb = document.querySelector(`#filters-opportunites input[data-field="${f}"]`);
+            if (cb) cb.checked = true;
+        }
+    });
+    // Espace collaborateur / assistant
+    const collab = params.get("collab");
+    if (collab) {
+        sessionStorage.setItem("espaceCollab", collab);
+        const inp = document.getElementById("f-collab");
+        if (inp) inp.value = collab;
+    }
+    const assistant = params.get("assistant");
+    if (assistant) {
+        sessionStorage.setItem("espaceAssistant", assistant);
+        const inp = document.getElementById("f-assistant");
+        if (inp) inp.value = assistant;
+    }
 }
 
 load();
