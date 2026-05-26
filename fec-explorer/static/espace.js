@@ -73,8 +73,15 @@ async function populateMonEspace() {
 // ré-applique le filtre SANS rechargement complet (badge + loadPage(1)).
 // "— Tous —" (val vide) → efface la clé.
 function onMonEspaceChange(val) {
-    if (val) sessionStorage.setItem("espaceCollab", val);
-    else sessionStorage.removeItem("espaceCollab");
+    if (val) {
+        sessionStorage.setItem("espaceCollab", val);
+        // Exclusivité : un collaborateur sélectionné annule l'espace assistant
+        sessionStorage.removeItem("espaceAssistant");
+        const selA = document.getElementById("mon-assistant");
+        if (selA) selA.value = "";
+    } else {
+        sessionStorage.removeItem("espaceCollab");
+    }
     renderEspaceBadge();                               // badges à jour (collab + assistant)
     if (typeof loadPage === "function") loadPage(1);   // recharge la liste filtrée
     if (typeof loadDashboardExtra === "function") loadDashboardExtra(); // dashboard filtré
@@ -83,8 +90,15 @@ function onMonEspaceChange(val) {
 // Changement du select assistant : écrit l'espace assistant en sessionStorage
 // puis recharge la liste SANS rechargement complet.
 function onMonAssistantChange(val) {
-    if (val) sessionStorage.setItem("espaceAssistant", val);
-    else sessionStorage.removeItem("espaceAssistant");
+    if (val) {
+        sessionStorage.setItem("espaceAssistant", val);
+        // Exclusivité : un assistant sélectionné annule l'espace collaborateur
+        sessionStorage.removeItem("espaceCollab");
+        const selC = document.getElementById("mon-espace");
+        if (selC) selC.value = "";
+    } else {
+        sessionStorage.removeItem("espaceAssistant");
+    }
     renderEspaceBadge();                               // badges à jour (collab + assistant)
     if (typeof loadPage === "function") loadPage(1);
     if (typeof loadDashboardExtra === "function") loadDashboardExtra(); // dashboard (portefeuille)
