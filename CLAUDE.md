@@ -1049,3 +1049,66 @@ Sinon `applyFilters` est bindé deux fois sur `#search` (direct + debounced).
 - Endpoint `/api/migrate/install_all_triggers` (réinstalle les 11 en 1 clic)
 - Endpoint `/api/debug/health` (vérifie présence des 11 triggers)
 
+## ÉTAPE 44 — CVAE acomptes juin/septembre (22/05/2026)
+- cvae.html : 3 colonnes mai_cvae, acompte_cvae_juin, acompte_cvae_septembre
+- Grisées si ca_r connu ET <= 500000, actives sinon
+- disabledFn: c => c.ca_r && parseFloat(c.ca_r) <= 500000
+
+
+## Espace collaborateur — filtre `?collab` (26/05/2026)
+
+### Principe
+Permet à un collaborateur de naviguer dans tout le CRM en ne voyant que SON
+portefeuille, via un paramètre d'URL `?collab=<nom>` propagé de page en page.
+Aucune donnée persistée : tout repose sur le paramètre d'URL + le filtre
+serveur `collaborateur_exact` existant.
+
+### Module partagé `static/espace.js`
+Source unique de toute la logique « espace ». Inclus dans 17 pages via
+`<script src="/espace.js?v=N"></script>` (cache-busting `?v=` à incrémenter
+à CHAQUE modif du fichier). Deux modèles de pages :
+
+- **`index.html`** (pilotage) : `<select id="mon-espace">` + badge fermable ✕.
+  Fonctions : `populateMonEspace()` (alimente le select via
+  `/api/clients/filters`), `onMonEspaceChange()` (navigation
+  `index.html?collab=<val>`), `renderEspaceBadge()` (badge « Espace : X » avec
+  bouton ✕ → `index.html` sans param), `propagateCollabToNav()` (ajoute
+  `?collab` sur tous les liens `#nav-menu a`), `initEspaceIndex()` (orchestre
+  au démarrage). Appel : `initEspaceIndex()` puis `populateMonEspace()`.
+
+- **Pages de suivi** (badge-lien) : `injectEspaceCollab()` lit `?collab`,
+  pré-remplit l'input collaborateur (`filter-collab` ou `f-collab`), expose
+  `window._espaceCollab`, et affiche un badge « 🏢 Espace : X » (lien retour
+  `index.html?collab=X`) après `#page-title` sinon dans `.header`.
+
+### Règle critique — filtre TOUJOURS appliqué dans `loadPage()`
+Ne JAMAIS se fier au pré-remplissage de l'input (race possible : `loadPage(1)`
+peut partir avant que `injectEspaceCollab()` ait rempli l'input). Chaque
+`loadPage()` lit `?collab` directement dans l'URL, **juste avant le `fetch`**,
+en DERNIER `params.set` (donc prioritaire sur tout) :
+```javascript
+const _c = new URLSearchParams(location.search).get("collab");
+if (_c) params.set("collaborateur_exact", _c);
+```
+Présent dans le `loadPage()` de : `decl-engine.js`, `declaratif.html`,
+`missions.html`, `opportunites.html`, `commercial.html`, `rendement.html`.
+
+### Architecture des pages déclaratives — PIÈGE
+- `decl-engine.js` est le moteur partagé chargé par **11 pages HTML
+  indépendantes** (`cvae`, `tvs`, `ca12`, `dividendes`, `juridique`, `tbb`,
+  `situation`, `is`, `cfe`, `liasse`, `ir`). PAS d'iframe → `location.search`
+  y est l'URL propre de chaque page (ex. `cvae.html?collab=X`).
+- `declaratif.html` est une page DISTINCTE avec sa PROPRE `loadPage()` (ne
+  charge pas `decl-engine.js`). Toute logique espace doit y être ajoutée
+  séparément.
+
+### Non couvert (TODO)
+- `exportAll()` lit encore l'input (OK car rempli au clic), pas `?collab`
+  directement → à aligner si besoin d'export robuste.
+- Propagation `?collab` sur les liens internes (retour ⬅) des pages de suivi.
+
+
+## Claude Code — capacités
+- Prompts courts suffisent (5-10 lignes max)
+- Peut lire, modifier plusieurs fichiers, committer et pusher en autonomie
+- Pas besoin de découper si la tâche est claire
