@@ -338,6 +338,7 @@ tr:hover {
     gap: 20px; margin-bottom: 20px;
 }
 @media (max-width: 900px) { .dash-panels { grid-template-columns: 1fr; } }
+.dash-panels.full { grid-template-columns: 1fr; } /* espace actif : pleine largeur */
 .dash-panel {
     background: white; border-radius: 10px;
     padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -473,7 +474,7 @@ tr:hover {
 </div>
 
 <!-- Sections détaillées -->
-<div class="dash-panels">
+<div class="dash-panels" id="dash-panels">
     <div class="dash-panel" id="panel-repartition">
         <h3>👤 Répartition collaborateurs</h3>
         <div class="collab-scroll" id="collab-repartition">
@@ -976,8 +977,12 @@ function renderAnnivJour(data) {
 // Section : répartition par collaborateur (barre + somme honoraires)
 // Masquée quand un espace est actif (une seule ligne → peu utile).
 function renderCollabRepartition(data) {
+    const espaceActif = !!sessionStorage.getItem("espaceCollab");
     const panel = document.getElementById("panel-repartition");
-    if (panel) panel.style.display = sessionStorage.getItem("espaceCollab") ? "none" : "";
+    if (panel) panel.style.display = espaceActif ? "none" : "";
+    // Grille en pleine largeur quand le panneau répartition est masqué
+    const grid = document.getElementById("dash-panels");
+    if (grid) grid.classList.toggle("full", espaceActif);
 
     const map = {};
     data.forEach(c => {
