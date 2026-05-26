@@ -45,12 +45,26 @@ function injectEspaceCollab() {
     // (retour ⬅, liens de declaratif.html/missions.html vers les sous-pages
     // déclaratives, etc.). Les params existants (ex. ?siret=) sont préservés.
     propagateCollabToLinks(collab);
+
+    // 4. Les liens vers les sous-pages sont parfois générés/injectés
+    // dynamiquement APRÈS ce premier passage (rendu du tableau par
+    // decl-engine.js, pagination, etc.). Un MutationObserver réapplique la
+    // propagation à chaque ajout de nœud. On observe childList + subtree
+    // UNIQUEMENT : propagateCollabToLinks() modifie des attributs (href/onclick)
+    // via setAttribute, donc observer les attributs créerait une boucle infinie.
+    if (!window._espaceObserver) {
+        window._espaceObserver = new MutationObserver(() => propagateCollabToLinks(collab));
+        window._espaceObserver.observe(document.body, { childList: true, subtree: true });
+    }
 }
 
-// Ajoute ?collab=X à tous les <a> internes pointant vers une page .html.
+// Ajoute ?collab=X à tous les liens internes vers une page .html.
+// Couvre deux formes : <a href="…html"> ET onclick="location.href='…html'".
 // Préserve les autres paramètres d'URL et l'éventuel ancre #hash.
 function propagateCollabToLinks(collab) {
     if (!collab) return;
+
+    // Forme 1 : ancres <a href="…html">
     document.querySelectorAll("a[href]").forEach(a => {
         const href = a.getAttribute("href");
         if (!href) return;
@@ -59,8 +73,21 @@ function propagateCollabToLinks(collab) {
         const [pathQuery, hash] = href.split("#");
         const [base, query] = pathQuery.split("?");
         const sp = new URLSearchParams(query || "");
+        if (sp.get("collab") === collab) return; // déjà à jour
         sp.set("collab", collab);
         a.setAttribute("href", base + "?" + sp.toString() + (hash ? "#" + hash : ""));
+    });
+
+    // Forme 2 : onclick="location.href='…html'" (ex. en-têtes de declaratif.html)
+    document.querySelectorAll('[onclick*="location.href"]').forEach(el => {
+        const oc = el.getAttribute("onclick");
+        if (!oc) return;
+        const newOc = oc.replace(/location\.href\s*=\s*'([^']*\.html)([^']*)'/g, (m, base, q) => {
+            const sp = new URLSearchParams(q.replace(/^\?/, ""));
+            sp.set("collab", collab);
+            return "location.href='" + base + "?" + sp.toString() + "'";
+        });
+        if (newOc !== oc) el.setAttribute("onclick", newOc);
     });
 }
 
